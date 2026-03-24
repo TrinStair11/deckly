@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TrinDeckly Quiz Editor</title>
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+    integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+    crossorigin="anonymous"
+  />
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+  />
+  <link rel="stylesheet" href="/quiz-common.css" />
+</head>
+<body class="quiz-body">
+  <div class="quiz-shell">
+    <aside class="quiz-sidebar">
+      <div class="quiz-sidebar-inner">
+        <div class="quiz-panel rounded-4 p-3">
+          <div class="d-flex align-items-center gap-3 fw-semibold fs-5">
+            <div class="quiz-brand"><i class="bi bi-stack"></i></div>
+            <span>TrinDeckly</span>
+          </div>
+        </div>
+        <nav class="quiz-panel quiz-nav rounded-4 p-2 nav nav-pills flex-column gap-1">
+          <a class="nav-link" href="/"><i class="bi bi-grid-1x2-fill"></i><span>Home</span></a>
+          <a class="nav-link" href="/#decksSection"><i class="bi bi-collection-fill"></i><span>My Decks</span></a>
+          <a class="nav-link active" href="/quiz"><i class="bi bi-patch-check-fill"></i><span>Quiz</span></a>
+          <a class="nav-link" href="/settings.html"><i class="bi bi-sliders"></i><span>Settings</span></a>
+        </nav>
+      </div>
+    </aside>
+
+    <main class="quiz-main">
+      <div class="quiz-topbar">
+        <div>
+          <a class="quiz-link-btn small text-uppercase" id="editorBackLink" href="/quiz"><i class="bi bi-arrow-left me-2"></i>Back to Quiz Library</a>
+          <h1 class="quiz-page-title mt-2" id="editorTitle">Create quiz</h1>
+          <p class="quiz-page-subtitle" id="editorSubtitle">Author questions manually with fixed answer options and exact correctness rules.</p>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+          <button class="btn btn-light text-dark rounded-pill px-4 fw-semibold" type="button" id="saveQuizBtn">Save Quiz</button>
+          <div class="dropdown">
+            <button class="btn quiz-account-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <span class="quiz-avatar" id="accountAvatar">G</span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end rounded-4 p-2">
+              <li class="quiz-account-summary px-3 py-2 d-none" id="accountSummary">
+                <div class="d-flex align-items-center gap-3">
+                  <div class="quiz-avatar" id="menuAvatar">G</div>
+                  <div class="min-w-0">
+                    <strong class="d-block text-truncate" id="profileName">Guest</strong>
+                    <small class="text-secondary text-truncate d-block" id="profileEmail">Sign in</small>
+                  </div>
+                </div>
+              </li>
+              <li id="guestActions"><button class="dropdown-item rounded-3" id="accountLoginBtn" type="button">Log in</button></li>
+              <li id="guestSignupWrap"><button class="dropdown-item rounded-3" id="accountSignupBtn" type="button">Sign up</button></li>
+              <li class="d-none" id="userActions">
+                <button class="dropdown-item rounded-3" id="accountProfileBtn" type="button">Profile</button>
+                <button class="dropdown-item rounded-3" id="accountSettingsBtn" type="button">Settings</button>
+                <hr class="dropdown-divider border-secondary my-2">
+                <button class="dropdown-item rounded-3 text-danger" id="accountLogoutBtn" type="button">Log out</button>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div id="editorState" class="quiz-grid">
+        <section class="quiz-card rounded-4 p-4">
+          <div class="row g-3">
+            <div class="col-12 col-xl-6">
+              <label class="form-label">Title</label>
+              <input class="form-control quiz-input" id="titleInput" type="text" maxlength="160" placeholder="Quiz title" />
+            </div>
+            <div class="col-12 col-xl-6">
+              <label class="form-label">Category</label>
+              <input class="form-control quiz-input" id="categoryInput" type="text" maxlength="120" placeholder="Category" />
+            </div>
+            <div class="col-12">
+              <label class="form-label">Description</label>
+              <textarea class="form-control quiz-textarea" id="descriptionInput" rows="3" maxlength="1000" placeholder="Short summary of what the quiz measures"></textarea>
+            </div>
+            <div class="col-12 col-xl-6">
+              <label class="form-label">Language</label>
+              <input class="form-control quiz-input" id="languageInput" type="text" maxlength="120" placeholder="Language" />
+            </div>
+            <div class="col-12 col-xl-6">
+              <label class="form-label">Cover image URL</label>
+              <input class="form-control quiz-input" id="coverImageInput" type="url" maxlength="2000" placeholder="https://..." />
+            </div>
+            <div class="col-12">
+              <label class="form-label">Tags</label>
+              <input class="form-control quiz-input" id="tagsInput" type="text" placeholder="Comma-separated tags" />
+            </div>
+            <div class="col-12">
+              <div class="form-check form-switch">
+                <input class="form-check-input" id="publishedInput" type="checkbox" role="switch" />
+                <label class="form-check-label" for="publishedInput">Publish quiz</label>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="quiz-card rounded-4 p-4">
+          <div class="mb-3">
+            <h2 class="h4 mb-1">Questions</h2>
+            <div class="text-secondary small">Each question owns its answer options and correctness rules.</div>
+          </div>
+          <div id="questionsList" class="d-grid gap-3"></div>
+          <div class="d-flex justify-content-center mt-4">
+            <button class="btn btn-outline-light rounded-pill px-4" type="button" id="addQuestionBtn">Add Question</button>
+          </div>
+        </section>
+
+        <section class="d-flex justify-content-between gap-3 flex-wrap">
+          <div id="deleteWrap"></div>
+          <div class="d-flex flex-column align-items-end gap-2">
+            <div class="small text-danger d-none" id="editorFeedback" role="alert"></div>
+            <div class="d-flex gap-2">
+            <a class="btn btn-outline-light rounded-pill px-4" href="/quiz">Cancel</a>
+            <button class="btn btn-light text-dark rounded-pill px-4 fw-semibold" type="button" id="saveQuizBtnBottom">Save Quiz</button>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+    crossorigin="anonymous"
+  ></script>
+  <script src="/quiz-common.js"></script>
+  <script>
+    const pathSegments = window.location.pathname.split("/").filter(Boolean);
+    const isCreateMode = pathSegments[1] === "create";
+    const quizId = isCreateMode ? null : pathSegments[1];
+
+    const questionsList = document.getElementById("questionsList");
+    const editorTitle = document.getElementById("editorTitle");
+    const editorSubtitle = document.getElementById("editorSubtitle");
+    const editorBackLink = document.getElementById("editorBackLink");
+    const deleteWrap = document.getElementById("deleteWrap");
+    const editorFeedback = document.getElementById("editorFeedback");
+    const saveButtons = [
+      document.getElementById("saveQuizBtn"),
+      document.getElementById("saveQuizBtnBottom"),
+    ];
+
+    const form = {
+      titleInput: document.getElementById("titleInput"),
+      descriptionInput: document.getElementById("descriptionInput"),
+      categoryInput: document.getElementById("categoryInput"),
+      languageInput: document.getElementById("languageInput"),
+      coverImageInput: document.getElementById("coverImageInput"),
+      tagsInput: document.getElementById("tagsInput"),
+      publishedInput: document.getElementById("publishedInput"),
+    };
+
+    const state = {
+      quizMeta: {
+        difficulty: "beginner",
+        subject: "",
+        estimated_time: null,
+      },
+      questions: [],
+    };
+
+    function setEditorFeedback(message = "", type = "danger") {
+      editorFeedback.textContent = message;
+      editorFeedback.className = `small text-${type}${message ? "" : " d-none"}`;
+    }
+
+    function setSaveState(isSaving) {
+      saveButtons.forEach((button) => {
+        button.disabled = isSaving;
+        button.textContent = isSaving ? "Saving..." : "Save Quiz";
+      });
+    }
+
+    function makeOption(option = {}) {
+      return {
+        id: option.id || null,
+        option_text: option.option_text || "",
+        is_correct: Boolean(option.is_correct),
+        order_index: option.order_index ?? 0,
+      };
+    }
+
+    function makeQuestion(question = {}) {
+      return {
+        id: question.id || null,
+        question_text: question.question_text || "",
+        question_type: question.question_type || "single_choice",
+        explanation: question.explanation || "",
+        order_index: question.order_index ?? state.questions.length,
+        points: question.points || 1,
+        options: (question.options || [makeOption(), makeOption()]).map(makeOption),
+      };
+    }
+
+    function renderQuestions() {
+      if (!state.questions.length) {
+        questionsList.innerHTML = `<div class="quiz-empty">No questions yet. Add the first one to make the quiz startable.</div>`;
+        return;
+      }
+
+      questionsList.innerHTML = state.questions.map((question, questionIndex) => `
+        <article class="quiz-editor-question p-3" data-question-index="${questionIndex}">
+          <div class="d-flex justify-content-between align-items-center gap-2 mb-3 flex-wrap">
+            <div class="small text-uppercase text-secondary">Question ${questionIndex + 1}</div>
+            <div class="d-flex gap-2">
+              <button class="btn btn-sm btn-outline-danger rounded-pill" type="button" data-action="remove-question">Delete</button>
+            </div>
+          </div>
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label">Question text</label>
+              <textarea class="form-control quiz-textarea" data-field="question_text" rows="2" placeholder="Write the question">${quizApp.escapeHtml(question.question_text)}</textarea>
+            </div>
+            <div class="col-12 col-xl-3">
+              <label class="form-label">Type</label>
+              <select class="form-select quiz-select" data-field="question_type">
+                <option value="single_choice" ${question.question_type === "single_choice" ? "selected" : ""}>Single choice</option>
+                <option value="multiple_choice" ${question.question_type === "multiple_choice" ? "selected" : ""}>Multiple choice</option>
+              </select>
+            </div>
+            <div class="col-12 col-xl-2">
+              <label class="form-label">Points</label>
+              <input class="form-control quiz-input" data-field="points" type="number" min="1" max="100" value="${question.points}" />
+            </div>
+            <div class="col-12 col-xl-7">
+              <label class="form-label">Explanation</label>
+              <input class="form-control quiz-input" data-field="explanation" type="text" maxlength="2000" value="${quizApp.escapeHtml(question.explanation)}" placeholder="Shown in review mode" />
+            </div>
+          </div>
+          <div class="mt-3 d-grid gap-2">
+            ${question.options.map((option, optionIndex) => `
+              <div class="quiz-card rounded-4 p-3" data-option-index="${optionIndex}">
+                <div class="row g-3 align-items-center">
+                  <div class="col-12 col-xl-1 text-secondary small">${String.fromCharCode(65 + optionIndex)}</div>
+                  <div class="col-12 col-xl-7">
+                    <input class="form-control quiz-input" data-option-field="option_text" type="text" maxlength="500" value="${quizApp.escapeHtml(option.option_text)}" placeholder="Answer option" />
+                  </div>
+                  <div class="col-12 col-xl-2">
+                    <div class="form-check">
+                      <input class="form-check-input" data-option-field="is_correct" type="${question.question_type === "multiple_choice" ? "checkbox" : "radio"}" name="correct-option-${questionIndex}" ${option.is_correct ? "checked" : ""} />
+                      <label class="form-check-label">Correct</label>
+                    </div>
+                  </div>
+                  <div class="col-12 col-xl-2 d-flex gap-2 justify-content-xl-end">
+                    <button class="btn btn-sm btn-outline-danger rounded-pill" type="button" data-action="remove-option" ${question.options.length <= 2 ? "disabled" : ""}>Remove</button>
+                  </div>
+                </div>
+              </div>
+            `).join("")}
+            <div>
+              <button class="btn btn-outline-light rounded-pill px-4" type="button" data-action="add-option">Add Option</button>
+            </div>
+          </div>
+        </article>
+      `).join("");
+    }
+
+    function bindQuestionEvents() {
+      document.querySelectorAll("[data-question-index]").forEach((questionNode) => {
+        const questionIndex = Number(questionNode.dataset.questionIndex);
+        questionNode.querySelectorAll("[data-field]").forEach((field) => {
+          field.addEventListener("input", () => {
+            const key = field.dataset.field;
+            state.questions[questionIndex][key] = key === "points" ? Number(field.value || 1) : field.value;
+          });
+          field.addEventListener("change", () => {
+            const key = field.dataset.field;
+            state.questions[questionIndex][key] = key === "points" ? Number(field.value || 1) : field.value;
+            if (key === "question_type") {
+              if (field.value === "single_choice") {
+                let foundCorrect = false;
+                state.questions[questionIndex].options = state.questions[questionIndex].options.map((option) => {
+                  if (option.is_correct && !foundCorrect) {
+                    foundCorrect = true;
+                    return option;
+                  }
+                  return { ...option, is_correct: false };
+                });
+              }
+              renderQuestions();
+              bindQuestionEvents();
+            }
+          });
+        });
+
+        questionNode.querySelectorAll("[data-option-index]").forEach((optionNode) => {
+          const optionIndex = Number(optionNode.dataset.optionIndex);
+          const optionTextInput = optionNode.querySelector('[data-option-field="option_text"]');
+          const optionCorrectInput = optionNode.querySelector('[data-option-field="is_correct"]');
+
+          optionTextInput.addEventListener("input", () => {
+            state.questions[questionIndex].options[optionIndex].option_text = optionTextInput.value;
+          });
+          optionCorrectInput.addEventListener("change", () => {
+            const question = state.questions[questionIndex];
+            if (question.question_type === "single_choice") {
+              question.options = question.options.map((option, currentIndex) => ({ ...option, is_correct: currentIndex === optionIndex }));
+            } else {
+              question.options[optionIndex].is_correct = optionCorrectInput.checked;
+            }
+            renderQuestions();
+            bindQuestionEvents();
+          });
+
+          optionNode.querySelectorAll("[data-action]").forEach((button) => {
+            button.addEventListener("click", () => {
+              const question = state.questions[questionIndex];
+              if (button.dataset.action === "remove-option" && question.options.length > 2) {
+                question.options.splice(optionIndex, 1);
+              }
+              renderQuestions();
+              bindQuestionEvents();
+            });
+          });
+        });
+
+        questionNode.querySelectorAll(":scope > .d-flex [data-action], :scope .mt-3 > div [data-action]").forEach((button) => {
+          button.addEventListener("click", () => {
+            if (button.dataset.action === "remove-question") state.questions.splice(questionIndex, 1);
+            if (button.dataset.action === "add-option") {
+              state.questions[questionIndex].options.push(makeOption());
+            }
+            renderQuestions();
+            bindQuestionEvents();
+          });
+        });
+      });
+    }
+
+    function buildPayload() {
+      return {
+        title: form.titleInput.value.trim(),
+        description: form.descriptionInput.value.trim(),
+        category: form.categoryInput.value.trim(),
+        difficulty: state.quizMeta.difficulty,
+        subject: state.quizMeta.subject,
+        language: form.languageInput.value.trim(),
+        is_published: form.publishedInput.checked,
+        cover_image: form.coverImageInput.value.trim(),
+        estimated_time: state.quizMeta.estimated_time,
+        tags: form.tagsInput.value.split(",").map((tag) => tag.trim()).filter(Boolean),
+        questions: state.questions.map((question, questionIndex) => ({
+          id: question.id || null,
+          question_text: question.question_text.trim(),
+          question_type: question.question_type,
+          explanation: question.explanation.trim(),
+          order_index: questionIndex,
+          points: Number(question.points || 1),
+          options: question.options.map((option, optionIndex) => ({
+            id: option.id || null,
+            option_text: option.option_text.trim(),
+            is_correct: Boolean(option.is_correct),
+            order_index: optionIndex,
+          })),
+        })),
+      };
+    }
+
+    async function saveQuiz() {
+      setEditorFeedback("");
+      setSaveState(true);
+      const payload = buildPayload();
+      const method = isCreateMode ? "POST" : "PUT";
+      const path = isCreateMode ? "/quizzes" : `/quizzes/${quizId}`;
+      try {
+        const response = await quizApp.api(path, { method, body: JSON.stringify(payload) });
+        window.location.href = `/quiz/${response.id}`;
+      } catch (error) {
+        setEditorFeedback(error.message || "Quiz could not be saved.");
+      } finally {
+        setSaveState(false);
+      }
+    }
+
+    async function loadEditor() {
+      const shell = await quizApp.initShell();
+      if (!shell.currentUser) {
+        quizApp.requireAuthNotice(document.getElementById("editorState"));
+        return;
+      }
+      if (!isCreateMode) {
+        const quiz = await quizApp.api(`/quizzes/${quizId}/edit-data`);
+        editorTitle.textContent = "Edit quiz";
+        editorSubtitle.textContent = "Update quiz metadata, maintain authored answer options, and keep question order explicit.";
+        editorBackLink.href = `/quiz/${quizId}`;
+        form.titleInput.value = quiz.title;
+        form.descriptionInput.value = quiz.description;
+        form.categoryInput.value = quiz.category;
+        form.languageInput.value = quiz.language;
+        form.coverImageInput.value = quiz.cover_image;
+        form.tagsInput.value = (quiz.tags || []).join(", ");
+        form.publishedInput.checked = quiz.is_published;
+        state.quizMeta.difficulty = quiz.difficulty || "beginner";
+        state.quizMeta.subject = quiz.subject || "";
+        state.quizMeta.estimated_time = quiz.estimated_time || null;
+        state.questions = quiz.questions.map(makeQuestion);
+        deleteWrap.innerHTML = `<button class="btn btn-outline-danger rounded-pill px-4" type="button" id="deleteQuizBtn">Delete Quiz</button>`;
+        document.getElementById("deleteQuizBtn").addEventListener("click", async () => {
+          const confirmed = window.confirm("Delete this quiz?");
+          if (!confirmed) return;
+          await quizApp.api(`/quizzes/${quizId}`, { method: "DELETE" });
+          window.location.href = "/quiz";
+        });
+      } else {
+        state.quizMeta = {
+          difficulty: "beginner",
+          subject: "",
+          estimated_time: null,
+        };
+        state.questions = [];
+      }
+      renderQuestions();
+      bindQuestionEvents();
+    }
+
+    document.getElementById("addQuestionBtn").addEventListener("click", () => {
+      state.questions.push(makeQuestion({ options: [makeOption({ is_correct: true }), makeOption()] }));
+      renderQuestions();
+      bindQuestionEvents();
+    });
+    document.getElementById("saveQuizBtn").addEventListener("click", saveQuiz);
+    document.getElementById("saveQuizBtnBottom").addEventListener("click", saveQuiz);
+
+    loadEditor().catch((error) => {
+      document.getElementById("editorState").innerHTML = `<div class="quiz-empty text-danger">${quizApp.escapeHtml(error.message)}</div>`;
+    });
+  </script>
+</body>
+</html>

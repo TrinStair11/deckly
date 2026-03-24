@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TrinDeckly Quiz Details</title>
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+    integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+    crossorigin="anonymous"
+  />
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+  />
+  <link rel="stylesheet" href="/quiz-common.css" />
+</head>
+<body class="quiz-body">
+  <div class="quiz-shell">
+    <aside class="quiz-sidebar">
+      <div class="quiz-sidebar-inner">
+        <div class="quiz-panel rounded-4 p-3">
+          <div class="d-flex align-items-center gap-3 fw-semibold fs-5">
+            <div class="quiz-brand"><i class="bi bi-stack"></i></div>
+            <span>TrinDeckly</span>
+          </div>
+        </div>
+        <nav class="quiz-panel quiz-nav rounded-4 p-2 nav nav-pills flex-column gap-1">
+          <a class="nav-link" href="/"><i class="bi bi-grid-1x2-fill"></i><span>Home</span></a>
+          <a class="nav-link" href="/#decksSection"><i class="bi bi-collection-fill"></i><span>My Decks</span></a>
+          <a class="nav-link active" href="/quiz"><i class="bi bi-patch-check-fill"></i><span>Quiz</span></a>
+          <a class="nav-link" href="/settings.html"><i class="bi bi-sliders"></i><span>Settings</span></a>
+        </nav>
+      </div>
+    </aside>
+
+    <main class="quiz-main">
+      <div class="quiz-topbar">
+        <div>
+          <a class="quiz-link-btn small text-uppercase" href="/quiz"><i class="bi bi-arrow-left me-2"></i>Back to Quiz Library</a>
+          <h1 class="quiz-page-title mt-2" id="quizTitle">Loading quiz...</h1>
+          <p class="quiz-page-subtitle" id="quizSubtitle">Preparing quiz details.</p>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+          <div class="dropdown">
+            <button class="btn quiz-account-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <span class="quiz-avatar" id="accountAvatar">G</span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end rounded-4 p-2">
+              <li class="quiz-account-summary px-3 py-2 d-none" id="accountSummary">
+                <div class="d-flex align-items-center gap-3">
+                  <div class="quiz-avatar" id="menuAvatar">G</div>
+                  <div class="min-w-0">
+                    <strong class="d-block text-truncate" id="profileName">Guest</strong>
+                    <small class="text-secondary text-truncate d-block" id="profileEmail">Sign in</small>
+                  </div>
+                </div>
+              </li>
+              <li id="guestActions"><button class="dropdown-item rounded-3" id="accountLoginBtn" type="button">Log in</button></li>
+              <li id="guestSignupWrap"><button class="dropdown-item rounded-3" id="accountSignupBtn" type="button">Sign up</button></li>
+              <li class="d-none" id="userActions">
+                <button class="dropdown-item rounded-3" id="accountProfileBtn" type="button">Profile</button>
+                <button class="dropdown-item rounded-3" id="accountSettingsBtn" type="button">Settings</button>
+                <hr class="dropdown-divider border-secondary my-2">
+                <button class="dropdown-item rounded-3 text-danger" id="accountLogoutBtn" type="button">Log out</button>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div id="detailState" class="quiz-grid"></div>
+    </main>
+  </div>
+
+  <script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+    crossorigin="anonymous"
+  ></script>
+  <script src="/quiz-common.js"></script>
+  <script>
+    const quizId = window.location.pathname.split("/").filter(Boolean).at(-1);
+    const detailState = document.getElementById("detailState");
+    const quizTitle = document.getElementById("quizTitle");
+    const quizSubtitle = document.getElementById("quizSubtitle");
+
+    async function loadDetail() {
+      const shell = await quizApp.initShell();
+      if (!shell.currentUser) {
+        quizApp.requireAuthNotice(detailState);
+        return;
+      }
+      const quiz = await quizApp.api(`/quizzes/${quizId}`);
+      quizTitle.textContent = quiz.title;
+      quizSubtitle.textContent = quiz.description || "A structured assessment module with manually authored answer options.";
+
+      detailState.innerHTML = `
+        <section class="quiz-card quiz-hero rounded-4 p-4">
+          <div class="d-flex flex-column flex-lg-row justify-content-between gap-4">
+            <div class="d-grid gap-3">
+              <div class="quiz-meta">
+                ${quiz.category ? quizApp.badgeHtml(quiz.category) : ""}
+                ${quiz.language ? quizApp.badgeHtml(quiz.language) : ""}
+                ${quiz.is_published ? quizApp.badgeHtml("Published") : quizApp.badgeHtml("Draft")}
+              </div>
+              <div class="row g-3 text-secondary">
+                <div class="col-6 col-xl-3"><strong class="d-block text-light fs-4">${quiz.question_count}</strong>questions</div>
+                <div class="col-6 col-xl-3"><strong class="d-block text-light fs-4">${quizApp.formatPercent(quiz.best_attempt_percentage)}</strong>best result</div>
+                <div class="col-6 col-xl-3"><strong class="d-block text-light fs-4">${quizApp.formatPercent(quiz.last_attempt_percentage)}</strong>last attempt</div>
+              </div>
+              <div class="small text-secondary">Created by ${quizApp.escapeHtml(quiz.owner_name)} • ${quiz.attempt_count} total attempt${quiz.attempt_count === 1 ? "" : "s"}</div>
+            </div>
+            <div class="d-grid gap-2 align-content-start" style="min-width: 240px;">
+              <a class="btn btn-light text-dark rounded-pill px-4" href="/quiz/${quiz.id}/start">Start Quiz</a>
+              ${quiz.last_attempt_id ? `<a class="btn btn-outline-light rounded-pill px-4" href="/quiz/${quiz.id}/results/${quiz.last_attempt_id}">Open Last Result</a>` : ""}
+              ${quiz.can_edit ? `<a class="btn btn-outline-light rounded-pill px-4" href="/quiz/${quiz.id}/edit">Edit Quiz</a>` : ""}
+            </div>
+          </div>
+        </section>
+
+        <section class="quiz-grid quiz-grid-2">
+          <article class="quiz-card rounded-4 p-4">
+            <h2 class="h4 mb-3">Assessment profile</h2>
+            <div class="d-grid gap-3 text-secondary">
+              <div>
+                <div class="small text-uppercase text-secondary mb-1">Format</div>
+                <div class="text-light">Single-choice questions with manually authored distractors.</div>
+              </div>
+              <div>
+                <div class="small text-uppercase text-secondary mb-1">Scoring</div>
+                <div class="text-light">${quiz.total_points} total point${quiz.total_points === 1 ? "" : "s"} across ${quiz.question_count} question${quiz.question_count === 1 ? "" : "s"}.</div>
+              </div>
+              ${quiz.language ? `
+                <div>
+                  <div class="small text-uppercase text-secondary mb-1">Language</div>
+                  <div class="text-light">${quizApp.escapeHtml(quiz.language)}</div>
+                </div>
+              ` : ""}
+            </div>
+          </article>
+
+          <article class="quiz-card rounded-4 p-4">
+            <h2 class="h4 mb-3">What happens next</h2>
+            <div class="d-grid gap-3 text-secondary">
+              <div>1. A new attempt is created when you start the quiz.</div>
+              <div>2. Answers persist while you move between questions.</div>
+              <div>3. Results are scored at the end and saved to your attempt history.</div>
+              <div>4. Review mode shows the selected answer, correct answer, and explanation.</div>
+            </div>
+          </article>
+        </section>
+      `;
+    }
+
+    loadDetail().catch((error) => {
+      detailState.innerHTML = `<div class="quiz-empty text-danger">${quizApp.escapeHtml(error.message)}</div>`;
+    });
+  </script>
+</body>
+</html>

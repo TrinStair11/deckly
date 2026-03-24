@@ -247,6 +247,163 @@ class StoredImageOut(BaseModel):
     image_url: str
 
 
+class QuizOptionInput(BaseModel):
+    id: int | None = None
+    option_text: str = Field(min_length=1, max_length=500)
+    is_correct: bool = False
+    order_index: int | None = Field(default=None, ge=0)
+
+
+class QuizQuestionInput(BaseModel):
+    id: int | None = None
+    question_text: str = Field(min_length=1, max_length=2000)
+    question_type: Literal["single_choice", "multiple_choice"] = "single_choice"
+    explanation: str = Field(default="", max_length=2000)
+    order_index: int | None = Field(default=None, ge=0)
+    points: int = Field(default=1, ge=1, le=100)
+    options: list[QuizOptionInput] = Field(default_factory=list)
+
+
+class QuizCreate(BaseModel):
+    title: str = Field(min_length=1, max_length=160)
+    description: str = Field(default="", max_length=1000)
+    category: str = Field(default="", max_length=120)
+    difficulty: Literal["beginner", "intermediate", "advanced"] = "beginner"
+    subject: str = Field(default="", max_length=120)
+    language: str = Field(default="", max_length=120)
+    is_published: bool = False
+    cover_image: str = Field(default="", max_length=2000)
+    estimated_time: int | None = Field(default=None, ge=1, le=600)
+    tags: list[str] = Field(default_factory=list)
+    questions: list[QuizQuestionInput] = Field(default_factory=list)
+
+
+class QuizUpdate(QuizCreate):
+    pass
+
+
+class QuizOptionOut(BaseModel):
+    id: int
+    option_text: str
+    is_correct: bool
+    order_index: int
+
+    class Config:
+        orm_mode = True
+
+
+class QuizQuestionOut(BaseModel):
+    id: int
+    question_text: str
+    question_type: str
+    explanation: str
+    order_index: int
+    points: int
+    options: list[QuizOptionOut]
+
+    class Config:
+        orm_mode = True
+
+
+class QuizSummaryOut(BaseModel):
+    id: int
+    title: str
+    description: str
+    category: str
+    difficulty: str
+    subject: str
+    language: str
+    is_published: bool
+    cover_image: str
+    estimated_time: int | None = None
+    tags: list[str] = Field(default_factory=list)
+    question_count: int = 0
+    total_points: int = 0
+    attempt_count: int = 0
+    owner_id: int
+    owner_name: str
+    owner_email: EmailStr
+    can_edit: bool = False
+    last_attempt_percentage: float | None = None
+    best_attempt_percentage: float | None = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        orm_mode = True
+
+
+class QuizDetailOut(QuizSummaryOut):
+    last_attempt_id: int | None = None
+
+
+class QuizEditorOut(QuizDetailOut):
+    questions: list[QuizQuestionOut] = Field(default_factory=list)
+
+
+class QuizOptionChoiceOut(BaseModel):
+    id: int
+    option_text: str
+    order_index: int
+
+
+class QuizQuestionSessionOut(BaseModel):
+    id: int
+    question_text: str
+    question_type: str
+    order_index: int
+    points: int
+    options: list[QuizOptionChoiceOut]
+    selected_option_id: int | None = None
+
+
+class QuizAttemptSessionOut(BaseModel):
+    id: int
+    quiz_id: int
+    quiz_title: str
+    status: str
+    started_at: datetime
+    total_questions: int
+    answered_count: int
+    current_question_index: int
+    questions: list[QuizQuestionSessionOut]
+
+
+class QuizAnswerSubmit(BaseModel):
+    selected_option_id: int
+
+
+class QuizResultSummaryOut(BaseModel):
+    id: int
+    quiz_id: int
+    quiz_title: str
+    status: Literal["in_progress", "completed", "abandoned"]
+    started_at: datetime
+    finished_at: datetime | None = None
+    score: float
+    correct_count: int
+    wrong_count: int
+    total_questions: int
+    percentage: float
+    completion_time_seconds: int | None = None
+
+
+class QuizReviewItemOut(BaseModel):
+    question_id: int
+    question_text: str
+    selected_option_id: int | None = None
+    selected_option_text: str | None = None
+    correct_option_text: str
+    explanation: str
+    is_correct: bool
+    order_index: int
+    points: int
+
+
+class QuizResultOut(QuizResultSummaryOut):
+    review_items: list[QuizReviewItemOut] = Field(default_factory=list)
+
+
 class AccountEmailUpdate(BaseModel):
     new_email: EmailStr
     confirm_email: EmailStr

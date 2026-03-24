@@ -70,3 +70,6 @@ def ensure_schema() -> None:
             due_source = "due_count" if "due_count" in progress_columns else "0"
             connection.execute(text(f"UPDATE user_deck_progress SET new_available_count = COALESCE(new_available_count, {new_source}, 0)"))
             connection.execute(text(f"UPDATE user_deck_progress SET due_review_count = COALESCE(due_review_count, {due_source}, 0)"))
+
+    if _has_table(inspector, "quiz_attempts"):
+        _ensure_column("quiz_attempts", "option_order", "option_order TEXT DEFAULT '{}' NOT NULL")

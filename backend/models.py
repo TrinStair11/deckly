@@ -19,6 +19,8 @@ class User(Base):
     review_logs = relationship("ReviewLog", back_populates="user", cascade="all, delete-orphan")
     deck_progress = relationship("UserDeckProgress", back_populates="user", cascade="all, delete-orphan")
     study_sessions = relationship("StudySession", back_populates="user", cascade="all, delete-orphan")
+    quizzes = relationship("Quiz", back_populates="owner", cascade="all, delete-orphan")
+    quiz_attempts = relationship("QuizAttempt", back_populates="user", cascade="all, delete-orphan")
 
 
 class Deck(Base):
@@ -167,3 +169,96 @@ class StudySession(Base):
 
     user = relationship("User", back_populates="study_sessions")
     deck = relationship("Deck", back_populates="study_sessions")
+
+
+class Quiz(Base):
+    __tablename__ = "quizzes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    description = Column(String, default="", nullable=False)
+    category = Column(String, default="", nullable=False)
+    difficulty = Column(String, default="beginner", nullable=False)
+    subject = Column(String, default="", nullable=False)
+    language = Column(String, default="", nullable=False)
+    is_published = Column(Boolean, default=False, nullable=False)
+    cover_image = Column(String, default="", nullable=False)
+    estimated_time = Column(Integer, nullable=True)
+    tags = Column(Text, default="[]", nullable=False)
+    created_at = Column(DateTime(timezone=True), default=now_utc, nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=now_utc, nullable=False)
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+    owner = relationship("User", back_populates="quizzes")
+    questions = relationship("QuizQuestion", back_populates="quiz", cascade="all, delete-orphan")
+    attempts = relationship("QuizAttempt", back_populates="quiz", cascade="all, delete-orphan")
+
+
+class QuizQuestion(Base):
+    __tablename__ = "quiz_questions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    quiz_id = Column(Integer, ForeignKey("quizzes.id"), nullable=False)
+    question_text = Column(Text, nullable=False)
+    question_type = Column(String, default="single_choice", nullable=False)
+    explanation = Column(Text, default="", nullable=False)
+    order_index = Column(Integer, default=0, nullable=False)
+    points = Column(Integer, default=1, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=now_utc, nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=now_utc, nullable=False)
+
+    quiz = relationship("Quiz", back_populates="questions")
+    options = relationship("QuizOption", back_populates="question", cascade="all, delete-orphan")
+
+
+class QuizOption(Base):
+    __tablename__ = "quiz_options"
+
+    id = Column(Integer, primary_key=True, index=True)
+    question_id = Column(Integer, ForeignKey("quiz_questions.id"), nullable=False)
+    option_text = Column(Text, nullable=False)
+    is_correct = Column(Boolean, default=False, nullable=False)
+    order_index = Column(Integer, default=0, nullable=False)
+
+    question = relationship("QuizQuestion", back_populates="options")
+
+
+class QuizAttempt(Base):
+    __tablename__ = "quiz_attempts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    quiz_id = Column(Integer, ForeignKey("quizzes.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    started_at = Column(DateTime(timezone=True), default=now_utc, nullable=False)
+    finished_at = Column(DateTime(timezone=True), nullable=True)
+    score = Column(Float, default=0.0, nullable=False)
+    correct_count = Column(Integer, default=0, nullable=False)
+    wrong_count = Column(Integer, default=0, nullable=False)
+    total_questions = Column(Integer, default=0, nullable=False)
+    status = Column(String, default="in_progress", nullable=False)
+    question_order = Column(Text, default="[]", nullable=False)
+    option_order = Column(Text, default="{}", nullable=False)
+
+    quiz = relationship("Quiz", back_populates="attempts")
+    user = relationship("User", back_populates="quiz_attempts")
+    answers = relationship("QuizAttemptAnswer", back_populates="attempt", cascade="all, delete-orphan")
+
+
+class QuizAttemptAnswer(Base):
+    __tablename__ = "quiz_attempt_answers"
+    __table_args__ = (UniqueConstraint("attempt_id", "question_id", name="uq_quiz_attempt_answers_attempt_question"),)
+
+    id = Column(Integer, primary_key=True, index=True)
+    attempt_id = Column(Integer, ForeignKey("quiz_attempts.id"), nullable=False)
+    question_id = Column(Integer, nullable=False)
+    selected_option_id = Column(Integer, nullable=True)
+    is_correct = Column(Boolean, default=False, nullable=False)
+    answered_at = Column(DateTime(timezone=True), default=now_utc, nullable=False)
+    question_text = Column(Text, default="", nullable=False)
+    selected_option_text = Column(Text, nullable=True)
+    correct_option_text = Column(Text, default="", nullable=False)
+    explanation = Column(Text, default="", nullable=False)
+    points = Column(Integer, default=1, nullable=False)
+    question_order = Column(Integer, default=0, nullable=False)
+
+    attempt = relationship("QuizAttempt", back_populates="answers")
