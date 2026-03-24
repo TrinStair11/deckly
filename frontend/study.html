@@ -1,0 +1,3589 @@
+<!doctype html>
+<html lang="ru" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TrinDeckly Study</title>
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+    integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+    crossorigin="anonymous"
+  />
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+  />
+  <style>
+    :root {
+      --app-bg: #070809;
+      --surface: #0f1114;
+      --surface-soft: #11151b;
+      --surface-muted: #151b23;
+      --border-soft: rgba(255, 255, 255, 0.08);
+      --text-main: #f8f9fa;
+      --text-muted: #9ca8b8;
+      --text-subtle: #7f8b9d;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      background:
+        radial-gradient(1200px 480px at 100% -14%, rgba(99, 102, 241, 0.1), transparent 60%),
+        radial-gradient(900px 360px at -12% 0%, rgba(34, 197, 94, 0.08), transparent 58%),
+        var(--app-bg);
+      color: var(--text-main);
+      font-family: Inter, "Segoe UI", sans-serif;
+    }
+
+    .sidebar-shell {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      background: linear-gradient(180deg, rgba(10, 11, 13, 0.95) 0%, rgba(12, 13, 16, 0.84) 100%);
+      border-right: 1px solid var(--border-soft);
+      backdrop-filter: blur(6px);
+    }
+
+    .surface-card,
+    .mode-tile,
+    .stat-card,
+    .viewer-card,
+    .control-card,
+    .dropdown-menu {
+      background: var(--surface) !important;
+      border: 1px solid var(--border-soft) !important;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+    }
+
+    .brand-badge,
+    .avatar-badge {
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+    }
+
+    .brand-badge {
+      width: 2.45rem;
+      height: 2.45rem;
+      border-radius: 0.9rem;
+      background: #fff;
+      color: #000;
+      font-weight: 700;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .brand-badge i {
+      font-size: 1.05rem;
+      transform: rotate(-10deg);
+    }
+
+    .avatar-badge {
+      width: 2.55rem;
+      height: 2.55rem;
+      border-radius: 999px;
+      background: #262f3d;
+      color: #fff;
+      font-weight: 700;
+    }
+
+    .account-trigger {
+      width: 3.1rem;
+      height: 3.1rem;
+      padding: 0;
+      border-radius: 999px;
+      display: inline-grid;
+      place-items: center;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      background: rgba(13, 16, 21, 0.9);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28);
+    }
+
+    .account-summary {
+      border-bottom: 1px solid var(--border-soft);
+    }
+
+    .sidebar-panel {
+      background: rgba(14, 16, 20, 0.55) !important;
+      border: 1px solid rgba(255, 255, 255, 0.05) !important;
+      box-shadow: none !important;
+    }
+
+    .sidebar-shell .nav-link {
+      color: var(--text-muted);
+      padding: 0.66rem 0.86rem;
+      border-radius: 0.85rem;
+      border: 1px solid transparent;
+      font-weight: 500;
+    }
+
+    .sidebar-shell .nav-link:hover {
+      color: #eef3fa;
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(255, 255, 255, 0.05);
+    }
+
+    .sidebar-shell .nav-link.active {
+      color: #fff;
+      background: linear-gradient(180deg, #1d2128 0%, #171b22 100%);
+      border-color: rgba(255, 255, 255, 0.1);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.24);
+    }
+
+    .hub-header {
+      background: linear-gradient(160deg, rgba(20, 24, 31, 0.94) 0%, rgba(13, 15, 20, 0.96)) !important;
+    }
+
+    .hub-header .card-body {
+      padding: 1.15rem 1.25rem !important;
+      gap: 1.05rem !important;
+    }
+
+    #deckEyebrow {
+      color: var(--text-subtle) !important;
+      letter-spacing: 0.09em;
+      font-size: 0.73rem;
+      margin-bottom: 0.34rem !important;
+    }
+
+    #deckTitle {
+      font-size: clamp(1.95rem, 3.35vw, 2.55rem);
+      line-height: 1.08;
+      margin-bottom: 0.3rem !important;
+      letter-spacing: -0.02em;
+    }
+
+    #deckSubtitle {
+      color: var(--text-muted) !important;
+      margin-bottom: 0 !important;
+      line-height: 1.36;
+      font-size: 0.95rem;
+      max-width: 58ch;
+    }
+
+    .deck-meta-row {
+      margin-top: 0.56rem !important;
+      gap: 0.44rem !important;
+    }
+
+    .header-actions {
+      gap: 0.52rem !important;
+      align-items: center;
+    }
+
+    .header-action-edit {
+      border-radius: 0.82rem;
+      min-height: 2.5rem;
+      padding-inline: 1rem;
+      font-weight: 650;
+    }
+
+    .header-action-light {
+      border-radius: 0.75rem;
+      min-height: 2.38rem;
+      color: #d5deeb;
+      border-color: rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.02);
+      font-size: 0.88rem;
+      padding-inline: 0.85rem;
+    }
+
+    .header-action-light:hover,
+    .header-action-light:focus-visible {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+
+    .header-action-close {
+      opacity: 0.72;
+    }
+
+    .modes-section .card-body {
+      padding: 1.05rem 1.15rem !important;
+      gap: 0.82rem !important;
+    }
+
+    .hub-layout {
+      gap: 0.95rem !important;
+    }
+
+    .study-stage {
+      gap: 0.75rem !important;
+      width: min(100%, 980px);
+      margin-inline: auto;
+    }
+
+    .modes-title {
+      margin-bottom: 0.14rem !important;
+      letter-spacing: -0.01em;
+    }
+
+    .modes-subtitle {
+      color: var(--text-muted) !important;
+      margin-bottom: 0 !important;
+      font-size: 0.9rem;
+    }
+
+    .mode-tile.active {
+      border-color: rgba(255, 255, 255, 0.28) !important;
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2);
+      background: linear-gradient(168deg, rgba(22, 28, 36, 0.95), rgba(16, 20, 27, 0.96)) !important;
+    }
+
+    .mode-tile .card-body {
+      padding: 0.88rem 0.9rem;
+      gap: 0.56rem !important;
+    }
+
+    .mode-icon {
+      width: 2rem;
+      height: 2rem;
+      border-radius: 0.68rem;
+      display: inline-grid;
+      place-items: center;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #d7dfec;
+    }
+
+    .mode-current {
+      border-radius: 999px;
+      border: 1px solid rgba(34, 197, 94, 0.42);
+      background: rgba(34, 197, 94, 0.12);
+      color: #98f3bc;
+      font-size: 0.68rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 0.16rem 0.55rem;
+      font-weight: 700;
+    }
+
+    .mode-title {
+      font-size: 1rem;
+      font-weight: 680;
+      margin-bottom: 0.14rem;
+      letter-spacing: -0.01em;
+    }
+
+    .mode-copy {
+      color: #8f9caf;
+      font-size: 0.82rem;
+      line-height: 1.32;
+    }
+
+    .viewer-card {
+      min-height: 500px;
+      background: linear-gradient(168deg, rgba(18, 22, 28, 0.94), rgba(13, 16, 22, 0.97)) !important;
+      border-color: rgba(255, 255, 255, 0.1) !important;
+      box-shadow: 0 18px 42px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    }
+
+    .viewer-card.viewer-session {
+      background: transparent !important;
+      border: 0 !important;
+      box-shadow: none !important;
+      overflow: visible;
+    }
+
+    .viewer-media {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: clamp(250px, 36vh, 320px);
+      min-height: 250px;
+      max-height: 320px;
+      overflow: hidden;
+    }
+
+    .viewer-media img {
+      width: 100%;
+      height: 100%;
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      object-position: center;
+      border-radius: 0.9rem;
+    }
+
+    .response-btn {
+      min-width: 108px;
+    }
+
+    .interval-rating-group {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      width: min(100%, 760px);
+      gap: 0.75rem;
+    }
+
+    .interval-rating-btn {
+      min-height: 50px;
+      font-weight: 700;
+      border-radius: 0.9rem;
+    }
+
+    .flip-stage {
+      perspective: 1200px;
+      transform-style: preserve-3d;
+      min-height: 430px;
+    }
+
+    .flip-shell {
+      position: relative;
+      width: min(100%, 940px);
+      margin-inline: auto;
+    }
+
+    .flip-surface {
+      position: relative;
+      width: 100%;
+      min-height: 430px;
+      cursor: pointer;
+      user-select: none;
+      transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1);
+      transform-style: preserve-3d;
+      -webkit-transform-style: preserve-3d;
+      border-radius: 1.25rem;
+      outline: none;
+      box-shadow: 0 10px 22px rgba(0, 0, 0, 0.2);
+    }
+
+    .flip-surface:hover {
+      transform: scale(1.01);
+      box-shadow: 0 14px 28px rgba(0, 0, 0, 0.26);
+    }
+
+    .flip-surface.is-flipped {
+      transform: rotateY(180deg);
+    }
+
+    .flip-surface.is-flipped:hover {
+      transform: rotateY(180deg) scale(1.01);
+    }
+
+    .flip-face {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      align-content: center;
+      justify-items: center;
+      gap: 0.58rem;
+      padding: 1.15rem;
+      border-radius: 1.25rem;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: linear-gradient(165deg, rgba(18, 23, 32, 0.95), rgba(11, 15, 22, 0.96));
+      text-align: center;
+      overflow: hidden;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+    }
+
+    .review-card-content {
+      display: grid;
+      justify-items: center;
+      align-content: center;
+      gap: 0.46rem;
+      width: 100%;
+      margin-inline: auto;
+      padding: 0;
+    }
+
+    .flip-face.has-media .review-card-content {
+      gap: 0.45rem;
+    }
+
+    .review-main-text {
+      font-size: clamp(1.48rem, 3.1vw, 2.2rem);
+      line-height: 1.16;
+      max-width: 22ch;
+      margin-bottom: 0;
+      font-weight: 620;
+      letter-spacing: -0.015em;
+      color: #edf3fd;
+    }
+
+    .flip-face.back {
+      transform: rotateY(180deg);
+    }
+
+    .viewer-undo-btn {
+      position: absolute;
+      right: 0.9rem;
+      bottom: 0.9rem;
+      z-index: 6;
+      width: 2.15rem;
+      height: 2.15rem;
+      border-radius: 999px;
+      padding: 0;
+      display: inline-grid;
+      place-items: center;
+      border: 1px solid rgba(255, 255, 255, 0.24);
+      background: rgba(10, 14, 20, 0.82);
+      color: #e8eef9;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.3);
+      transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+    }
+
+    .viewer-undo-btn:hover {
+      transform: translateY(-1px);
+      border-color: rgba(255, 255, 255, 0.4);
+      background: rgba(15, 20, 28, 0.95);
+      color: #ffffff;
+    }
+
+    .study-counter {
+      min-width: 112px;
+      text-align: center;
+      font-weight: 700;
+      color: #c8d2e0;
+      line-height: 1.2;
+      letter-spacing: -0.01em;
+    }
+
+    .study-counter .kicker {
+      display: block;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 0.62rem;
+      color: #7f8b9d;
+      margin-bottom: 0.08rem;
+    }
+
+    .review-btn {
+      width: 50px;
+      height: 50px;
+      border-radius: 999px;
+      padding: 0;
+      display: inline-grid;
+      place-items: center;
+      font-size: 1.05rem;
+    }
+
+    .utility-btn {
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      display: inline-grid;
+      place-items: center;
+      border-radius: 0.64rem;
+    }
+
+    .control-card {
+      position: relative;
+      overflow: visible;
+      background: rgba(15, 18, 24, 0.78) !important;
+      border-color: rgba(255, 255, 255, 0.08) !important;
+      box-shadow: none;
+    }
+
+    .review-control-card {
+      border-color: rgba(255, 255, 255, 0.12) !important;
+      background: linear-gradient(180deg, rgba(16, 20, 28, 0.88), rgba(11, 14, 20, 0.9)) !important;
+      box-shadow: 0 16px 32px rgba(0, 0, 0, 0.28);
+      max-width: 940px;
+      width: 100%;
+      margin-inline: auto;
+    }
+
+    .review-control-shell {
+      position: relative;
+      padding: 0.08rem;
+    }
+
+    .review-control-layout {
+      display: grid;
+      grid-template-columns: minmax(120px, 1fr) auto minmax(120px, 1fr);
+      align-items: center;
+      gap: 0.55rem;
+      padding: 0.58rem 0.72rem !important;
+    }
+
+    .review-side-meta {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.48rem;
+      min-width: 0;
+    }
+
+    .review-side-meta.right {
+      justify-content: flex-end;
+    }
+
+    .review-back-btn {
+      border-radius: 0.76rem;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(255, 255, 255, 0.035);
+      color: #cfdaea;
+      font-size: 0.8rem;
+      font-weight: 620;
+      padding: 0.36rem 0.6rem;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.36rem;
+    }
+
+    .review-back-btn:hover {
+      border-color: rgba(255, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.07);
+      color: #edf3fd;
+    }
+
+    .review-answer-cluster {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
+      padding: 0.28rem;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+
+    .review-answer-btn {
+      min-width: 124px;
+      min-height: 48px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      font-size: 0.9rem;
+      font-weight: 680;
+      letter-spacing: -0.01em;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.42rem;
+      transition: transform 160ms ease, filter 160ms ease, box-shadow 160ms ease;
+    }
+
+    .review-answer-btn:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.06);
+    }
+
+    .review-answer-btn.negative {
+      background: linear-gradient(180deg, rgba(199, 73, 86, 0.8), rgba(160, 45, 57, 0.82));
+      border-color: rgba(246, 137, 148, 0.44);
+      color: #ffe9ec;
+      box-shadow: 0 8px 20px rgba(199, 73, 86, 0.26);
+    }
+
+    .review-answer-btn.positive {
+      background: linear-gradient(180deg, rgba(45, 153, 109, 0.82), rgba(30, 120, 84, 0.84));
+      border-color: rgba(102, 226, 178, 0.44);
+      color: #ecfff4;
+      box-shadow: 0 8px 20px rgba(44, 153, 109, 0.26);
+    }
+
+    .review-progress-core {
+      min-width: 122px;
+      text-align: center;
+      font-weight: 700;
+      color: #dce7f7;
+      letter-spacing: -0.015em;
+      font-size: 0.98rem;
+      line-height: 1.15;
+      padding: 0.1rem 0.15rem;
+    }
+
+    .review-utility {
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 0.34rem;
+    }
+
+    .review-more-btn {
+      width: 38px;
+      height: 38px;
+      padding: 0;
+      border-radius: 0.72rem;
+      border: 1px solid rgba(255, 255, 255, 0.17);
+      background: rgba(255, 255, 255, 0.035);
+      color: #cad7e8;
+      display: inline-grid;
+      place-items: center;
+    }
+
+    .review-more-btn:hover {
+      border-color: rgba(255, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.08);
+      color: #f0f6ff;
+    }
+
+    .review-settings-panel {
+      position: absolute;
+      right: 0.72rem;
+      bottom: calc(100% + 0.65rem);
+      width: min(320px, 88vw);
+      border-color: rgba(255, 255, 255, 0.14);
+      background: linear-gradient(180deg, rgba(18, 23, 32, 0.95), rgba(11, 15, 22, 0.95));
+    }
+
+    .control-context {
+      display: grid;
+      gap: 0.22rem;
+      justify-items: start;
+      min-width: 180px;
+    }
+
+    .control-mode-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.36rem;
+      border-radius: 999px;
+      padding: 0.2rem 0.66rem;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      background: rgba(255, 255, 255, 0.05);
+      color: #d4dcea;
+      font-size: 0.72rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      font-weight: 650;
+    }
+
+    .control-hint {
+      color: #8a97ab;
+      font-size: 0.75rem;
+      line-height: 1.28;
+    }
+
+    .utility-cluster {
+      padding: 0.18rem;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      gap: 0.32rem !important;
+    }
+
+    .focus-control-body {
+      padding: 0.68rem 0.72rem !important;
+      display: grid;
+      gap: 0.62rem;
+    }
+
+    .focus-review-controls {
+      width: min(100%, 980px);
+      margin-inline: auto;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.6rem;
+    }
+
+    .focus-answer-btn {
+      min-height: 58px;
+      border-radius: 0.95rem;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.42rem;
+      font-weight: 670;
+      font-size: 0.93rem;
+      letter-spacing: -0.01em;
+      transition: transform 180ms ease, filter 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+    }
+
+    .focus-answer-btn:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.05);
+    }
+
+    .focus-answer-btn.negative {
+      background: linear-gradient(180deg, rgba(211, 72, 86, 0.78), rgba(164, 43, 57, 0.8));
+      border-color: rgba(250, 130, 143, 0.5);
+      color: #ffe9ec;
+      box-shadow: 0 8px 24px rgba(220, 53, 69, 0.24);
+    }
+
+    .focus-answer-btn.neutral {
+      background: linear-gradient(180deg, rgba(35, 43, 58, 0.86), rgba(24, 30, 41, 0.88));
+      color: #dde7f6;
+      border-color: rgba(170, 189, 217, 0.32);
+    }
+
+    .focus-answer-btn.positive {
+      background: linear-gradient(180deg, rgba(46, 154, 110, 0.8), rgba(26, 119, 82, 0.82));
+      border-color: rgba(97, 224, 174, 0.5);
+      color: #eafff3;
+      box-shadow: 0 8px 24px rgba(31, 145, 93, 0.24);
+    }
+
+    .focus-utility-row {
+      width: min(100%, 980px);
+      margin-inline: auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.8rem;
+    }
+
+    .focus-progress-mini {
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.04);
+      color: #d9e4f4;
+      font-size: 0.8rem;
+      font-weight: 650;
+      letter-spacing: 0.01em;
+      padding: 0.26rem 0.68rem;
+    }
+
+    .focus-more-btn {
+      width: 42px;
+      height: 38px;
+      border-radius: 0.84rem;
+      border: 1px solid rgba(255, 255, 255, 0.17);
+      background: rgba(255, 255, 255, 0.03);
+      color: #dbe5f5;
+      display: inline-grid;
+      place-items: center;
+      padding: 0;
+    }
+
+    .focus-more-btn:hover {
+      border-color: rgba(255, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.08);
+      color: #f2f7ff;
+    }
+
+    .focus-settings-panel {
+      position: static;
+      width: min(100%, 980px);
+      margin-inline: auto;
+      margin-top: 0.2rem;
+      border-color: rgba(255, 255, 255, 0.14);
+      background: linear-gradient(180deg, rgba(18, 23, 32, 0.95), rgba(11, 15, 22, 0.95));
+      box-shadow: 0 18px 34px rgba(0, 0, 0, 0.32);
+    }
+
+    .settings-shell {
+      position: relative;
+    }
+
+    .study-settings-panel {
+      position: absolute;
+      right: 0;
+      bottom: calc(100% + 0.75rem);
+      width: min(320px, 88vw);
+      padding: 1rem;
+      border-radius: 1rem;
+      background: #111;
+      border: 1px solid #2b3035;
+      box-shadow: 0 18px 42px rgba(0, 0, 0, 0.38);
+      z-index: 20;
+    }
+
+    .study-settings-panel .form-check-label,
+    .study-settings-panel .form-label {
+      cursor: pointer;
+    }
+
+    #reviewStateBadge {
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      font-size: 0.64rem;
+      padding: 0.28rem 0.62rem;
+    }
+
+    .review-view-body {
+      padding: 0.48rem 0.35rem !important;
+      gap: 0.46rem !important;
+      height: 100%;
+      min-height: 0;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+    }
+
+    .review-view-body .flip-stage {
+      min-height: 0;
+      display: grid;
+      place-items: center;
+      align-content: center;
+    }
+
+    body:not(.study-focus-mode) .review-view-body {
+      min-height: clamp(440px, 58vh, 680px);
+    }
+
+    .stats-row .stat-card .card-body {
+      padding: 0.86rem 0.95rem;
+    }
+
+    .stats-row .stat-label {
+      color: #7f8b9d;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 0.65rem;
+      margin-bottom: 0.26rem;
+      font-weight: 650;
+    }
+
+    .stats-row .stat-value {
+      font-size: 1.5rem;
+      line-height: 1.05;
+      font-weight: 760;
+      letter-spacing: -0.01em;
+      margin-bottom: 0.16rem;
+    }
+
+    .stats-row .stat-note {
+      color: #8b97ab;
+      font-size: 0.74rem;
+      line-height: 1.26;
+      margin-bottom: 0;
+    }
+
+    .stats-row .stat-primary {
+      border-color: rgba(255, 255, 255, 0.22) !important;
+      background: linear-gradient(160deg, rgba(24, 29, 38, 0.95), rgba(16, 20, 27, 0.96)) !important;
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
+    }
+
+    .stats-row .stat-positive .stat-value {
+      color: #9be9bf;
+    }
+
+    .stats-row .stat-negative .stat-value {
+      color: #f7a8b1;
+    }
+
+    .stats-row .stat-muted {
+      opacity: 0.88;
+    }
+
+    .stats-row.is-completed {
+      --bs-gutter-y: 0.5rem;
+    }
+
+    .completion-metrics-strip {
+      background: linear-gradient(160deg, rgba(20, 24, 31, 0.72), rgba(14, 17, 23, 0.7)) !important;
+      border-color: rgba(255, 255, 255, 0.1) !important;
+      box-shadow: none;
+    }
+
+    .completion-metrics-strip .card-body {
+      padding: 0.62rem 0.86rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.65rem;
+      flex-wrap: wrap;
+    }
+
+    .completion-progress-main {
+      display: grid;
+      gap: 0.08rem;
+      min-width: 108px;
+    }
+
+    .completion-progress-main .label {
+      color: #7f8b9d;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 0.62rem;
+      font-weight: 650;
+      line-height: 1;
+    }
+
+    .completion-progress-main .value {
+      color: #e7edf7;
+      font-size: 1.1rem;
+      line-height: 1.04;
+      font-weight: 760;
+      letter-spacing: -0.01em;
+    }
+
+    .completion-progress-main .note {
+      color: #8b97ab;
+      font-size: 0.72rem;
+      line-height: 1.2;
+    }
+
+    .completion-inline-metrics {
+      display: flex;
+      align-items: center;
+      gap: 0.42rem;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .completion-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.32rem;
+      border-radius: 999px;
+      padding: 0.2rem 0.58rem;
+      font-size: 0.73rem;
+      border: 1px solid rgba(255, 255, 255, 0.11);
+      background: rgba(255, 255, 255, 0.035);
+      color: #c8d2e0;
+      line-height: 1.1;
+    }
+
+    .completion-chip strong {
+      font-size: 0.83rem;
+      font-weight: 730;
+      line-height: 1;
+    }
+
+    .completion-chip.correct {
+      border-color: rgba(34, 197, 94, 0.34);
+      color: #9be9bf;
+      background: rgba(34, 197, 94, 0.12);
+    }
+
+    .completion-chip.incorrect {
+      border-color: rgba(244, 114, 182, 0.34);
+      color: #f7a8b1;
+      background: rgba(244, 114, 182, 0.1);
+    }
+
+    .completion-chip.remaining {
+      color: #9aa7ba;
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .completion-chip.remaining.zero {
+      opacity: 0.58;
+    }
+
+    body.study-active:not(.study-focus-mode) .hub-layout {
+      gap: 0.85rem !important;
+    }
+
+    .focus-topbar {
+      position: fixed;
+      top: 0.72rem;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(1320px, calc(100vw - 1.2rem));
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.8rem;
+      z-index: 1085;
+      border-radius: 1rem;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      background: linear-gradient(180deg, rgba(11, 14, 20, 0.72), rgba(8, 11, 16, 0.76));
+      backdrop-filter: blur(14px);
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      padding: 0.44rem 0.58rem;
+    }
+
+    .focus-topbar-left {
+      display: inline-flex;
+      align-items: center;
+      min-width: 0;
+      gap: 0.58rem;
+    }
+
+    .focus-topbar-meta {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.48rem;
+      min-width: 0;
+    }
+
+    .focus-mode-chip {
+      border-radius: 999px;
+      border: 1px solid rgba(146, 184, 255, 0.42);
+      background: rgba(146, 184, 255, 0.14);
+      color: #c8dcff;
+      font-size: 0.66rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-weight: 680;
+      padding: 0.2rem 0.48rem;
+      flex-shrink: 0;
+    }
+
+    .focus-deck-title {
+      color: #dce6f5;
+      font-size: 0.84rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: min(44vw, 430px);
+    }
+
+    .focus-progress-pill {
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      background: rgba(146, 184, 255, 0.12);
+      color: #eef4ff;
+      font-size: 0.84rem;
+      font-weight: 680;
+      letter-spacing: 0.01em;
+      padding: 0.35rem 0.82rem;
+      flex-shrink: 0;
+      box-shadow: 0 0 0 1px rgba(146, 184, 255, 0.2) inset;
+    }
+
+    .focus-exit-btn {
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      background: rgba(12, 16, 22, 0.82);
+      color: #edf3fc;
+      font-size: 0.82rem;
+      font-weight: 620;
+      letter-spacing: 0.01em;
+      padding: 0.34rem 0.72rem;
+      box-shadow: none;
+    }
+
+    .focus-exit-btn:hover {
+      border-color: rgba(255, 255, 255, 0.34);
+      color: #ffffff;
+      background: rgba(14, 18, 25, 0.9);
+    }
+
+    html.study-focus-lock,
+    body.study-focus-lock {
+      height: 100%;
+      overflow: hidden;
+      overscroll-behavior: none;
+    }
+
+    body.study-focus-mode {
+      background: radial-gradient(circle at top, rgba(130, 155, 255, 0.08), transparent 52%), #06090f;
+    }
+
+    body.study-focus-mode .container-fluid,
+    body.study-focus-mode .container-fluid > .row {
+      height: 100vh;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    body.study-focus-mode .sidebar-shell,
+    body.study-focus-mode .hub-header,
+    body.study-focus-mode .modes-section,
+    body.study-focus-mode .stats-row {
+      display: none !important;
+    }
+
+    body.study-focus-mode .study-main {
+      flex: 0 0 100% !important;
+      max-width: 100% !important;
+      width: 100% !important;
+      height: 100vh;
+      overflow: hidden;
+      padding: 4.1rem 1rem 1rem !important;
+    }
+
+    body.study-focus-mode .hub-layout {
+      height: 100%;
+      min-height: 0;
+      overflow: hidden;
+      gap: 0 !important;
+    }
+
+    body.study-focus-mode .study-stage {
+      height: 100%;
+      min-height: 100%;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: minmax(0, 1fr) auto;
+      align-content: stretch;
+      gap: 0.58rem !important;
+    }
+
+    body.study-focus-mode .viewer-card {
+      height: 100%;
+      min-height: 0;
+      overflow: hidden;
+      border-radius: 1.35rem !important;
+      border-color: rgba(255, 255, 255, 0.12) !important;
+      background: linear-gradient(170deg, rgba(18, 24, 35, 0.97), rgba(9, 12, 18, 0.97)) !important;
+      box-shadow: 0 30px 70px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      transition: box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1), border-color 220ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    body.study-focus-mode .viewer-card .card-body {
+      height: 100%;
+      min-height: 0;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      padding: 1.3rem 1.35rem !important;
+      gap: 1rem !important;
+    }
+
+    body.study-focus-mode .flip-stage,
+    body.study-focus-mode .flip-shell,
+    body.study-focus-mode .flip-surface {
+      height: 100%;
+      min-height: 0;
+    }
+
+    body.study-focus-mode .review-view-body .flip-stage {
+      place-items: stretch;
+      align-content: stretch;
+    }
+
+    body.study-focus-mode .flip-shell {
+      width: 100%;
+    }
+
+    body.study-focus-mode .flip-surface {
+      width: 100%;
+    }
+
+    body.study-focus-mode .flip-surface {
+      transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1);
+      box-shadow: 0 28px 48px rgba(0, 0, 0, 0.34), 0 0 0 1px rgba(255, 255, 255, 0.06);
+    }
+
+    body.study-focus-mode .flip-surface:hover {
+      transform: scale(1.02);
+      box-shadow: 0 34px 60px rgba(0, 0, 0, 0.42), 0 0 0 1px rgba(174, 204, 255, 0.24);
+    }
+
+    body.study-focus-mode .flip-surface.is-flipped:hover {
+      transform: rotateY(180deg) scale(1.02);
+    }
+
+    body.study-focus-mode .flip-face {
+      border-radius: 1.45rem;
+      border-color: rgba(255, 255, 255, 0.16);
+      background: linear-gradient(165deg, rgba(17, 22, 31, 0.96), rgba(10, 13, 20, 0.96));
+      gap: 1.2rem;
+      padding: 1.5rem;
+    }
+
+    body.study-focus-mode .flip-face .review-main-text {
+      font-size: clamp(2rem, 4.7vw, 3.55rem);
+      max-width: 24ch;
+      line-height: 1.12;
+    }
+
+    body.study-focus-mode .viewer-media {
+      width: min(900px, 88vw);
+      max-width: 100%;
+      height: min(42vh, 520px);
+      min-height: 180px;
+      margin-inline: auto;
+    }
+
+    body.study-focus-mode .viewer-media img {
+      width: 100%;
+      height: 100%;
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      object-position: center center;
+      border-radius: 1.08rem;
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    body.study-focus-mode .control-card {
+      position: relative;
+      bottom: auto;
+      border-radius: 1.08rem !important;
+      border-color: rgba(255, 255, 255, 0.14) !important;
+      background: linear-gradient(180deg, rgba(15, 19, 27, 0.93), rgba(10, 13, 20, 0.96)) !important;
+      box-shadow: 0 20px 44px rgba(0, 0, 0, 0.44);
+      z-index: 20;
+      transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
+    }
+
+    .viewer-card.exit-know {
+      animation: reviewSwipeKnow 560ms ease forwards;
+    }
+
+    .viewer-card.exit-dontknow {
+      animation: reviewSwipeDontKnow 560ms ease forwards;
+    }
+
+    .viewer-card.review-hold .review-exit-label,
+    .viewer-card.exit-know .review-exit-label,
+    .viewer-card.exit-dontknow .review-exit-label {
+      opacity: 1;
+      transition: opacity 80ms ease;
+    }
+
+    .review-exit-label {
+      position: absolute;
+      inset: 0;
+      z-index: 4;
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      font-size: clamp(1.2rem, 2vw, 1.65rem);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .viewer-card.review-hold .card-body,
+    .viewer-card.exit-know .card-body,
+    .viewer-card.exit-dontknow .card-body {
+      opacity: 0;
+      transition: opacity 90ms ease;
+    }
+
+    .review-exit-label span {
+      padding: 0.8rem 1.15rem;
+      border-radius: 999px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.32);
+    }
+
+    .review-exit-label.know span {
+      background: rgba(25, 135, 84, 0.92);
+      color: #51cf8a;
+      border: 1px solid rgba(25, 135, 84, 0.35);
+    }
+
+    .review-exit-label.dontknow span {
+      background: rgba(220, 53, 69, 0.92);
+      color: #ff7b88;
+      border: 1px solid rgba(220, 53, 69, 0.35);
+    }
+
+    .results-hero {
+      display: grid;
+      gap: 0.65rem;
+    }
+
+    .results-headline {
+      margin: 0;
+      color: #f4f7fb;
+      font-size: clamp(1.72rem, 3.2vw, 2.38rem);
+      line-height: 1.12;
+      letter-spacing: -0.03em;
+      font-weight: 760;
+    }
+
+    .results-subtitle {
+      margin: 0;
+      color: #b9c5d6;
+      font-size: 1rem;
+      line-height: 1.5;
+      max-width: 66ch;
+    }
+
+    .results-shell {
+      background:
+        radial-gradient(140% 130% at 0% 0%, rgba(121, 146, 255, 0.18), transparent 48%),
+        radial-gradient(130% 120% at 100% 100%, rgba(14, 165, 151, 0.14), transparent 52%),
+        linear-gradient(160deg, rgba(19, 23, 31, 0.95), rgba(12, 14, 19, 0.96));
+      border: 1px solid rgba(255, 255, 255, 0.11);
+      border-radius: 1.5rem;
+      padding: 1.35rem;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 18px 46px rgba(0, 0, 0, 0.3);
+    }
+
+    .completion-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+      gap: 1rem;
+      align-items: stretch;
+    }
+
+    .completion-summary {
+      border-radius: 1.1rem;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.02));
+      padding: 1.05rem;
+      display: grid;
+      gap: 0.9rem;
+      min-width: 0;
+    }
+
+    .completion-core {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .results-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.45rem 0.8rem;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.04);
+      color: #c4cfdd;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .results-ring {
+      --progress: 0deg;
+      position: relative;
+      width: 152px;
+      height: 152px;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at center, #111620 58%, transparent 59%),
+        conic-gradient(#92b8ff var(--progress), rgba(255, 255, 255, 0.09) 0);
+      display: grid;
+      place-items: center;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06), 0 14px 35px rgba(0, 0, 0, 0.3);
+      transition: background 900ms cubic-bezier(0.22, 1, 0.36, 1), transform 900ms cubic-bezier(0.22, 1, 0.36, 1);
+      transform: scale(0.96);
+      flex-shrink: 0;
+    }
+
+    .results-ring.is-animated {
+      transform: scale(1);
+    }
+
+    .results-ring-value {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      line-height: 1;
+      transform: translateY(0);
+      gap: 0.35rem;
+    }
+
+    .results-ring-number {
+      font-size: 1.88rem;
+      font-weight: 760;
+      letter-spacing: -0.03em;
+      line-height: 1;
+      color: #eef3fb;
+    }
+
+    .results-ring-label {
+      color: #a7b5c8;
+      font-size: 0.69rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      line-height: 1;
+      font-weight: 620;
+    }
+
+    .completion-outcome {
+      min-width: 0;
+      display: grid;
+      gap: 0.34rem;
+    }
+
+    .completion-outcome-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #9aabbe;
+      font-weight: 650;
+    }
+
+    .completion-outcome-main {
+      font-size: clamp(1.25rem, 2.25vw, 1.62rem);
+      color: #f3f7ff;
+      line-height: 1.22;
+      letter-spacing: -0.02em;
+      font-weight: 760;
+    }
+
+    .completion-outcome-sub {
+      color: #b2c0d2;
+      font-size: 0.93rem;
+      line-height: 1.4;
+    }
+
+    .completion-metric-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.58rem;
+    }
+
+    .completion-metric {
+      border-radius: 0.88rem;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.035);
+      padding: 0.68rem 0.74rem;
+      display: grid;
+      gap: 0.22rem;
+      min-width: 0;
+    }
+
+    .completion-metric-label {
+      font-size: 0.67rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #a6b3c7;
+      font-weight: 620;
+      line-height: 1.15;
+    }
+
+    .completion-metric-value {
+      font-size: 1.28rem;
+      line-height: 1.05;
+      font-weight: 760;
+      letter-spacing: -0.02em;
+      color: #ebf1fb;
+    }
+
+    .completion-metric.mastered {
+      border-color: rgba(34, 197, 94, 0.3);
+      background: rgba(34, 197, 94, 0.12);
+    }
+
+    .completion-metric.mastered .completion-metric-value {
+      color: #9be9bf;
+    }
+
+    .completion-metric.review {
+      border-color: rgba(244, 114, 182, 0.3);
+      background: rgba(244, 114, 182, 0.11);
+    }
+
+    .completion-metric.review .completion-metric-value {
+      color: #f7a8b1;
+    }
+
+    .completion-metric.total .completion-metric-value {
+      color: #d5deed;
+    }
+
+    .results-insight {
+      padding: 0.9rem 0.95rem;
+      border-radius: 0.92rem;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #d0daea;
+      line-height: 1.45;
+      font-size: 0.95rem;
+    }
+
+    .completion-actions {
+      border-radius: 1.1rem;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.015)),
+        radial-gradient(120% 120% at 100% 0%, rgba(146, 184, 255, 0.12), transparent 56%);
+      padding: 1.02rem;
+      display: grid;
+      gap: 0.82rem;
+      align-content: start;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 10px 26px rgba(0, 0, 0, 0.2);
+    }
+
+    .completion-action-header {
+      display: grid;
+      gap: 0.35rem;
+    }
+
+    .completion-actions .eyebrow {
+      color: #a9bad0;
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      font-weight: 640;
+      margin-bottom: 0;
+    }
+
+    .completion-actions .title {
+      margin: 0;
+      color: #f2f6fd;
+      font-size: 1.1rem;
+      line-height: 1.23;
+      letter-spacing: -0.02em;
+      font-weight: 720;
+    }
+
+    .completion-actions .copy {
+      margin: 0;
+      color: #b7c5d8;
+      font-size: 0.88rem;
+      line-height: 1.42;
+    }
+
+    .completion-action-primary {
+      min-height: 56px;
+      border-radius: 0.9rem;
+      border: 1px solid rgba(255, 255, 255, 0.65);
+      background: linear-gradient(180deg, #f6f9ff, #e5edfb);
+      color: #0f1623;
+      display: inline-flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.62rem;
+      padding-inline: 0.76rem;
+      box-shadow: 0 12px 24px rgba(159, 189, 255, 0.24), 0 1px 0 rgba(255, 255, 255, 0.6) inset;
+      transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+    }
+
+    .completion-action-primary:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.01);
+      box-shadow: 0 14px 28px rgba(159, 189, 255, 0.3), 0 1px 0 rgba(255, 255, 255, 0.65) inset;
+    }
+
+    .completion-action-primary .action-leading {
+      width: 1.55rem;
+      height: 1.55rem;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(13, 19, 29, 0.08);
+      color: #0e1828;
+      flex-shrink: 0;
+      font-size: 0.86rem;
+    }
+
+    .completion-action-primary .action-label {
+      flex: 1;
+      text-align: left;
+      font-weight: 700;
+      font-size: 0.92rem;
+      letter-spacing: -0.01em;
+      line-height: 1.2;
+    }
+
+    .completion-action-primary .action-tag {
+      border-radius: 999px;
+      padding: 0.12rem 0.5rem;
+      font-size: 0.63rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 680;
+      background: rgba(13, 19, 29, 0.08);
+      color: #0f1725;
+      flex-shrink: 0;
+    }
+
+    .secondary-action-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.5rem;
+    }
+
+    .completion-action-secondary {
+      min-height: 44px;
+      border-radius: 0.82rem;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(255, 255, 255, 0.025);
+      color: #dbe3f1;
+      font-size: 0.85rem;
+      font-weight: 620;
+      letter-spacing: 0;
+      transition: border-color 180ms ease, background 180ms ease, color 180ms ease, transform 180ms ease;
+    }
+
+    .completion-action-secondary:hover {
+      border-color: rgba(255, 255, 255, 0.26);
+      background: rgba(255, 255, 255, 0.055);
+      color: #eff4fd;
+      transform: translateY(-1px);
+    }
+
+    .utility-action-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.8rem;
+      padding-top: 0.2rem;
+      margin-top: 0.06rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .utility-action-btn {
+      border: 0;
+      padding: 0;
+      background: transparent;
+      color: #9fb0c5;
+      font-size: 0.81rem;
+      font-weight: 560;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      line-height: 1.2;
+      text-underline-offset: 0.2em;
+      text-decoration: underline;
+      text-decoration-color: rgba(159, 176, 197, 0.35);
+      transition: color 160ms ease, text-decoration-color 160ms ease;
+    }
+
+    .utility-action-btn:hover {
+      color: #cad6e7;
+      text-decoration-color: rgba(202, 214, 231, 0.52);
+    }
+
+    .results-action-btn {
+      min-height: 46px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .results-action-btn.primary {
+      box-shadow: none;
+    }
+
+    @keyframes reviewSwipeKnow {
+      0% {
+        transform: translateX(0) scale(1);
+        opacity: 1;
+        box-shadow: none;
+      }
+      35% {
+        box-shadow: 0 0 0 1px rgba(25, 135, 84, 0.55), 0 0 0 10px rgba(25, 135, 84, 0.12);
+      }
+      100% {
+        transform: translateX(88px) rotate(4deg) scale(0.98);
+        opacity: 0;
+        box-shadow: 0 0 0 1px rgba(25, 135, 84, 0.2), 0 0 0 18px rgba(25, 135, 84, 0.06);
+      }
+    }
+
+    @keyframes reviewSwipeDontKnow {
+      0% {
+        transform: translateX(0) scale(1);
+        opacity: 1;
+        box-shadow: none;
+      }
+      35% {
+        box-shadow: 0 0 0 1px rgba(220, 53, 69, 0.55), 0 0 0 10px rgba(220, 53, 69, 0.12);
+      }
+      100% {
+        transform: translateX(-88px) rotate(-4deg) scale(0.98);
+        opacity: 0;
+        box-shadow: 0 0 0 1px rgba(220, 53, 69, 0.2), 0 0 0 18px rgba(220, 53, 69, 0.06);
+      }
+    }
+
+    @media (max-width: 991.98px) {
+      .sidebar-shell {
+        position: static;
+        height: auto;
+        border-right: 0;
+        border-bottom: 1px solid var(--border-soft);
+      }
+
+      .hub-header .card-body {
+        padding: 1rem !important;
+      }
+
+      .header-actions {
+        width: 100%;
+        justify-content: flex-start !important;
+      }
+
+      .modes-section .card-body {
+        padding: 0.95rem !important;
+      }
+
+      .completion-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .completion-core {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        text-align: center;
+      }
+
+      .completion-outcome {
+        justify-items: center;
+        text-align: center;
+      }
+
+      .completion-actions {
+        max-width: 100%;
+      }
+
+      .completion-actions .title,
+      .completion-actions .copy {
+        text-align: center;
+      }
+
+      .completion-action-primary .action-label {
+        text-align: center;
+      }
+
+      .utility-action-row {
+        justify-content: center;
+      }
+
+      .focus-topbar {
+        top: 0.5rem;
+        width: calc(100vw - 0.8rem);
+        padding: 0.36rem 0.42rem;
+      }
+
+      .focus-deck-title {
+        max-width: min(42vw, 260px);
+      }
+
+      body.study-focus-mode .study-main {
+        padding: 3.55rem 0.6rem 0.8rem !important;
+      }
+
+      body.study-focus-mode .viewer-card {
+        min-height: 0;
+      }
+
+      body.study-focus-mode .flip-stage,
+      body.study-focus-mode .flip-surface {
+        min-height: 0;
+      }
+
+      .focus-review-controls {
+        gap: 0.46rem;
+      }
+
+      .focus-answer-btn {
+        min-height: 54px;
+      }
+
+      .review-control-layout {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        gap: 0.48rem;
+      }
+
+      .review-side-meta,
+      .review-side-meta.right {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .review-utility {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .control-context {
+        justify-items: center;
+        min-width: auto;
+        text-align: center;
+      }
+    }
+
+    @media (max-width: 575.98px) {
+      .completion-metric-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .secondary-action-row {
+        grid-template-columns: 1fr;
+      }
+
+      .completion-action-primary {
+        min-height: 52px;
+      }
+
+      .completion-action-primary .action-tag {
+        display: none;
+      }
+
+      .focus-topbar {
+        width: calc(100vw - 0.5rem);
+        gap: 0.4rem;
+        border-radius: 0.86rem;
+      }
+
+      .focus-topbar-meta {
+        gap: 0.34rem;
+      }
+
+      .focus-mode-chip {
+        display: none;
+      }
+
+      .focus-deck-title {
+        max-width: 46vw;
+        font-size: 0.76rem;
+      }
+
+      .focus-progress-pill {
+        font-size: 0.72rem;
+        padding: 0.28rem 0.6rem;
+      }
+
+      .focus-exit-btn {
+        font-size: 0.76rem;
+        padding: 0.27rem 0.6rem;
+      }
+
+      .focus-review-controls {
+        gap: 0.38rem;
+      }
+
+      .focus-answer-btn {
+        min-height: 50px;
+        font-size: 0.78rem;
+        gap: 0.24rem;
+        padding-inline: 0.18rem;
+      }
+
+      .review-answer-cluster {
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      .review-answer-btn {
+        min-width: 0;
+        flex: 1;
+      }
+
+      .review-progress-core {
+        min-width: 74px;
+        font-size: 0.86rem;
+      }
+
+      body.study-focus-mode .study-main {
+        padding: 3.25rem 0.5rem 0.75rem !important;
+      }
+
+      body.study-focus-mode .viewer-card .card-body {
+        padding: 0.9rem 0.9rem 1rem !important;
+      }
+
+      body.study-focus-mode .flip-face {
+        padding: 1.05rem;
+      }
+
+      body.study-focus-mode .flip-stage,
+      body.study-focus-mode .flip-surface {
+        min-height: 0;
+      }
+
+      body.study-focus-mode .viewer-media img {
+        width: 100%;
+        height: 100%;
+        max-width: 100%;
+        max-height: 100%;
+      }
+
+      .results-ring {
+        width: 136px;
+        height: 136px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container-fluid px-0">
+    <div class="row g-0 min-vh-100">
+      <aside class="col-12 col-lg-3 col-xl-2 sidebar-shell p-3 p-xl-4 d-flex flex-column gap-3">
+        <div class="card surface-card shadow-sm rounded-4 sidebar-panel">
+          <div class="card-body p-3 p-xl-4">
+            <div class="d-flex align-items-center gap-3 mb-4 fw-semibold fs-5">
+              <div class="brand-badge"><i class="bi bi-stack"></i></div>
+              <span>TrinDeckly</span>
+            </div>
+            <nav class="nav nav-pills flex-column gap-2">
+              <a class="nav-link" href="/"><i class="bi bi-grid-1x2-fill me-2"></i>Home</a>
+              <a class="nav-link active" href="/#decksSection"><i class="bi bi-collection-fill me-2"></i>My Decks</a>
+              <a class="nav-link" href="/settings.html"><i class="bi bi-sliders me-2"></i>Settings</a>
+            </nav>
+          </div>
+        </div>
+      </aside>
+
+      <main class="col-12 col-lg-9 col-xl-10 p-3 p-lg-4 p-xl-4 study-main">
+        <div class="d-grid gap-4 hub-layout">
+          <section class="card surface-card shadow-sm rounded-4 hub-header" id="hubHeader">
+            <div class="card-body d-flex flex-column flex-xl-row justify-content-between align-items-xl-center gap-4">
+              <div>
+                <p class="text-secondary text-uppercase small fw-semibold mb-2" id="deckEyebrow">Deck Study Hub</p>
+                <h1 class="display-5 fw-bold mb-2" id="deckTitle">Loading deck...</h1>
+                <p class="text-secondary mb-0" id="deckSubtitle">Choose how you want to study before the session starts.</p>
+                <div class="d-flex align-items-center gap-2 flex-wrap mt-3 deck-meta-row">
+                  <span class="small text-secondary" id="deckOwnerLabel">Created by ...</span>
+                  <span class="badge rounded-pill text-bg-secondary d-none" id="readOnlyBadge">Read only</span>
+                  <span class="badge rounded-pill text-bg-info d-none" id="savedDeckBadge">Saved deck</span>
+                  <span class="badge rounded-pill text-bg-secondary" id="privacyBadge">Private</span>
+                  <span class="small text-secondary" id="shareAccessHint">Password-protected access.</span>
+                </div>
+              </div>
+              <div class="d-flex flex-wrap gap-2 justify-content-xl-end header-actions">
+                <button class="btn btn-outline-light rounded-4 header-action-light d-none" id="cloneDeckBtn" type="button"><i class="bi bi-bookmark-plus me-2"></i>Save to My Decks</button>
+                <a class="btn btn-light text-dark rounded-4 header-action-edit" id="editDeckBtn" href="#"><i class="bi bi-pencil-square me-2"></i>Edit Deck</a>
+                <button class="btn btn-outline-light rounded-4 header-action-light" id="groupsBtn" type="button">Groups</button>
+                <button class="btn btn-outline-light rounded-4 header-action-light" id="shareBtn" type="button">Share</button>
+                <div class="dropdown">
+                  <button class="btn btn-outline-light rounded-4 dropdown-toggle header-action-light" id="moreBtn" type="button" data-bs-toggle="dropdown">More</button>
+                  <ul class="dropdown-menu dropdown-menu-end rounded-4 p-2" id="deckMenu">
+                    <li><button class="dropdown-item rounded-3" type="button" id="openEditorMenuBtn">Open Deck Editor</button></li>
+                    <li><button class="dropdown-item rounded-3" type="button" id="shuffleNowBtn">Shuffle Session</button></li>
+                    <li><button class="dropdown-item rounded-3" type="button" id="copyDeckLinkBtn">Copy Deck Link</button></li>
+                  </ul>
+                </div>
+                <div class="dropdown">
+                  <button class="btn btn-outline-light account-trigger header-action-close" id="accountBtn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <span class="avatar-badge" id="accountAvatar">G</span>
+                  </button>
+                  <ul class="dropdown-menu dropdown-menu-end rounded-4 p-2">
+                    <li class="account-summary px-3 py-2 d-none" id="accountSummary">
+                      <div class="d-flex align-items-center gap-3">
+                        <div class="avatar-badge" id="menuAvatar">G</div>
+                        <div class="min-w-0">
+                          <strong class="d-block text-truncate" id="profileName">Learner</strong>
+                          <small class="text-secondary text-truncate d-block" id="profileEmail">learner@example.com</small>
+                        </div>
+                      </div>
+                    </li>
+                    <li id="guestActions"><button class="dropdown-item rounded-3" id="accountLoginBtn" type="button">Log in</button></li>
+                    <li id="guestSignupWrap"><button class="dropdown-item rounded-3" id="accountSignupBtn" type="button">Sign up</button></li>
+                    <li class="d-none" id="userActions">
+                      <a class="dropdown-item rounded-3" id="accountProfileBtn" href="/">Profile</a>
+                      <a class="dropdown-item rounded-3" id="accountSettingsBtn" href="/settings.html">Settings</a>
+                      <hr class="dropdown-divider border-secondary my-2">
+                      <button class="dropdown-item rounded-3 text-danger" id="accountLogoutBtn" type="button">Log out</button>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="card surface-card shadow-sm rounded-4 modes-section" id="modesSection">
+            <div class="card-body d-grid gap-4">
+              <div>
+                <h2 class="h3 mb-1 modes-title">Study Modes</h2>
+                <p class="text-secondary mb-0 modes-subtitle">Switch how this session works without leaving the deck.</p>
+              </div>
+              <div class="row g-3" id="modeGrid"></div>
+              <div class="card bg-dark border-secondary rounded-4 d-none" id="setupPanel"></div>
+            </div>
+          </section>
+
+          <section class="row g-3 stats-row" id="statsGrid"></section>
+
+          <section class="d-grid gap-3 study-stage" id="studyStage">
+            <article class="card viewer-card surface-card shadow-sm rounded-4" id="cardViewer"></article>
+            <div class="card control-card shadow-sm rounded-4" id="controlBar"></div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </div>
+  <section class="focus-topbar d-none" id="focusTopbar" aria-label="Focus study header">
+    <div class="focus-topbar-left">
+      <button class="btn focus-exit-btn" type="button" id="focusExitBtn">
+        <i class="bi bi-fullscreen-exit me-2"></i>Exit fullscreen
+      </button>
+      <div class="focus-topbar-meta">
+        <span class="focus-mode-chip" id="focusModeChip">Study</span>
+        <span class="focus-deck-title" id="focusDeckTitleLabel">Deck</span>
+      </div>
+    </div>
+    <div class="focus-progress-pill" id="focusProgressPill">0 / 0</div>
+  </section>
+
+  <script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+    crossorigin="anonymous"
+  ></script>
+  <script>
+    const api = (path, options = {}) => {
+      const token = localStorage.getItem("token");
+      return fetch(path, {
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        ...options
+      }).then(async (response) => {
+        if (!response.ok) {
+          let detail = "Request failed";
+          try {
+            const payload = await response.json();
+            detail = payload.detail || detail;
+          } catch (error) {
+            detail = "Server error";
+          }
+          throw new Error(detail);
+        }
+        if (response.status === 204) return null;
+        const text = await response.text();
+        return text ? JSON.parse(text) : null;
+      });
+    };
+
+    const sharedApi = (path, options = {}) => {
+      const token = localStorage.getItem("token");
+      const headers = {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(state.shareAccessToken ? { "X-Deck-Access-Token": state.shareAccessToken } : {}),
+        ...(options.headers || {})
+      };
+      return fetch(path, { ...options, headers }).then(async (response) => {
+        if (!response.ok) {
+          let detail = "Request failed";
+          try {
+            const payload = await response.json();
+            detail = payload.detail || detail;
+          } catch (error) {
+            detail = "Server error";
+          }
+          throw new Error(detail);
+        }
+        const text = await response.text();
+        return text ? JSON.parse(text) : null;
+      });
+    };
+
+    const params = new URLSearchParams(window.location.search);
+    const deckId = params.get("deck");
+    const initialMode = params.get("mode") || "all";
+    const initialFocusMode = params.get("focus") === "1";
+
+    const MODES = [
+      { id: "all", label: "Review All", icon: "bi-stack", copy: "Go through every card in the deck as one full session." },
+      { id: "limit", label: "Review Count", icon: "bi-123", copy: "Run a smaller session with 10, 20, 30 or all cards." },
+      { id: "interval", label: "Interval Review", icon: "bi-clock-history", copy: "Due cards with spaced repetition rating buttons." },
+      { id: "test", label: "Test Mode", icon: "bi-ui-checks-grid", copy: "Multiple choice self-check with score tracking." }
+    ];
+    const DEFAULT_STUDY_SETTINGS = {
+      cardSideOrder: "front",
+      shuffleCards: false
+    };
+
+    const state = {
+      me: null,
+      deck: null,
+      dueSession: null,
+      mode: initialMode,
+      sessionCards: [],
+      currentIndex: 0,
+      revealed: false,
+      started: false,
+      ownerAccess: false,
+      sharedMeta: null,
+      shareAccessToken: sessionStorage.getItem(`deck-access-${deckId}`) || "",
+      correct: 0,
+      incorrect: 0,
+      sessionLimit: 10,
+      intervalSessionId: "",
+      testChoices: [],
+      lastAnswer: null,
+      reviewAnimating: false,
+      reviewExitLabel: "",
+      missedCardIds: [],
+      actionHistory: [],
+      settingsOpen: false,
+      cardSideOrder: "front",
+      shuffleCards: false,
+      focusMode: initialFocusMode
+    };
+
+    const accountAvatar = document.getElementById("accountAvatar");
+    const menuAvatar = document.getElementById("menuAvatar");
+    const profileName = document.getElementById("profileName");
+    const profileEmail = document.getElementById("profileEmail");
+    const accountSummary = document.getElementById("accountSummary");
+    const guestActions = document.getElementById("guestActions");
+    const guestSignupWrap = document.getElementById("guestSignupWrap");
+    const userActions = document.getElementById("userActions");
+    const accountLoginBtn = document.getElementById("accountLoginBtn");
+    const accountSignupBtn = document.getElementById("accountSignupBtn");
+    const accountProfileBtn = document.getElementById("accountProfileBtn");
+    const accountSettingsBtn = document.getElementById("accountSettingsBtn");
+    const accountLogoutBtn = document.getElementById("accountLogoutBtn");
+    const deckTitle = document.getElementById("deckTitle");
+    const deckSubtitle = document.getElementById("deckSubtitle");
+    const deckOwnerLabel = document.getElementById("deckOwnerLabel");
+    const readOnlyBadge = document.getElementById("readOnlyBadge");
+    const savedDeckBadge = document.getElementById("savedDeckBadge");
+    const privacyBadge = document.getElementById("privacyBadge");
+    const shareAccessHint = document.getElementById("shareAccessHint");
+    const cloneDeckBtn = document.getElementById("cloneDeckBtn");
+    const editDeckBtn = document.getElementById("editDeckBtn");
+    const groupsBtn = document.getElementById("groupsBtn");
+    const shareBtn = document.getElementById("shareBtn");
+    const openEditorMenuBtn = document.getElementById("openEditorMenuBtn");
+    const shuffleNowBtn = document.getElementById("shuffleNowBtn");
+    const copyDeckLinkBtn = document.getElementById("copyDeckLinkBtn");
+    const modeGrid = document.getElementById("modeGrid");
+    const setupPanel = document.getElementById("setupPanel");
+    const statsGrid = document.getElementById("statsGrid");
+    const cardViewer = document.getElementById("cardViewer");
+    const controlBar = document.getElementById("controlBar");
+    const focusTopbar = document.getElementById("focusTopbar");
+    const focusExitBtn = document.getElementById("focusExitBtn");
+    const focusModeChip = document.getElementById("focusModeChip");
+    const focusDeckTitleLabel = document.getElementById("focusDeckTitleLabel");
+    const focusProgressPill = document.getElementById("focusProgressPill");
+
+    function escapeHtml(value) {
+      return String(value || "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function normalizeStudySettings(raw = {}) {
+      return {
+        cardSideOrder: raw.cardSideOrder === "back" ? "back" : DEFAULT_STUDY_SETTINGS.cardSideOrder,
+        shuffleCards: Boolean(raw.shuffleCards),
+      };
+    }
+
+    function studySettingsDeckScope() {
+      return deckId ? `deck:${deckId}` : "deck:default";
+    }
+
+    function studySettingsStorageKey() {
+      const scope = studySettingsDeckScope();
+      return state.me ? `deckly:study-settings:user:${state.me.id}:${scope}` : `deckly:study-settings:guest:${scope}`;
+    }
+
+    function saveStudySettings() {
+      const payload = JSON.stringify(
+        normalizeStudySettings({
+          cardSideOrder: state.cardSideOrder,
+          shuffleCards: state.shuffleCards,
+        })
+      );
+      localStorage.setItem(studySettingsStorageKey(), payload);
+    }
+
+    function loadStudySettings() {
+      const stored = localStorage.getItem(studySettingsStorageKey());
+      if (!stored) {
+        state.cardSideOrder = DEFAULT_STUDY_SETTINGS.cardSideOrder;
+        state.shuffleCards = DEFAULT_STUDY_SETTINGS.shuffleCards;
+        return;
+      }
+      try {
+        const parsed = JSON.parse(stored);
+        const normalized = normalizeStudySettings(parsed);
+        state.cardSideOrder = normalized.cardSideOrder;
+        state.shuffleCards = normalized.shuffleCards;
+      } catch (error) {
+        state.cardSideOrder = DEFAULT_STUDY_SETTINGS.cardSideOrder;
+        state.shuffleCards = DEFAULT_STUDY_SETTINGS.shuffleCards;
+      }
+    }
+
+    function shuffle(array) {
+      const items = [...array];
+      for (let i = items.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [items[i], items[j]] = [items[j], items[i]];
+      }
+      return items;
+    }
+
+    function clampIndex() {
+      if (!state.sessionCards.length) {
+        state.currentIndex = 0;
+        return;
+      }
+      state.currentIndex = Math.max(0, Math.min(state.currentIndex, state.sessionCards.length - 1));
+    }
+
+    function currentCard() {
+      clampIndex();
+      return state.sessionCards[state.currentIndex] || null;
+    }
+
+    function captureSessionSnapshot() {
+      return {
+        currentIndex: state.currentIndex,
+        revealed: state.revealed,
+        correct: state.correct,
+        incorrect: state.incorrect,
+        missedCardIds: [...state.missedCardIds],
+        lastAnswer: state.lastAnswer ? { ...state.lastAnswer } : null,
+        testChoices: [...state.testChoices]
+      };
+    }
+
+    function pushSessionUndo(snapshot) {
+      state.actionHistory.push(snapshot);
+      if (state.actionHistory.length > 80) state.actionHistory.shift();
+    }
+
+    function canUndoSessionAction() {
+      return Boolean(state.actionHistory.length && state.started && state.sessionCards.length);
+    }
+
+    function undoLastSessionAction() {
+      const snapshot = state.actionHistory.pop();
+      if (!snapshot) return;
+      state.currentIndex = snapshot.currentIndex;
+      state.revealed = snapshot.revealed;
+      state.correct = snapshot.correct;
+      state.incorrect = snapshot.incorrect;
+      state.missedCardIds = [...snapshot.missedCardIds];
+      state.lastAnswer = snapshot.lastAnswer ? { ...snapshot.lastAnswer } : null;
+      state.testChoices = [...snapshot.testChoices];
+      renderAll();
+    }
+
+    function isSessionActive() {
+      return Boolean(state.started && state.sessionCards.length && state.currentIndex < state.sessionCards.length);
+    }
+
+    function isSessionCompleted() {
+      return Boolean(state.started && state.sessionCards.length && state.currentIndex >= state.sessionCards.length);
+    }
+
+    function syncFocusQueryParam(enabled) {
+      const url = new URL(window.location.href);
+      if (enabled) url.searchParams.set("focus", "1");
+      else url.searchParams.delete("focus");
+      window.history.replaceState({}, "", url.toString());
+    }
+
+    function syncFocusTopbar() {
+      if (!focusTopbar) return;
+      const total = state.sessionCards.length;
+      const current = Math.min(state.currentIndex + 1, Math.max(total, 1));
+      const progressText = isSessionCompleted()
+        ? `Complete · ${total} / ${total}`
+        : `${current} / ${total || 0}`;
+      if (focusProgressPill) focusProgressPill.textContent = progressText;
+      if (focusDeckTitleLabel) {
+        const name = state.deck?.name || state.sharedMeta?.name || "Study session";
+        focusDeckTitleLabel.textContent = name;
+        focusDeckTitleLabel.title = name;
+      }
+      if (focusModeChip) focusModeChip.textContent = modeLabel();
+    }
+
+    function syncFocusModeLayout() {
+      const canFocus = isSessionActive() || isSessionCompleted();
+      if (!canFocus && state.focusMode) state.focusMode = false;
+      const enabled = Boolean(state.focusMode && canFocus);
+      document.body.classList.toggle("study-focus-mode", enabled);
+      document.body.classList.toggle("study-focus-lock", enabled);
+      document.documentElement.classList.toggle("study-focus-lock", enabled);
+      if (focusTopbar) focusTopbar.classList.toggle("d-none", !enabled);
+      if (enabled) syncFocusTopbar();
+      if (!enabled && document.fullscreenElement && document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      }
+      syncFocusQueryParam(enabled);
+    }
+
+    function syncStudyFocusLayout() {
+      document.body.classList.toggle("study-active", isSessionActive());
+      syncFocusModeLayout();
+    }
+
+    async function toggleFocusMode(forceValue = null) {
+      if (!isSessionActive() && !isSessionCompleted()) return;
+      const nextValue = typeof forceValue === "boolean" ? forceValue : !state.focusMode;
+      state.focusMode = nextValue;
+      state.settingsOpen = false;
+      syncStudyFocusLayout();
+      renderControls();
+      try {
+        if (nextValue && document.documentElement.requestFullscreen && !document.fullscreenElement) {
+          await document.documentElement.requestFullscreen();
+        } else if (!nextValue && document.exitFullscreen && document.fullscreenElement) {
+          await document.exitFullscreen();
+        }
+      } catch (error) {
+        // Focus mode still works without native fullscreen permissions.
+      }
+    }
+
+    function primaryCardSide() {
+      return state.cardSideOrder === 'back' ? 'back' : 'front';
+    }
+
+    function secondaryCardSide() {
+      return primaryCardSide() === 'front' ? 'back' : 'front';
+    }
+
+    function currentSideLabel(revealed) {
+      return (revealed ? secondaryCardSide() : primaryCardSide()) === 'front' ? 'Front' : 'Back';
+    }
+
+    async function loadIntervalSession() {
+      if (!deckId) return null;
+      if (state.me) {
+        const params = new URLSearchParams({
+          mode: "interval",
+          shuffle_cards: state.shuffleCards ? "true" : "false"
+        });
+        state.dueSession = await api(`/decks/${deckId}/study/session?${params.toString()}`);
+        return state.dueSession;
+      }
+      state.dueSession = await sharedApi(`/shared/decks/${deckId}/study`);
+      return state.dueSession;
+    }
+
+    async function startCurrentSessionWithSettings() {
+      if (!state.mode) return;
+      state.settingsOpen = false;
+      if (state.mode === 'interval') {
+        await loadIntervalSession();
+      }
+      startMode(state.mode);
+    }
+
+    function syncFlipPresentation() {
+      const flipSurface = cardViewer.querySelector('[data-flip-card]');
+      const stateBadge = document.getElementById('reviewStateBadge');
+
+      if (flipSurface) {
+        flipSurface.classList.toggle('is-flipped', state.revealed);
+      }
+
+      if (stateBadge) {
+        stateBadge.textContent = currentSideLabel(state.revealed);
+        stateBadge.className = `badge ${state.revealed ? 'text-bg-success' : 'text-bg-secondary'} rounded-pill`;
+      }
+    }
+
+    function renderProfile() {
+      if (!state.me) {
+        accountAvatar.textContent = "G";
+        menuAvatar.textContent = "G";
+        profileName.textContent = "Guest";
+        profileEmail.textContent = "Use the menu to sign in";
+        accountSummary.classList.add("d-none");
+        guestActions.classList.remove("d-none");
+        guestSignupWrap.classList.remove("d-none");
+        userActions.classList.add("d-none");
+        return;
+      }
+      const label = state.me.email.split("@")[0];
+      accountAvatar.textContent = label.charAt(0).toUpperCase();
+      menuAvatar.textContent = label.charAt(0).toUpperCase();
+      profileName.textContent = label || "Learner";
+      profileEmail.textContent = state.me.email;
+      accountSummary.classList.remove("d-none");
+      guestActions.classList.add("d-none");
+      guestSignupWrap.classList.add("d-none");
+      userActions.classList.remove("d-none");
+    }
+
+    function renderModes() {
+      modeGrid.innerHTML = MODES.map((mode) => `
+        <div class="col-12 col-xl-4">
+          <button class="card mode-tile w-100 h-100 text-start shadow-sm rounded-4 ${state.mode === mode.id ? 'active' : ''}" type="button" data-mode="${mode.id}">
+            <div class="card-body d-grid gap-3">
+              <div class="d-flex align-items-center justify-content-between gap-2">
+                <span class="mode-icon"><i class="bi ${mode.icon}"></i></span>
+                ${state.mode === mode.id ? '<span class="mode-current">Current</span>' : ''}
+              </div>
+              <div>
+                <div class="mode-title">${mode.label}</div>
+                <div class="mode-copy">${mode.copy}</div>
+              </div>
+            </div>
+          </button>
+        </div>
+      `).join("");
+    }
+
+    function renderSetup() {
+      if (state.mode === "limit" && !state.started) {
+        setupPanel.classList.remove("d-none");
+        setupPanel.innerHTML = `
+          <div class="card-body d-grid gap-3">
+            <div>
+              <strong class="d-block mb-1">Review a fixed number of cards</strong>
+              <div class="text-secondary">Choose the session size before you start.</div>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+              ${[10, 20, 30, "all"].map((value) => `<button class="btn ${String(state.sessionLimit) === String(value) ? 'btn-light text-dark' : 'btn-outline-light'} rounded-pill" type="button" data-limit="${value}">${value === 'all' ? 'All' : value}</button>`).join("")}
+              <button class="btn ${state.shuffleCards ? 'btn-light text-dark' : 'btn-outline-light'} rounded-pill" type="button" id="randomToggleBtn">Random Order</button>
+              <button class="btn btn-light text-dark" type="button" id="startLimitBtn">Start Session</button>
+            </div>
+          </div>
+        `;
+        return;
+      }
+      if (state.mode === "interval" && !state.started) {
+        const dueCount = state.dueSession?.cards?.length || 0;
+        setupPanel.classList.remove("d-none");
+        setupPanel.innerHTML = `
+          <div class="card-body d-grid gap-3">
+            <div>
+              <strong class="d-block mb-1">Interval Review Queue</strong>
+              <div class="text-secondary">${dueCount} cards are currently available in the due queue.</div>
+            </div>
+            <div><button class="btn btn-light text-dark" type="button" id="startIntervalBtn">Start Interval Review</button></div>
+          </div>
+        `;
+        return;
+      }
+      setupPanel.classList.add("d-none");
+      setupPanel.innerHTML = "";
+    }
+
+    function modeLabel() {
+      return MODES.find((mode) => mode.id === state.mode)?.label || "Deck Hub";
+    }
+
+    function setViewerSessionMode(enabled) {
+      cardViewer.classList.toggle("viewer-session", Boolean(enabled));
+    }
+
+    function currentDeckLink() {
+      return `${window.location.origin}/study.html?deck=${deckId}`;
+    }
+
+    function currentOwnerName() {
+      return state.deck?.owner_name || state.sharedMeta?.owner_name || state.deck?.owner_email || state.sharedMeta?.owner_email || "Unknown creator";
+    }
+
+    function renderPrivacyState() {
+      const visibility = state.deck?.visibility || state.sharedMeta?.visibility || "private";
+      const isPrivate = visibility === "private";
+      deckOwnerLabel.textContent = `Created by ${currentOwnerName()}`;
+      readOnlyBadge.classList.toggle("d-none", state.ownerAccess || !state.deck);
+      savedDeckBadge.classList.toggle("d-none", !state.deck?.saved_in_library || state.ownerAccess);
+      privacyBadge.textContent = isPrivate ? "Private" : "Public";
+      privacyBadge.className = `badge rounded-pill ${isPrivate ? 'text-bg-warning text-dark' : 'text-bg-success'}`;
+      shareAccessHint.textContent = isPrivate
+        ? "Password-protected link. Viewers must enter the deck password."
+        : "Open-access link. Anyone with the URL can view this deck.";
+      cloneDeckBtn.classList.toggle("d-none", Boolean(state.ownerAccess) || !state.deck || Boolean(state.deck?.saved_in_library));
+      editDeckBtn.classList.toggle("d-none", !state.ownerAccess);
+      groupsBtn.classList.toggle("d-none", !state.ownerAccess);
+      openEditorMenuBtn.classList.toggle("d-none", !state.ownerAccess);
+    }
+
+    function renderHeader() {
+      if (!state.deck) {
+        deckTitle.textContent = "Deck not found";
+        deckSubtitle.textContent = "Select a valid deck from the home page.";
+        renderPrivacyState();
+        return;
+      }
+      deckTitle.textContent = state.deck.name;
+      if (!state.started) {
+        deckSubtitle.textContent = `${modeLabel()} is selected. Configure it and start the session.`;
+      } else if (isSessionCompleted()) {
+        deckSubtitle.textContent = `${modeLabel()} complete — session summary is ready below.`;
+      } else {
+        const activeStep = Math.min(state.currentIndex + 1, Math.max(state.sessionCards.length, 1));
+        deckSubtitle.textContent = `${modeLabel()} in progress — card ${activeStep} of ${state.sessionCards.length}.`;
+      }
+      editDeckBtn.href = `/deck.html?id=${state.deck.id}`;
+      renderPrivacyState();
+    }
+
+    function renderStats() {
+      const total = state.sessionCards.length;
+      const reviewed = Math.min(state.correct + state.incorrect, total);
+      const completion = total ? Math.round((reviewed / total) * 100) : 0;
+      const remaining = Math.max(total - reviewed, 0);
+      const completedSession = isSessionCompleted();
+
+      statsGrid.classList.toggle("is-completed", completedSession);
+
+      if (completedSession) {
+        const progressNote = remaining === 0
+          ? "All cards reviewed in this run."
+          : `${remaining} cards left in this run.`;
+        statsGrid.innerHTML = `
+          <div class="col-12">
+            <div class="card stat-card completion-metrics-strip rounded-4 h-100">
+              <div class="card-body">
+                <div class="completion-progress-main">
+                  <div class="label">Session Progress</div>
+                  <div class="value">${reviewed} / ${total}</div>
+                  <div class="note">${progressNote}</div>
+                </div>
+                <div class="completion-inline-metrics">
+                  <span class="completion-chip correct"><span>Correct</span><strong>${state.correct}</strong></span>
+                  <span class="completion-chip incorrect"><span>Incorrect</span><strong>${state.incorrect}</strong></span>
+                  <span class="completion-chip remaining ${remaining === 0 ? 'zero' : ''}"><span>Remaining</span><strong>${remaining}</strong></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      const stats = [
+        {
+          label: "Session Progress",
+          value: total ? `${reviewed} / ${total}` : "0 / 0",
+          note: total ? `${completion}% completed` : "No active cards",
+          className: "stat-primary",
+        },
+        {
+          label: "Correct",
+          value: String(state.correct),
+          note: "Known cards",
+          className: "stat-positive",
+        },
+        {
+          label: "Incorrect",
+          value: String(state.incorrect),
+          note: "Needs review",
+          className: "stat-negative",
+        },
+        {
+          label: "Remaining",
+          value: String(remaining),
+          note: "Cards left",
+          className: "stat-muted",
+        }
+      ];
+      statsGrid.innerHTML = stats.map((item) => `
+        <div class="col-12 col-md-6 col-xxl-3">
+          <div class="card stat-card shadow-sm rounded-4 h-100 ${item.className}">
+            <div class="card-body">
+              <div class="stat-label">${item.label}</div>
+              <div class="stat-value">${item.value}</div>
+              <div class="stat-note">${item.note}</div>
+            </div>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function buildTestChoices(card) {
+      const distractors = shuffle(state.deck.cards.filter((item) => item.id !== card.id).map((item) => item.back)).slice(0, 3);
+      return shuffle([card.back, ...distractors]);
+    }
+
+    function startMode(modeId) {
+      state.mode = modeId;
+      state.currentIndex = 0;
+      state.revealed = false;
+      state.correct = 0;
+      state.incorrect = 0;
+      state.missedCardIds = [];
+      state.actionHistory = [];
+      state.started = false;
+      state.lastAnswer = null;
+      state.testChoices = [];
+
+      if (!state.deck) {
+        renderAll();
+        return;
+      }
+
+      if (modeId === "all") {
+        state.sessionCards = state.shuffleCards ? shuffle(state.deck.cards) : [...state.deck.cards];
+        state.started = true;
+      } else if (modeId === "limit") {
+        const source = state.shuffleCards ? shuffle(state.deck.cards) : [...state.deck.cards];
+        state.sessionCards = source.slice(0, state.sessionLimit === "all" ? source.length : Number(state.sessionLimit));
+      } else if (modeId === "interval") {
+        const dueCards = [...(state.dueSession?.cards || [])];
+        state.sessionCards = dueCards;
+        state.currentIndex = state.dueSession?.current_index || 0;
+        state.intervalSessionId = state.dueSession?.session_id || "";
+        state.started = true;
+      } else if (modeId === "test") {
+        state.sessionCards = state.shuffleCards ? shuffle(state.deck.cards) : [...state.deck.cards];
+        state.started = true;
+        if (state.sessionCards[0]) state.testChoices = buildTestChoices(state.sessionCards[0]);
+      }
+
+      renderAll();
+    }
+
+    function flipCurrentCard() {
+      if (!state.deck || !state.mode || !state.sessionCards.length) return;
+      if (!state.started && (state.mode === "limit" || state.mode === "interval")) return;
+      if (state.currentIndex >= state.sessionCards.length) return;
+      if (state.mode === "test") return;
+      state.revealed = !state.revealed;
+      syncFlipPresentation();
+      if (state.mode === 'interval') renderControls();
+    }
+
+    function revealCard() {
+      if (state.mode === 'test') return;
+      state.revealed = true;
+      syncFlipPresentation();
+      if (state.mode === 'interval') renderControls();
+    }
+
+    function moveBrowse(step) {
+      state.currentIndex = Math.max(0, Math.min(state.currentIndex + step, state.sessionCards.length - 1));
+      state.revealed = false;
+      renderAll();
+    }
+
+    function animateReviewExit(direction, onFinish) {
+      if (state.reviewAnimating) return;
+      const viewer = document.getElementById('cardViewer');
+      if (!viewer) {
+        onFinish();
+        return;
+      }
+      state.reviewAnimating = true;
+      state.reviewExitLabel = direction === 'know' ? 'Know it!' : "Don't know yet!";
+      renderAll();
+      const activeViewer = document.getElementById('cardViewer');
+      activeViewer.classList.remove('review-hold', 'exit-know', 'exit-dontknow');
+      const exitClass = direction === 'know' ? 'exit-know' : 'exit-dontknow';
+      const finish = () => {
+        activeViewer.removeEventListener('animationend', finish);
+        activeViewer.classList.remove('review-hold', 'exit-know', 'exit-dontknow');
+        state.reviewAnimating = false;
+        state.reviewExitLabel = '';
+        onFinish();
+      };
+      activeViewer.classList.add('review-hold');
+      window.setTimeout(() => {
+        if (!state.reviewAnimating) return;
+        activeViewer.addEventListener('animationend', finish, { once: true });
+        activeViewer.classList.remove('review-hold');
+        activeViewer.classList.add(exitClass);
+      }, 500);
+    }
+
+    function completeSelfCheck(knows) {
+      if (state.reviewAnimating) return;
+      const snapshot = captureSessionSnapshot();
+      animateReviewExit(knows ? 'know' : 'dontknow', () => {
+        pushSessionUndo(snapshot);
+        if (knows) state.correct += 1;
+        else {
+          state.incorrect += 1;
+          const card = currentCard();
+          if (card && !state.missedCardIds.includes(card.id)) state.missedCardIds.push(card.id);
+        }
+        if (state.currentIndex < state.sessionCards.length - 1) {
+          state.currentIndex += 1;
+          state.revealed = false;
+        } else {
+          state.currentIndex = state.sessionCards.length;
+        }
+        renderAll();
+      });
+    }
+
+    async function submitIntervalRating(rating) {
+      const card = currentCard();
+      if (!card) return;
+      let nextIndex = state.currentIndex + 1;
+      if (state.me) {
+        const sessionId = state.intervalSessionId || (window.crypto?.randomUUID?.() || `interval-${Date.now()}`);
+        state.intervalSessionId = sessionId;
+        const result = await api('/reviews/submit', {
+          method: 'POST',
+          body: JSON.stringify({
+            deck_id: state.deck.id,
+            card_id: card.id,
+            rating,
+            session_id: sessionId
+          })
+        });
+        if (result?.progress) {
+          state.deck.progress = result.progress;
+        }
+        if (typeof result?.session_current_index === 'number') {
+          nextIndex = result.session_current_index;
+        }
+      }
+      if (rating === "again" || rating === "hard") {
+        state.incorrect += 1;
+        if (!state.missedCardIds.includes(card.id)) state.missedCardIds.push(card.id);
+      } else state.correct += 1;
+      if (nextIndex < state.sessionCards.length) {
+        state.currentIndex = nextIndex;
+        state.revealed = false;
+      } else {
+        state.currentIndex = state.sessionCards.length;
+      }
+      renderAll();
+    }
+
+    function answerTest(choice) {
+      const card = currentCard();
+      if (!card || state.lastAnswer) return;
+      const snapshot = captureSessionSnapshot();
+      const correct = choice === card.back;
+      state.lastAnswer = { choice, correct };
+      if (correct) state.correct += 1;
+      else {
+        state.incorrect += 1;
+        if (!state.missedCardIds.includes(card.id)) state.missedCardIds.push(card.id);
+      }
+      pushSessionUndo(snapshot);
+      renderAll();
+    }
+
+    function nextTestCard() {
+      if (state.currentIndex < state.sessionCards.length - 1) {
+        state.currentIndex += 1;
+        state.lastAnswer = null;
+        state.testChoices = buildTestChoices(currentCard());
+      } else {
+        state.currentIndex = state.sessionCards.length;
+      }
+      renderAll();
+    }
+
+    function renderEmpty(message) {
+      setViewerSessionMode(false);
+      cardViewer.innerHTML = `<div class="card-body d-flex align-items-center justify-content-center text-center text-secondary">${message}</div>`;
+      controlBar.innerHTML = "";
+      controlBar.className = "card control-card shadow-sm rounded-4 d-none";
+    }
+
+    function renderAccessGate(message = "") {
+      setViewerSessionMode(false);
+      const deckName = state.sharedMeta?.name || "Private deck";
+      cardViewer.innerHTML = `
+        <div class="card-body p-4 p-xl-5 d-grid gap-4 align-content-center justify-content-center text-center" style="min-height: 420px;">
+          <div class="d-grid gap-2">
+            <div><span class="badge text-bg-warning text-dark rounded-pill">Private Deck</span></div>
+            <h2 class="h2 mb-0">${escapeHtml(deckName)}</h2>
+            <div class="text-secondary">Enter the deck password to unlock this shared study link.</div>
+          </div>
+          <form class="mx-auto w-100" id="deckAccessForm" style="max-width: 380px;">
+            <div class="input-group input-group-lg">
+              <input class="form-control bg-dark border-secondary" id="deckAccessPasswordInput" type="password" placeholder="Deck password" required />
+              <button class="btn btn-light text-dark" type="submit">Unlock</button>
+            </div>
+          </form>
+          <div class="small fw-semibold ${message ? 'text-danger' : 'text-secondary'}" id="deckAccessStatus">${escapeHtml(message || "Password is checked on the backend before deck data is returned.")}</div>
+        </div>
+      `;
+      controlBar.innerHTML = "";
+      controlBar.className = "card control-card shadow-sm rounded-4 d-none";
+      const deckAccessForm = document.getElementById("deckAccessForm");
+      if (deckAccessForm) {
+        deckAccessForm.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          const password = document.getElementById("deckAccessPasswordInput").value.trim();
+          if (!password) return;
+          try {
+            const access = await sharedApi(`/shared/decks/${deckId}/access`, {
+              method: "POST",
+              body: JSON.stringify({ password }),
+              headers: {}
+            });
+            state.shareAccessToken = access.access_token;
+            sessionStorage.setItem(`deck-access-${deckId}`, access.access_token);
+            await loadDeck();
+          } catch (error) {
+            renderAccessGate(error.message);
+          }
+        });
+      }
+    }
+
+    function renderCompletion() {
+      setViewerSessionMode(false);
+      const total = state.sessionCards.length;
+      const completed = Math.min(state.correct + state.incorrect, total);
+      const successRate = total ? Math.round((state.correct / total) * 100) : 0;
+      const ringDegrees = `${Math.round((successRate / 100) * 360)}deg`;
+      const missedCount = state.missedCardIds.length;
+      const headline = successRate >= 85
+        ? "Excellent retention this round."
+        : successRate >= 65
+          ? "Solid progress. Tighten the weak spots."
+          : successRate >= 45
+            ? "Good start. Reinforcement will raise mastery."
+            : "Session logged. Focus on fundamentals next.";
+      const primaryActionLabel = missedCount
+        ? `Review ${missedCount} difficult card${missedCount === 1 ? "" : "s"}`
+        : "Run this mode again";
+      const nextStepTitle = missedCount ? "Best next move" : "Next move";
+      const nextStepCopy = missedCount
+        ? "Target weak recall while memory is warm, then run a full pass."
+        : "No weak cards in this run. A fast second pass helps lock long-term recall.";
+      const insight = missedCount
+        ? `You mastered ${state.correct} cards. Target the ${missedCount} missed card${missedCount === 1 ? "" : "s"} now to increase retention on the next pass.`
+        : `You mastered every reviewed card. Keep spacing consistent to preserve this level across future sessions.`;
+      cardViewer.innerHTML = `
+        <div class="card-body p-4 p-xl-5 d-grid gap-5">
+          <div class="results-hero">
+            <div class="d-flex justify-content-center justify-content-xl-start">
+              <span class="results-kicker"><i class="bi bi-stars"></i>Session complete</span>
+            </div>
+            <h2 class="results-headline">${headline}</h2>
+            <p class="results-subtitle">${state.correct} mastered, ${state.incorrect} need review in <span class="text-light">${escapeHtml(state.deck.name)}</span>. ${completed} cards reviewed in ${modeLabel()}.</p>
+          </div>
+          <div class="results-shell">
+            <div class="completion-layout">
+              <section class="completion-summary">
+                <div class="completion-core">
+                  <div class="d-flex justify-content-center justify-content-xl-start">
+                    <div class="results-ring" id="resultsRing" style="--progress: 0deg;">
+                      <div class="results-ring-value">
+                        <div class="results-ring-number">${successRate}%</div>
+                        <div class="results-ring-label">Accuracy</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="completion-outcome">
+                    <div class="completion-outcome-label">Session outcome</div>
+                    <div class="completion-outcome-main">${state.correct} mastered, ${state.incorrect} need review</div>
+                    <div class="completion-outcome-sub">${completed} of ${total} reviewed in this run.</div>
+                  </div>
+                </div>
+                <div class="completion-metric-grid">
+                  <div class="completion-metric mastered">
+                    <div class="completion-metric-label">Mastered</div>
+                    <div class="completion-metric-value">${state.correct}</div>
+                  </div>
+                  <div class="completion-metric review">
+                    <div class="completion-metric-label">Needs review</div>
+                    <div class="completion-metric-value">${state.incorrect}</div>
+                  </div>
+                  <div class="completion-metric total">
+                    <div class="completion-metric-label">Total reviewed</div>
+                    <div class="completion-metric-value">${completed}</div>
+                  </div>
+                </div>
+                <div class="results-insight">${insight}</div>
+              </section>
+              <aside class="completion-actions">
+                <div class="completion-action-header">
+                  <div class="eyebrow">${nextStepTitle}</div>
+                  <h3 class="title">${missedCount ? `Fix ${missedCount} weak card${missedCount === 1 ? "" : "s"} now` : "Keep this retention level stable"}</h3>
+                  <p class="copy">${nextStepCopy}</p>
+                </div>
+                <button class="btn completion-action-primary w-100 results-action-btn primary" type="button" id="primaryCompletionBtn">
+                  <span class="action-leading"><i class="bi bi-lightning-charge"></i></span>
+                  <span class="action-label">${primaryActionLabel}</span>
+                  <span class="action-tag">Recommended</span>
+                </button>
+                <div class="secondary-action-row">
+                  <button class="btn completion-action-secondary results-action-btn" type="button" id="practiceAgainBtn">
+                    <i class="bi bi-arrow-repeat"></i>Practice again
+                  </button>
+                  <button class="btn completion-action-secondary results-action-btn" type="button" id="restartDeckBtn">
+                    <i class="bi bi-postcard"></i>Restart full deck
+                  </button>
+                </div>
+                <div class="utility-action-row">
+                  ${canUndoSessionAction() ? `
+                    <button class="utility-action-btn" type="button" id="undoCompletionAnswerBtn">
+                      <i class="bi bi-arrow-counterclockwise"></i>Undo last answer
+                    </button>
+                  ` : ""}
+                  <button class="utility-action-btn" type="button" id="returnHubBtn">
+                    <i class="bi bi-grid"></i>Return to deck hub
+                  </button>
+                  <button class="utility-action-btn" type="button" id="returnLastQuestionBtn">
+                    <i class="bi bi-arrow-counterclockwise"></i>Return to last question
+                  </button>
+                </div>
+              </aside>
+            </div>
+          </div>
+        </div>
+      `;
+      controlBar.innerHTML = "";
+      controlBar.className = "card control-card shadow-sm rounded-4 d-none";
+      const primaryCompletionBtn = document.getElementById("primaryCompletionBtn");
+      const practiceAgainBtn = document.getElementById("practiceAgainBtn");
+      const restartDeckBtn = document.getElementById("restartDeckBtn");
+      const undoCompletionAnswerBtn = document.getElementById("undoCompletionAnswerBtn");
+      const returnHubBtn = document.getElementById("returnHubBtn");
+      const returnLastQuestionBtn = document.getElementById("returnLastQuestionBtn");
+      const resultsRing = document.getElementById("resultsRing");
+
+      const runMissedReview = () => {
+        if (!state.missedCardIds.length) {
+          startMode(state.mode);
+          return;
+        }
+        state.sessionCards = state.deck.cards.filter((card) => state.missedCardIds.includes(card.id));
+        state.currentIndex = 0;
+        state.revealed = false;
+        state.correct = 0;
+        state.incorrect = 0;
+        state.missedCardIds = [];
+        state.actionHistory = [];
+        state.started = true;
+        state.lastAnswer = null;
+        if (state.mode === 'test' && state.sessionCards[0]) state.testChoices = buildTestChoices(state.sessionCards[0]);
+        renderAll();
+      };
+
+      if (primaryCompletionBtn) primaryCompletionBtn.addEventListener("click", () => {
+        if (missedCount) runMissedReview();
+        else startMode(state.mode);
+      });
+      if (practiceAgainBtn) practiceAgainBtn.addEventListener("click", () => startMode(state.mode));
+      if (restartDeckBtn) {
+        restartDeckBtn.addEventListener("click", () => {
+          state.mode = "all";
+          startMode("all");
+        });
+      }
+      if (undoCompletionAnswerBtn) undoCompletionAnswerBtn.addEventListener("click", undoLastSessionAction);
+      if (returnHubBtn) {
+        returnHubBtn.addEventListener("click", () => {
+          state.mode = "all";
+          state.sessionCards = [];
+          state.currentIndex = 0;
+          state.revealed = false;
+          state.started = false;
+          state.correct = 0;
+          state.incorrect = 0;
+          state.missedCardIds = [];
+          state.actionHistory = [];
+          state.lastAnswer = null;
+          state.testChoices = [];
+          renderAll();
+        });
+      }
+      if (returnLastQuestionBtn) {
+        returnLastQuestionBtn.addEventListener("click", () => {
+          if (!total) return;
+          state.currentIndex = total - 1;
+          renderAll();
+        });
+      }
+      if (resultsRing) {
+        resultsRing.style.setProperty('--progress', '0deg');
+        window.requestAnimationFrame(() => {
+          window.requestAnimationFrame(() => {
+            resultsRing.classList.add('is-animated');
+            resultsRing.style.setProperty('--progress', ringDegrees);
+          });
+        });
+      }
+    }
+
+    function renderViewer() {
+      if (!state.deck) {
+        renderEmpty("Deck is not specified.");
+        return;
+      }
+      if (!state.started && (state.mode === "limit" || state.mode === "interval")) {
+        renderEmpty("Configure the selected mode and start the session.");
+        return;
+      }
+      if (!state.sessionCards.length) {
+        renderEmpty("This mode currently has no cards to show.");
+        return;
+      }
+      if (state.currentIndex >= state.sessionCards.length) {
+        renderCompletion();
+        return;
+      }
+
+      setViewerSessionMode(true);
+
+      const card = currentCard();
+      const showBack = state.revealed;
+      const primarySide = primaryCardSide();
+      const secondarySide = secondaryCardSide();
+      const chipLabel = state.mode === "test" ? "Question" : currentSideLabel(showBack);
+      const mainContent = state.mode === "test" ? card.front : (showBack ? card[secondarySide] : card[primarySide]);
+
+      const isFlippable = state.mode !== 'test';
+      const exitLabelClass = state.reviewExitLabel === 'Know it!' ? 'know' : 'dontknow';
+      const showTopProgress = state.mode !== 'all' && state.mode !== 'limit';
+      const headerRowClass = showTopProgress
+        ? "d-flex justify-content-between align-items-center gap-3"
+        : "d-flex justify-content-start align-items-center gap-3";
+
+      cardViewer.innerHTML = `
+        ${state.reviewExitLabel ? `<div class="review-exit-label ${exitLabelClass}"><span>${state.reviewExitLabel}</span></div>` : ''}
+        <div class="card-body review-view-body">
+          <div class="${headerRowClass}">
+            <span class="badge ${showBack ? 'text-bg-success' : 'text-bg-secondary'} rounded-pill" id="reviewStateBadge">${chipLabel}</span>
+            ${showTopProgress ? `<span class="text-secondary">${Math.min(state.currentIndex + 1, state.sessionCards.length)} / ${state.sessionCards.length}</span>` : ''}
+          </div>
+          <div class="flip-stage">
+            ${state.mode === 'test' ? `
+              <div class="d-grid gap-3 text-center align-content-center justify-content-center" style="min-height: 260px;">
+                ${card.image_url ? `<div class="viewer-media"><img src="${escapeHtml(card.image_url)}" alt="Card visual" /></div>` : ''}
+                <div class="review-main-text">${escapeHtml(mainContent)}</div>
+                <div class="row g-2" id="choiceGrid">
+                  ${state.testChoices.map((choice) => {
+                    let classes = 'btn btn-outline-light text-start h-100';
+                    if (state.lastAnswer) {
+                      if (choice === card.back) classes = 'btn btn-success text-start h-100';
+                      if (choice === state.lastAnswer.choice && !state.lastAnswer.correct) classes = 'btn btn-danger text-start h-100';
+                    }
+                    return `<div class="col-12 col-md-6"><button class="${classes}" type="button" data-choice="${escapeHtml(choice)}">${escapeHtml(choice)}</button></div>`;
+                  }).join('')}
+                </div>
+                </div>
+            ` : `
+                <div class="flip-shell">
+                  <div class="flip-surface ${showBack ? 'is-flipped' : ''}" ${isFlippable ? 'data-flip-card="true" role="button" tabindex="0"' : ''}>
+                    <div class="flip-face front ${card.image_url ? 'has-media' : ''}">
+                      <div class="review-card-content">
+                        ${card.image_url ? `<div class="viewer-media"><img src="${escapeHtml(card.image_url)}" alt="Card visual" /></div>` : ''}
+                        <div class="review-main-text">${escapeHtml(card[primarySide])}</div>
+                      </div>
+                    </div>
+                    <div class="flip-face back ${card.image_url ? 'has-media' : ''}">
+                      <div class="review-card-content">
+                        ${card.image_url ? `<div class="viewer-media"><img src="${escapeHtml(card.image_url)}" alt="Card visual" /></div>` : ''}
+                        <div class="review-main-text">${escapeHtml(card[secondarySide])}</div>
+                      </div>
+                    </div>
+                  </div>
+                  ${canUndoSessionAction() ? `
+                    <button class="viewer-undo-btn" type="button" id="undoCardBtn" aria-label="Undo last answer" title="Undo last answer">
+                      <i class="bi bi-arrow-counterclockwise"></i>
+                    </button>
+                  ` : ''}
+                </div>
+            `}
+          </div>
+        </div>
+      `;
+
+      const flipSurface = cardViewer.querySelector('[data-flip-card]');
+      if (flipSurface) {
+        flipSurface.addEventListener('click', flipCurrentCard);
+        flipSurface.addEventListener('keydown', (event) => {
+          if (event.key !== 'Enter' && event.key !== ' ') return;
+          event.preventDefault();
+          flipCurrentCard();
+        });
+      }
+
+      const undoCardBtn = document.getElementById('undoCardBtn');
+      if (undoCardBtn) {
+        undoCardBtn.addEventListener('click', (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          undoLastSessionAction();
+        });
+      }
+
+      if (state.mode === 'test') {
+        document.querySelectorAll('[data-choice]').forEach((button) => {
+          button.addEventListener('click', () => answerTest(button.dataset.choice));
+        });
+      }
+    }
+
+    function renderSettingsPanelContent() {
+      return `
+        <div class="d-grid gap-3">
+          <div>
+            <div class="small text-secondary text-uppercase mb-2">Card side order</div>
+            <div class="d-grid gap-2">
+              <label class="form-check">
+                <input class="form-check-input" type="radio" name="cardSideOrder" value="front" ${state.cardSideOrder === 'front' ? 'checked' : ''}>
+                <span class="form-check-label">Front first</span>
+              </label>
+              <label class="form-check">
+                <input class="form-check-input" type="radio" name="cardSideOrder" value="back" ${state.cardSideOrder === 'back' ? 'checked' : ''}>
+                <span class="form-check-label">Back first</span>
+              </label>
+            </div>
+          </div>
+          <div>
+            <div class="small text-secondary text-uppercase mb-2">Order</div>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" role="switch" id="shuffleCardsToggle" ${state.shuffleCards ? 'checked' : ''}>
+              <label class="form-check-label" for="shuffleCardsToggle">Shuffle cards</label>
+            </div>
+            <div class="small text-secondary mt-2">Shuffle is applied when a session starts or restarts.</div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderSettingsShell() {
+      return `
+        <div class="settings-shell" data-settings-shell>
+          <button class="btn btn-outline-light utility-btn" type="button" id="studySettingsBtn" title="Study settings" aria-label="Study settings" aria-expanded="${state.settingsOpen ? 'true' : 'false'}">
+            <i class="bi bi-sliders"></i>
+          </button>
+          ${state.settingsOpen ? `
+            <div class="study-settings-panel">
+              ${renderSettingsPanelContent()}
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }
+
+    function bindSettingsControls() {
+      const studySettingsBtn = document.getElementById('studySettingsBtn');
+      const shuffleCardsToggle = document.getElementById('shuffleCardsToggle');
+
+      if (studySettingsBtn) {
+        studySettingsBtn.addEventListener('click', (event) => {
+          event.stopPropagation();
+          state.settingsOpen = !state.settingsOpen;
+          renderControls();
+        });
+      }
+
+      document.querySelectorAll('input[name="cardSideOrder"]').forEach((input) => {
+        input.addEventListener('change', () => {
+          state.cardSideOrder = input.value;
+          saveStudySettings();
+          state.revealed = false;
+          renderViewer();
+          renderControls();
+        });
+      });
+
+      if (shuffleCardsToggle) {
+        shuffleCardsToggle.addEventListener('change', () => {
+          state.shuffleCards = shuffleCardsToggle.checked;
+          saveStudySettings();
+          startCurrentSessionWithSettings();
+        });
+      }
+    }
+
+    function renderFocusToggleButton() {
+      if (!isSessionActive()) return "";
+      const isOn = Boolean(state.focusMode);
+      const label = isOn ? "Exit fullscreen focus mode" : "Open fullscreen focus mode";
+      const icon = isOn ? "bi-fullscreen-exit" : "bi-arrows-fullscreen";
+      return `
+        <button class="btn btn-outline-light utility-btn" type="button" id="focusModeBtn" title="${label}" aria-label="${label}" aria-pressed="${isOn ? 'true' : 'false'}">
+          <i class="bi ${icon}"></i>
+        </button>
+      `;
+    }
+
+    function bindFocusControls() {
+      const focusModeBtn = document.getElementById('focusModeBtn');
+      if (focusModeBtn) {
+        focusModeBtn.addEventListener('click', () => {
+          toggleFocusMode();
+        });
+      }
+    }
+
+    function renderControls() {
+      if (!state.deck || !state.mode || !state.sessionCards.length || (!state.started && (state.mode === 'limit' || state.mode === 'interval')) || state.currentIndex >= state.sessionCards.length) {
+        controlBar.innerHTML = '';
+        controlBar.className = 'card control-card shadow-sm rounded-4 d-none';
+        return;
+      }
+
+      controlBar.className = 'card control-card shadow-sm rounded-4';
+
+      if (state.mode === 'all' || state.mode === 'limit') {
+        if (state.focusMode) {
+          controlBar.innerHTML = `
+            <div class="card-body focus-control-body" data-settings-shell>
+              <div class="focus-review-controls">
+                <button class="btn focus-answer-btn negative" type="button" id="dontKnowBtn" aria-label="I don't know">
+                  <i class="bi bi-x-lg"></i><span>Don't know</span>
+                </button>
+                <button class="btn focus-answer-btn neutral" type="button" id="flipReviewBtn" aria-label="Flip card">
+                  <i class="bi bi-arrow-repeat"></i><span>${state.revealed ? `Show ${primaryCardSide() === 'front' ? 'Front' : 'Back'}` : 'Flip card'}</span>
+                </button>
+                <button class="btn focus-answer-btn positive" type="button" id="knowBtn" aria-label="I know it">
+                  <i class="bi bi-check-lg"></i><span>Know it</span>
+                </button>
+              </div>
+              <div class="focus-utility-row">
+                <div class="focus-progress-mini">${Math.min(state.currentIndex + 1, state.sessionCards.length)} / ${state.sessionCards.length}</div>
+                <div class="dropdown focus-more-menu">
+                  <button class="btn focus-more-btn" type="button" id="focusMoreBtn" data-bs-toggle="dropdown" aria-expanded="false" title="More actions">
+                    <i class="bi bi-three-dots"></i>
+                  </button>
+                  <ul class="dropdown-menu dropdown-menu-end rounded-4 p-2">
+                    <li><button class="dropdown-item rounded-3 ${canUndoSessionAction() ? '' : 'disabled'}" type="button" id="focusUndoAction" ${canUndoSessionAction() ? '' : 'disabled'}>Undo last answer</button></li>
+                    <li><button class="dropdown-item rounded-3" type="button" id="focusSettingsAction">Study settings</button></li>
+                    ${state.ownerAccess ? `<li><a class="dropdown-item rounded-3" href="/deck.html?id=${state.deck.id}">Open deck editor</a></li>` : ''}
+                    <li><button class="dropdown-item rounded-3" type="button" id="focusExitAction">Exit fullscreen</button></li>
+                  </ul>
+                </div>
+              </div>
+              ${state.settingsOpen ? `<div class="study-settings-panel focus-settings-panel">${renderSettingsPanelContent()}</div>` : ''}
+            </div>
+          `;
+          document.getElementById('dontKnowBtn').addEventListener('click', () => completeSelfCheck(false));
+          document.getElementById('knowBtn').addEventListener('click', () => completeSelfCheck(true));
+          document.getElementById('flipReviewBtn').addEventListener('click', flipCurrentCard);
+          const focusUndoAction = document.getElementById('focusUndoAction');
+          if (focusUndoAction && !focusUndoAction.disabled) focusUndoAction.addEventListener('click', undoLastSessionAction);
+          const focusSettingsAction = document.getElementById('focusSettingsAction');
+          if (focusSettingsAction) {
+            focusSettingsAction.addEventListener('click', () => {
+              state.settingsOpen = !state.settingsOpen;
+              renderControls();
+            });
+          }
+          const focusExitAction = document.getElementById('focusExitAction');
+          if (focusExitAction) focusExitAction.addEventListener('click', () => toggleFocusMode(false));
+          bindSettingsControls();
+          return;
+        }
+
+        controlBar.className = 'card control-card review-control-card shadow-sm rounded-4';
+        controlBar.innerHTML = `
+          <div class="review-control-shell" data-settings-shell>
+            <div class="card-body review-control-layout">
+              <div class="review-side-meta">
+                <span class="control-mode-pill"><i class="bi bi-check2-square"></i>Self-check</span>
+              </div>
+              <div class="review-answer-cluster">
+                <button class="btn review-answer-btn negative" type="button" id="dontKnowBtn" aria-label="I don't know">
+                  <i class="bi bi-x-lg"></i><span>Don't know</span>
+                </button>
+                <div class="review-progress-core">${Math.min(state.currentIndex + 1, state.sessionCards.length)} / ${state.sessionCards.length}</div>
+                <button class="btn review-answer-btn positive" type="button" id="knowBtn" aria-label="I know it">
+                  <i class="bi bi-check-lg"></i><span>Know it</span>
+                </button>
+              </div>
+              <div class="review-side-meta right">
+                <div class="review-utility">
+                  ${renderFocusToggleButton()}
+                  <div class="dropdown">
+                    <button class="btn review-more-btn" type="button" id="reviewMoreBtn" data-bs-toggle="dropdown" aria-expanded="false" title="More actions">
+                      <i class="bi bi-three-dots"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end rounded-4 p-2">
+                      <li><button class="dropdown-item rounded-3" type="button" id="flipReviewBtn">Flip card</button></li>
+                      <li><button class="dropdown-item rounded-3" type="button" id="reviewSettingsBtn">Study settings</button></li>
+                      ${state.ownerAccess ? `<li><a class="dropdown-item rounded-3" href="/deck.html?id=${state.deck.id}">Open deck editor</a></li>` : ''}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+            ${state.settingsOpen ? `<div class="study-settings-panel review-settings-panel">${renderSettingsPanelContent()}</div>` : ''}
+          </div>
+        `;
+        document.getElementById('dontKnowBtn').addEventListener('click', () => completeSelfCheck(false));
+        document.getElementById('knowBtn').addEventListener('click', () => completeSelfCheck(true));
+        document.getElementById('flipReviewBtn').addEventListener('click', flipCurrentCard);
+        const reviewSettingsBtn = document.getElementById('reviewSettingsBtn');
+        if (reviewSettingsBtn) {
+          reviewSettingsBtn.addEventListener('click', () => {
+            state.settingsOpen = !state.settingsOpen;
+            renderControls();
+          });
+        }
+        bindSettingsControls();
+        bindFocusControls();
+        return;
+      }
+
+      if (state.mode === 'interval') {
+        controlBar.innerHTML = !state.revealed ? `
+          <div class="card-body py-2 px-3 d-flex flex-column flex-xl-row justify-content-between align-items-center gap-2">
+            <div>
+              <div class="small text-secondary text-uppercase">Interval review</div>
+              <div class="fw-semibold">Reveal answer, then rate recall quality.</div>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <button class="btn btn-light text-dark" type="button" id="showIntervalBtn">Show Answer</button>
+              ${renderFocusToggleButton()}
+              ${renderSettingsShell()}
+            </div>
+          </div>
+        ` : `
+          <div class="card-body py-2 px-3 d-grid gap-2">
+            <div class="d-flex flex-column flex-xl-row justify-content-between align-items-xl-center gap-2">
+              <div>
+                <div class="small text-secondary text-uppercase">Interval review</div>
+                <div class="fw-semibold">Rate quality to schedule next review.</div>
+              </div>
+              <div class="d-flex align-items-center utility-cluster">${renderFocusToggleButton()}${renderSettingsShell()}</div>
+            </div>
+            <div class="interval-rating-group mx-auto">
+              <button class="btn btn-danger response-btn interval-rating-btn" type="button" data-rating="again">1 Again</button>
+              <button class="btn btn-warning response-btn interval-rating-btn" type="button" data-rating="hard">2 Hard</button>
+              <button class="btn btn-secondary response-btn interval-rating-btn" type="button" data-rating="good">3 Good</button>
+              <button class="btn btn-success response-btn interval-rating-btn" type="button" data-rating="easy">4 Easy</button>
+              <button class="btn btn-primary response-btn interval-rating-btn" type="button" data-rating="perfect">5 Perfect</button>
+            </div>
+          </div>
+        `;
+        const showIntervalBtn = document.getElementById('showIntervalBtn');
+        if (showIntervalBtn) showIntervalBtn.addEventListener('click', revealCard);
+        controlBar.querySelectorAll('[data-rating]').forEach((button) => button.addEventListener('click', () => submitIntervalRating(button.dataset.rating)));
+        bindSettingsControls();
+        bindFocusControls();
+        return;
+      }
+
+      if (state.mode === 'test') {
+        controlBar.innerHTML = `
+          <div class="card-body py-2 px-3 d-flex flex-column flex-xl-row justify-content-between align-items-xl-center gap-2">
+            <div class="study-counter"><span class="kicker">Current Card</span>${Math.min(state.currentIndex + 1, state.sessionCards.length)} / ${state.sessionCards.length}</div>
+            <div class="d-flex align-items-center utility-cluster">
+              <button class="btn btn-outline-light utility-btn ${canUndoSessionAction() ? '' : 'disabled'}" type="button" id="undoTestBtn" title="Undo last answer" ${canUndoSessionAction() ? '' : 'disabled'}>
+                <i class="bi bi-arrow-counterclockwise"></i>
+              </button>
+              <button class="btn ${state.lastAnswer ? 'btn-light text-dark' : 'btn-outline-light'}" type="button" id="testNextBtn">${state.lastAnswer ? 'Next Question' : 'Skip'}</button>
+              ${renderFocusToggleButton()}
+              ${renderSettingsShell()}
+            </div>
+          </div>
+        `;
+        document.getElementById('testNextBtn').addEventListener('click', () => {
+          const snapshot = captureSessionSnapshot();
+          if (!state.lastAnswer) state.incorrect += 1;
+          pushSessionUndo(snapshot);
+          nextTestCard();
+        });
+        const undoTestBtn = document.getElementById('undoTestBtn');
+        if (undoTestBtn && !undoTestBtn.disabled) undoTestBtn.addEventListener('click', undoLastSessionAction);
+        bindSettingsControls();
+        bindFocusControls();
+      }
+    }
+
+    function renderAll() {
+      renderHeader();
+      renderModes();
+      renderSetup();
+      renderStats();
+      renderViewer();
+      renderControls();
+      syncStudyFocusLayout();
+    }
+
+    async function loadProfile() {
+      try {
+        state.me = await api('/me');
+      } catch (error) {
+        localStorage.removeItem('token');
+        state.me = null;
+      }
+      loadStudySettings();
+      renderProfile();
+    }
+
+    async function loadDeck() {
+      if (!deckId) {
+        setViewerSessionMode(false);
+        cardViewer.innerHTML = '<div class="card-body text-center text-secondary">Study deck is not specified.</div>';
+        return;
+      }
+      try {
+        if (state.me) {
+          try {
+            const deck = await api(`/decks/${deckId}`);
+            state.ownerAccess = Boolean(deck.is_owner);
+            state.sharedMeta = null;
+            state.deck = deck;
+            await loadIntervalSession();
+            startMode(MODES.some((mode) => mode.id === initialMode) ? initialMode : 'all');
+            return;
+          } catch (error) {
+            state.ownerAccess = false;
+          }
+        }
+
+        const meta = await sharedApi(`/shared/decks/${deckId}/meta`, { headers: {} });
+        state.sharedMeta = meta;
+        deckTitle.textContent = meta.name;
+        deckSubtitle.textContent = meta.visibility === "private"
+          ? "This shared deck is password-protected."
+          : "This shared deck is available by direct link.";
+        renderPrivacyState();
+        if (meta.visibility === "private" && !state.shareAccessToken) {
+          state.deck = null;
+          state.dueSession = null;
+          renderAccessGate();
+          return;
+        }
+        const [deck, dueSession] = await Promise.all([sharedApi(`/shared/decks/${deckId}`), sharedApi(`/shared/decks/${deckId}/study`)]);
+        state.deck = deck;
+        state.dueSession = dueSession;
+        startMode(MODES.some((mode) => mode.id === initialMode) ? initialMode : 'all');
+      } catch (error) {
+        if (error.message === "Password is required for this deck") {
+          state.shareAccessToken = "";
+          sessionStorage.removeItem(`deck-access-${deckId}`);
+          renderAccessGate();
+          return;
+        }
+        setViewerSessionMode(false);
+        cardViewer.innerHTML = `<div class="card-body text-center text-danger">${escapeHtml(error.message)}</div>`;
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('token');
+      window.location.href = '/';
+    }
+
+    modeGrid.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-mode]');
+      if (!button) return;
+      startMode(button.dataset.mode);
+    });
+
+    setupPanel.addEventListener('click', async (event) => {
+      const limitButton = event.target.closest('[data-limit]');
+      if (limitButton) {
+        state.sessionLimit = limitButton.dataset.limit === 'all' ? 'all' : Number(limitButton.dataset.limit);
+        renderSetup();
+        return;
+      }
+      if (event.target.id === 'randomToggleBtn') {
+        state.shuffleCards = !state.shuffleCards;
+        saveStudySettings();
+        renderSetup();
+        return;
+      }
+      if (event.target.id === 'startLimitBtn') {
+        const source = state.shuffleCards ? shuffle(state.deck.cards) : [...state.deck.cards];
+        state.sessionCards = source.slice(0, state.sessionLimit === 'all' ? source.length : Number(state.sessionLimit));
+        state.started = true;
+        state.currentIndex = 0;
+        state.correct = 0;
+        state.incorrect = 0;
+        state.revealed = false;
+        renderAll();
+        return;
+      }
+      if (event.target.id === 'startIntervalBtn') {
+        await loadIntervalSession();
+        startMode('interval');
+      }
+    });
+
+    openEditorMenuBtn.addEventListener('click', () => { window.location.href = `/deck.html?id=${deckId}`; });
+    cloneDeckBtn.addEventListener('click', async () => {
+      if (!state.deck || state.ownerAccess) return;
+      if (!state.me) {
+        window.location.href = `/deck.html?id=${deckId}`;
+        return;
+      }
+      cloneDeckBtn.disabled = true;
+      try {
+        const saved = await sharedApi(`/shared/decks/${deckId}/save`, { method: 'POST' });
+        state.deck = { ...state.deck, ...saved };
+        renderAll();
+      } catch (error) {
+        window.alert(error.message);
+      } finally {
+        cloneDeckBtn.disabled = false;
+      }
+    });
+    shuffleNowBtn.addEventListener('click', () => {
+      if (state.sessionCards.length) {
+        state.sessionCards = shuffle(state.sessionCards);
+        state.currentIndex = 0;
+        state.revealed = false;
+        state.lastAnswer = null;
+        state.actionHistory = [];
+        if (state.mode === 'test' && state.sessionCards[0]) state.testChoices = buildTestChoices(state.sessionCards[0]);
+        renderAll();
+      }
+    });
+    copyDeckLinkBtn.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(currentDeckLink());
+    });
+    groupsBtn.addEventListener('click', () => window.alert('Groups are not implemented yet.'));
+    shareBtn.addEventListener('click', async () => {
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: state.deck?.name || state.sharedMeta?.name || 'Deck',
+            text: state.deck?.visibility === 'private' || state.sharedMeta?.visibility === 'private'
+              ? 'Private TrinDeckly deck link. A password is required.'
+              : 'Public TrinDeckly deck link.',
+            url: currentDeckLink()
+          });
+          return;
+        } catch (error) {
+          return;
+        }
+      }
+      await navigator.clipboard.writeText(currentDeckLink());
+      window.alert('Deck link copied.');
+    });
+    accountLoginBtn.addEventListener('click', () => { window.location.href = '/'; });
+    accountSignupBtn.addEventListener('click', () => { window.location.href = '/'; });
+    if (accountProfileBtn) accountProfileBtn.addEventListener('click', () => { window.location.href = '/'; });
+    if (accountSettingsBtn) accountSettingsBtn.addEventListener('click', () => { window.location.href = '/settings.html'; });
+    accountLogoutBtn.addEventListener('click', logout);
+    if (focusExitBtn) focusExitBtn.addEventListener('click', () => toggleFocusMode(false));
+    document.addEventListener('fullscreenchange', () => {
+      if (document.fullscreenElement || !state.focusMode) return;
+      state.focusMode = false;
+      syncStudyFocusLayout();
+      renderControls();
+    });
+    document.addEventListener('click', (event) => {
+      if (!state.settingsOpen) return;
+      if (event.target.closest('[data-settings-shell]')) return;
+      state.settingsOpen = false;
+      renderControls();
+    });
+    document.addEventListener('keydown', (event) => {
+      if (state.settingsOpen && event.key === 'Escape') {
+        state.settingsOpen = false;
+        renderControls();
+        return;
+      }
+      if (state.focusMode && event.key === 'Escape') {
+        event.preventDefault();
+        toggleFocusMode(false);
+        return;
+      }
+      const tag = document.activeElement?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (!state.mode || !state.sessionCards.length) return;
+      if (!state.started && (state.mode === 'limit' || state.mode === 'interval')) return;
+      if (state.reviewAnimating) return;
+
+      const isUndoShortcut = event.key === 'z' || event.key === 'Z';
+      if (isUndoShortcut) {
+        if (!canUndoSessionAction()) return;
+        event.preventDefault();
+        undoLastSessionAction();
+        return;
+      }
+
+      if (state.currentIndex >= state.sessionCards.length) return;
+
+      if (event.key === 'f' || event.key === 'F') {
+        event.preventDefault();
+        toggleFocusMode();
+        return;
+      }
+
+      const isSpace = event.code === 'Space' || event.key === ' ' || event.key === 'Spacebar';
+      if (isSpace) {
+        event.preventDefault();
+        flipCurrentCard();
+        return;
+      }
+
+      if (state.mode === 'interval' && state.revealed) {
+        const ratingHotkeys = {
+          '1': 'again',
+          '2': 'hard',
+          '3': 'good',
+          '4': 'easy',
+          '5': 'perfect'
+        };
+        const rating = ratingHotkeys[event.key];
+        if (rating) {
+          event.preventDefault();
+          submitIntervalRating(rating);
+          return;
+        }
+      }
+
+      if ((state.mode === 'all' || state.mode === 'limit') && event.key === 'ArrowLeft') {
+        event.preventDefault();
+        completeSelfCheck(false);
+        return;
+      }
+
+      if ((state.mode === 'all' || state.mode === 'limit') && event.key === 'ArrowRight') {
+        event.preventDefault();
+        completeSelfCheck(true);
+      }
+    });
+
+    loadProfile().then(loadDeck);
+  </script>
+</body>
+</html>

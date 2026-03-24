@@ -1,0 +1,705 @@
+<!doctype html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TrinDeckly Settings</title>
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+    integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+    crossorigin="anonymous"
+  />
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+  />
+  <style>
+    :root {
+      --app-bg: #070809;
+      --surface: #0f1114;
+      --surface-soft: #11151b;
+      --border-soft: rgba(255, 255, 255, 0.08);
+      --text-main: #f5f7fa;
+      --text-muted: #99a6b8;
+      --text-subtle: #7f8b9d;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      background:
+        radial-gradient(980px 420px at 100% -10%, rgba(99, 102, 241, 0.1), transparent 60%),
+        radial-gradient(920px 360px at -12% 0%, rgba(34, 197, 94, 0.08), transparent 58%),
+        var(--app-bg);
+      color: var(--text-main);
+      font-family: Inter, "Segoe UI", sans-serif;
+    }
+
+    .sidebar-shell {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      background: linear-gradient(180deg, rgba(9, 10, 12, 0.95) 0%, rgba(11, 12, 15, 0.84) 100%);
+      border-right: 1px solid var(--border-soft);
+    }
+
+    .sidebar-inner {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      gap: 1.3rem;
+      padding: 0.35rem 0.2rem;
+    }
+
+    .brand-badge,
+    .avatar-badge {
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+    }
+
+    .brand-badge {
+      width: 2.45rem;
+      height: 2.45rem;
+      border-radius: 0.85rem;
+      background: #fff;
+      color: #000;
+      font-weight: 700;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+    }
+
+    .brand-badge i {
+      font-size: 1.05rem;
+      transform: rotate(-10deg);
+    }
+
+    .sidebar-nav .nav-link {
+      color: var(--text-muted);
+      padding: 0.68rem 0.9rem;
+      border-radius: 0.85rem;
+      border: 1px solid transparent;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-weight: 500;
+    }
+
+    .sidebar-nav .nav-link:hover {
+      color: #eef3fa;
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(255, 255, 255, 0.05);
+    }
+
+    .sidebar-nav .nav-link.active {
+      color: #fff;
+      background: linear-gradient(180deg, #1d2128 0%, #171b22 100%);
+      border-color: rgba(255, 255, 255, 0.1);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.24);
+    }
+
+    .surface-card,
+    .dropdown-menu,
+    .modal-content {
+      background: var(--surface) !important;
+      border: 1px solid var(--border-soft) !important;
+      box-shadow: 0 9px 24px rgba(0, 0, 0, 0.22);
+    }
+
+    .hero-card {
+      background: linear-gradient(160deg, rgba(20, 24, 31, 0.94) 0%, rgba(13, 15, 20, 0.96) 100%) !important;
+    }
+
+    .hero-kicker {
+      color: var(--text-subtle);
+      letter-spacing: 0.09em;
+      font-size: 0.73rem;
+      text-transform: uppercase;
+      margin-bottom: 0.45rem;
+    }
+
+    .hero-title {
+      font-size: clamp(2rem, 3.5vw, 2.65rem);
+      line-height: 1.08;
+      margin-bottom: 0.45rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .hero-subtitle {
+      color: var(--text-muted);
+      margin-bottom: 0;
+      max-width: 60ch;
+    }
+
+    .account-trigger {
+      width: 3.2rem;
+      height: 3.2rem;
+      padding: 0;
+      border-radius: 999px;
+      display: inline-grid;
+      place-items: center;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      background: rgba(14, 17, 22, 0.92);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.34);
+    }
+
+    .avatar-badge {
+      width: 2.55rem;
+      height: 2.55rem;
+      border-radius: 999px;
+      background: #262f3d;
+      color: #fff;
+      font-weight: 700;
+    }
+
+    .account-summary {
+      border-bottom: 1px solid var(--border-soft);
+    }
+
+    .form-control,
+    .form-select {
+      background: #0f141a;
+      border-color: rgba(255, 255, 255, 0.12);
+      color: #eef3fa;
+    }
+
+    .form-control::placeholder {
+      color: #7f8ba0;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+      border-color: rgba(255, 255, 255, 0.32);
+      box-shadow: 0 0 0 0.2rem rgba(148, 163, 184, 0.16);
+    }
+
+    .account-note {
+      background: var(--surface-soft);
+      border: 1px solid var(--border-soft);
+      border-radius: 0.9rem;
+      color: var(--text-muted);
+      font-size: 0.92rem;
+      padding: 0.8rem 0.95rem;
+    }
+
+    .settings-section-title {
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+      letter-spacing: -0.01em;
+    }
+
+    .settings-section-subtitle {
+      color: var(--text-subtle);
+      margin-bottom: 0;
+    }
+
+    .credential-card {
+      background: linear-gradient(168deg, rgba(17, 21, 27, 0.93) 0%, rgba(14, 17, 23, 0.95) 100%);
+      border: 1px solid var(--border-soft);
+      border-radius: 1rem;
+    }
+
+    .credential-card .card-body {
+      padding: 1.15rem 1.2rem;
+    }
+
+    .status-line {
+      min-height: 1.35rem;
+      font-size: 0.88rem;
+      font-weight: 600;
+    }
+
+    @media (max-width: 991.98px) {
+      .sidebar-shell {
+        position: static;
+        height: auto;
+        border-right: 0;
+        border-bottom: 1px solid var(--border-soft);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container-fluid px-0">
+    <div class="row g-0 min-vh-100">
+      <aside class="col-12 col-lg-3 col-xl-2 sidebar-shell p-3 p-xl-4">
+        <div class="sidebar-inner">
+          <div class="d-flex align-items-center gap-3 mb-2 fw-semibold fs-5 px-1">
+            <div class="brand-badge"><i class="bi bi-stack"></i></div>
+            <span>TrinDeckly</span>
+          </div>
+          <nav class="nav nav-pills flex-column gap-2 sidebar-nav">
+            <a class="nav-link" href="/"><i class="bi bi-grid-1x2-fill me-2"></i>Dashboard</a>
+            <a class="nav-link" href="/#decksSection"><i class="bi bi-collection-fill me-2"></i>My Decks</a>
+            <a class="nav-link active" href="/settings.html"><i class="bi bi-sliders me-2"></i>Settings</a>
+          </nav>
+        </div>
+      </aside>
+
+      <main class="col-12 col-lg-9 col-xl-10 p-3 p-lg-4 p-xl-4">
+        <div class="d-grid gap-4">
+          <section class="card surface-card hero-card rounded-4">
+            <div class="card-body p-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+              <div>
+                <p class="hero-kicker">Settings</p>
+                <h1 class="hero-title">Account Security</h1>
+                <p class="hero-subtitle">Manage your credentials securely. Current password is required before any account change.</p>
+              </div>
+              <div class="dropdown">
+                <button class="btn account-trigger" id="accountBtn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  <span class="avatar-badge" id="accountAvatar">G</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm rounded-4 p-2">
+                  <li class="account-summary px-3 py-2 d-none" id="accountSummary">
+                    <div class="d-flex align-items-center gap-3">
+                      <div class="avatar-badge" id="menuAvatar">G</div>
+                      <div class="min-w-0">
+                        <strong class="d-block text-truncate" id="profileName">Learner</strong>
+                        <small class="text-secondary text-truncate d-block" id="profileEmail">learner@example.com</small>
+                      </div>
+                    </div>
+                  </li>
+                  <li id="guestActions">
+                    <button class="dropdown-item rounded-3" id="accountLoginBtn" type="button">Log in</button>
+                  </li>
+                  <li id="guestSignupWrap">
+                    <button class="dropdown-item rounded-3" id="accountSignupBtn" type="button">Sign up</button>
+                  </li>
+                  <li class="d-none" id="userActions">
+                    <a class="dropdown-item rounded-3" id="accountProfileBtn" href="/">Profile</a>
+                    <a class="dropdown-item rounded-3" id="accountSettingsBtn" href="/settings.html">Settings</a>
+                    <hr class="dropdown-divider border-secondary my-2">
+                    <button class="dropdown-item rounded-3 text-danger" id="accountLogoutBtn" type="button">Log out</button>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </section>
+
+          <section class="card surface-card rounded-4">
+            <div class="card-body p-4 p-xl-4 d-grid gap-4">
+              <div>
+                <h2 class="settings-section-title">Account</h2>
+                <p class="settings-section-subtitle">Update email and password with secure verification.</p>
+              </div>
+              <div class="account-note">
+                <i class="bi bi-shield-lock me-2"></i>
+                For security, you must enter your current password to make account changes.
+              </div>
+
+              <div id="guestSettingsState" class="alert alert-secondary border-secondary mb-0 d-none">
+                Sign in from the top-right avatar menu to change your email or password.
+              </div>
+
+              <div id="accountForms">
+                <div class="row g-3">
+                  <div class="col-12 col-xl-6">
+                    <article class="credential-card h-100">
+                      <div class="card-body d-grid gap-3">
+                        <div>
+                          <h3 class="h5 mb-1">Change Email</h3>
+                          <p class="text-secondary mb-0 small">Current email and password are required.</p>
+                        </div>
+                        <form class="d-grid gap-3" id="emailForm">
+                          <div>
+                            <label class="form-label">Current email</label>
+                            <input class="form-control" id="currentEmailInput" type="email" readonly />
+                          </div>
+                          <div>
+                            <label class="form-label">New email</label>
+                            <input class="form-control" id="newEmailInput" type="email" autocomplete="email" required />
+                          </div>
+                          <div>
+                            <label class="form-label">Confirm new email</label>
+                            <input class="form-control" id="confirmEmailInput" type="email" autocomplete="email" required />
+                          </div>
+                          <div>
+                            <label class="form-label">Current password</label>
+                            <input class="form-control" id="emailCurrentPasswordInput" type="password" autocomplete="current-password" required />
+                          </div>
+                          <div class="status-line" id="emailStatus"></div>
+                          <button class="btn btn-light text-dark" id="changeEmailBtn" type="submit">Update Email</button>
+                        </form>
+                      </div>
+                    </article>
+                  </div>
+
+                  <div class="col-12 col-xl-6">
+                    <article class="credential-card h-100">
+                      <div class="card-body d-grid gap-3">
+                        <div>
+                          <h3 class="h5 mb-1">Change Password</h3>
+                          <p class="text-secondary mb-0 small">Use a strong password with at least 6 characters.</p>
+                        </div>
+                        <form class="d-grid gap-3" id="passwordForm">
+                          <div>
+                            <label class="form-label">Current password</label>
+                            <input class="form-control" id="currentPasswordInput" type="password" autocomplete="current-password" required />
+                          </div>
+                          <div>
+                            <label class="form-label">New password</label>
+                            <input class="form-control" id="newPasswordInput" type="password" minlength="6" autocomplete="new-password" required />
+                          </div>
+                          <div>
+                            <label class="form-label">Confirm new password</label>
+                            <input class="form-control" id="confirmPasswordInput" type="password" minlength="6" autocomplete="new-password" required />
+                          </div>
+                          <div class="status-line" id="passwordStatus"></div>
+                          <button class="btn btn-light text-dark" id="changePasswordBtn" type="submit">Update Password</button>
+                        </form>
+                      </div>
+                    </article>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <div class="modal fade" id="authModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content rounded-4 shadow">
+        <div class="modal-header border-secondary">
+          <div>
+            <h3 class="h4 mb-1">TrinDeckly Access</h3>
+            <p class="text-secondary mb-0">Log in to manage account settings.</p>
+          </div>
+          <button class="btn-close btn-close-white" id="closeModalBtn" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="nav nav-pills nav-fill mb-4">
+            <button class="nav-link active" id="loginTab" type="button">Login</button>
+            <button class="nav-link" id="registerTab" type="button">Register</button>
+          </div>
+          <form class="d-grid gap-3" id="authForm">
+            <div>
+              <label class="form-label">Email</label>
+              <input class="form-control bg-dark border-secondary" id="authEmail" type="email" required />
+            </div>
+            <div>
+              <label class="form-label">Password</label>
+              <input class="form-control bg-dark border-secondary" id="authPassword" type="password" minlength="6" required />
+            </div>
+            <button class="btn btn-light text-dark" id="authSubmitBtn" type="submit">Login</button>
+          </form>
+          <div class="status-line mt-3" id="authStatus"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+    crossorigin="anonymous"
+  ></script>
+  <script>
+    const api = (path, options = {}) => {
+      const token = localStorage.getItem("token");
+      return fetch(path, {
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        ...options
+      }).then(async (response) => {
+        if (!response.ok) {
+          let detail = "Request failed";
+          try {
+            const payload = await response.json();
+            detail = payload.detail || detail;
+          } catch (error) {
+            detail = "Server error";
+          }
+          throw new Error(detail);
+        }
+        if (response.status === 204) return null;
+        const text = await response.text();
+        return text ? JSON.parse(text) : null;
+      });
+    };
+
+    const state = {
+      me: null,
+      authMode: "login",
+      emailSaving: false,
+      passwordSaving: false
+    };
+
+    const accountAvatar = document.getElementById("accountAvatar");
+    const menuAvatar = document.getElementById("menuAvatar");
+    const profileName = document.getElementById("profileName");
+    const profileEmail = document.getElementById("profileEmail");
+    const accountSummary = document.getElementById("accountSummary");
+    const guestActions = document.getElementById("guestActions");
+    const guestSignupWrap = document.getElementById("guestSignupWrap");
+    const userActions = document.getElementById("userActions");
+    const accountLoginBtn = document.getElementById("accountLoginBtn");
+    const accountSignupBtn = document.getElementById("accountSignupBtn");
+    const accountProfileBtn = document.getElementById("accountProfileBtn");
+    const accountSettingsBtn = document.getElementById("accountSettingsBtn");
+    const accountLogoutBtn = document.getElementById("accountLogoutBtn");
+
+    const guestSettingsState = document.getElementById("guestSettingsState");
+    const accountForms = document.getElementById("accountForms");
+    const currentEmailInput = document.getElementById("currentEmailInput");
+    const newEmailInput = document.getElementById("newEmailInput");
+    const confirmEmailInput = document.getElementById("confirmEmailInput");
+    const emailCurrentPasswordInput = document.getElementById("emailCurrentPasswordInput");
+    const changeEmailBtn = document.getElementById("changeEmailBtn");
+    const emailStatus = document.getElementById("emailStatus");
+    const emailForm = document.getElementById("emailForm");
+
+    const currentPasswordInput = document.getElementById("currentPasswordInput");
+    const newPasswordInput = document.getElementById("newPasswordInput");
+    const confirmPasswordInput = document.getElementById("confirmPasswordInput");
+    const changePasswordBtn = document.getElementById("changePasswordBtn");
+    const passwordStatus = document.getElementById("passwordStatus");
+    const passwordForm = document.getElementById("passwordForm");
+
+    const authModalElement = document.getElementById("authModal");
+    const closeModalBtn = document.getElementById("closeModalBtn");
+    const loginTab = document.getElementById("loginTab");
+    const registerTab = document.getElementById("registerTab");
+    const authForm = document.getElementById("authForm");
+    const authSubmitBtn = document.getElementById("authSubmitBtn");
+    const authStatus = document.getElementById("authStatus");
+    const authEmail = document.getElementById("authEmail");
+    const authPassword = document.getElementById("authPassword");
+    const authModal = new bootstrap.Modal(authModalElement);
+
+    function setStatus(node, message, type) {
+      node.textContent = message || "";
+      node.className = "status-line";
+      if (!message) return;
+      if (type === "success") node.classList.add("text-success");
+      if (type === "error") node.classList.add("text-danger");
+      if (!type) node.classList.add("text-secondary");
+    }
+
+    function syncAuthMode() {
+      loginTab.classList.toggle("active", state.authMode === "login");
+      registerTab.classList.toggle("active", state.authMode === "register");
+      authSubmitBtn.textContent = state.authMode === "login" ? "Login" : "Register";
+      setStatus(authStatus, "", "");
+    }
+
+    function openAuth(mode = "login") {
+      state.authMode = mode;
+      syncAuthMode();
+      authModal.show();
+    }
+
+    function closeAuth() {
+      authModal.hide();
+    }
+
+    function renderProfile() {
+      if (state.me) {
+        const label = state.me.email.split("@")[0];
+        const initial = label.charAt(0).toUpperCase() || "U";
+        accountAvatar.textContent = initial;
+        menuAvatar.textContent = initial;
+        profileName.textContent = label || "Learner";
+        profileEmail.textContent = state.me.email;
+        accountSummary.classList.remove("d-none");
+        guestActions.classList.add("d-none");
+        guestSignupWrap.classList.add("d-none");
+        userActions.classList.remove("d-none");
+      } else {
+        accountAvatar.textContent = "G";
+        menuAvatar.textContent = "G";
+        profileName.textContent = "Guest";
+        profileEmail.textContent = "Use the menu to sign in";
+        accountSummary.classList.add("d-none");
+        guestActions.classList.remove("d-none");
+        guestSignupWrap.classList.remove("d-none");
+        userActions.classList.add("d-none");
+      }
+    }
+
+    function renderAccountSettings() {
+      const isLoggedIn = Boolean(state.me);
+      guestSettingsState.classList.toggle("d-none", isLoggedIn);
+      accountForms.classList.toggle("d-none", !isLoggedIn);
+      if (isLoggedIn) {
+        currentEmailInput.value = state.me.email;
+      } else {
+        currentEmailInput.value = "";
+        newEmailInput.value = "";
+        confirmEmailInput.value = "";
+        emailCurrentPasswordInput.value = "";
+        currentPasswordInput.value = "";
+        newPasswordInput.value = "";
+        confirmPasswordInput.value = "";
+      }
+      setStatus(emailStatus, "", "");
+      setStatus(passwordStatus, "", "");
+    }
+
+    async function loadProfile() {
+      try {
+        state.me = await api("/me");
+      } catch (error) {
+        localStorage.removeItem("token");
+        state.me = null;
+      }
+      renderProfile();
+      renderAccountSettings();
+    }
+
+    async function authenticate() {
+      const email = authEmail.value.trim();
+      const password = authPassword.value.trim();
+      if (!email || !password) {
+        setStatus(authStatus, "Fill email and password.", "error");
+        return;
+      }
+      authSubmitBtn.disabled = true;
+      try {
+        if (state.authMode === "register") {
+          await api("/register", { method: "POST", body: JSON.stringify({ email, password }) });
+        }
+        const token = await api("/login", { method: "POST", body: JSON.stringify({ email, password }) });
+        localStorage.setItem("token", token.access_token);
+        await loadProfile();
+        setStatus(authStatus, "Logged in successfully.", "success");
+        closeAuth();
+      } catch (error) {
+        setStatus(authStatus, error.message, "error");
+      } finally {
+        authSubmitBtn.disabled = false;
+      }
+    }
+
+    async function submitEmailUpdate(event) {
+      event.preventDefault();
+      if (!state.me) {
+        setStatus(emailStatus, "Log in first.", "error");
+        return;
+      }
+      const newEmail = newEmailInput.value.trim().toLowerCase();
+      const confirmEmail = confirmEmailInput.value.trim().toLowerCase();
+      const currentPassword = emailCurrentPasswordInput.value.trim();
+
+      if (!newEmail || !confirmEmail || !currentPassword) {
+        setStatus(emailStatus, "Fill all fields.", "error");
+        return;
+      }
+      if (newEmail !== confirmEmail) {
+        setStatus(emailStatus, "Email confirmation does not match.", "error");
+        return;
+      }
+      if (newEmail === state.me.email) {
+        setStatus(emailStatus, "New email must be different from current email.", "error");
+        return;
+      }
+
+      state.emailSaving = true;
+      changeEmailBtn.disabled = true;
+      setStatus(emailStatus, "Updating email...", "");
+      try {
+        const updatedUser = await api("/account/email", {
+          method: "PUT",
+          body: JSON.stringify({
+            new_email: newEmail,
+            confirm_email: confirmEmail,
+            current_password: currentPassword,
+          }),
+        });
+        state.me = updatedUser;
+        renderProfile();
+        renderAccountSettings();
+        newEmailInput.value = "";
+        confirmEmailInput.value = "";
+        emailCurrentPasswordInput.value = "";
+        setStatus(emailStatus, "Email updated successfully.", "success");
+      } catch (error) {
+        setStatus(emailStatus, error.message, "error");
+      } finally {
+        state.emailSaving = false;
+        changeEmailBtn.disabled = false;
+      }
+    }
+
+    async function submitPasswordUpdate(event) {
+      event.preventDefault();
+      if (!state.me) {
+        setStatus(passwordStatus, "Log in first.", "error");
+        return;
+      }
+      const currentPassword = currentPasswordInput.value.trim();
+      const newPassword = newPasswordInput.value.trim();
+      const confirmPassword = confirmPasswordInput.value.trim();
+
+      if (!currentPassword || !newPassword || !confirmPassword) {
+        setStatus(passwordStatus, "Fill all fields.", "error");
+        return;
+      }
+      if (newPassword.length < 6) {
+        setStatus(passwordStatus, "New password must be at least 6 characters.", "error");
+        return;
+      }
+      if (newPassword !== confirmPassword) {
+        setStatus(passwordStatus, "Password confirmation does not match.", "error");
+        return;
+      }
+
+      state.passwordSaving = true;
+      changePasswordBtn.disabled = true;
+      setStatus(passwordStatus, "Updating password...", "");
+      try {
+        const result = await api("/account/password", {
+          method: "PUT",
+          body: JSON.stringify({
+            current_password: currentPassword,
+            new_password: newPassword,
+            confirm_new_password: confirmPassword,
+          }),
+        });
+        currentPasswordInput.value = "";
+        newPasswordInput.value = "";
+        confirmPasswordInput.value = "";
+        setStatus(passwordStatus, result.message || "Password updated successfully.", "success");
+      } catch (error) {
+        setStatus(passwordStatus, error.message, "error");
+      } finally {
+        state.passwordSaving = false;
+        changePasswordBtn.disabled = false;
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem("token");
+      state.me = null;
+      renderProfile();
+      renderAccountSettings();
+    }
+
+    accountLoginBtn.addEventListener("click", () => openAuth("login"));
+    accountSignupBtn.addEventListener("click", () => openAuth("register"));
+    if (accountProfileBtn) accountProfileBtn.addEventListener("click", () => { window.location.href = "/"; });
+    if (accountSettingsBtn) accountSettingsBtn.addEventListener("click", () => { window.location.href = "/settings.html"; });
+    accountLogoutBtn.addEventListener("click", logout);
+    closeModalBtn.addEventListener("click", closeAuth);
+    loginTab.addEventListener("click", () => { state.authMode = "login"; syncAuthMode(); });
+    registerTab.addEventListener("click", () => { state.authMode = "register"; syncAuthMode(); });
+    authForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      authenticate();
+    });
+    emailForm.addEventListener("submit", submitEmailUpdate);
+    passwordForm.addEventListener("submit", submitPasswordUpdate);
+
+    syncAuthMode();
+    renderProfile();
+    renderAccountSettings();
+    loadProfile();
+  </script>
+</body>
+</html>
