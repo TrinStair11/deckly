@@ -252,7 +252,6 @@
       modeLabel,
       setViewerSessionMode,
       currentDeckLink,
-      currentOwnerName,
       renderPrivacyState,
       renderHeader,
       renderStats,
@@ -261,14 +260,10 @@
       flipCurrentCard,
       completeSelfCheck,
       submitIntervalRating,
-      answerTest,
-      revealCard,
       nextTestCard,
       renderViewer,
       renderControls,
-      renderEmpty,
       renderAccessGate,
-      renderCompletion,
     } = renderer;
 
     function renderAll() {

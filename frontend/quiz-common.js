@@ -103,23 +103,6 @@ window.quizApp = (() => {
     `;
   }
 
-  function formatDifficulty(value) {
-    if (!value) return "Unspecified";
-    return value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
-  }
-
-  function difficultyClass(value) {
-    return `difficulty-${(value || "beginner").toLowerCase()}`;
-  }
-
-  function formatTime(minutes) {
-    if (!minutes) return "Flexible";
-    if (minutes < 60) return `${minutes} min`;
-    const hours = Math.floor(minutes / 60);
-    const rest = minutes % 60;
-    return rest ? `${hours}h ${rest}m` : `${hours}h`;
-  }
-
   function formatPercent(value) {
     if (value === null || value === undefined) return "No attempts yet";
     return `${Math.round(value)}%`;
@@ -138,11 +121,8 @@ window.quizApp = (() => {
   return {
     api,
     badgeHtml,
-    difficultyClass,
     escapeHtml,
-    formatDifficulty,
     formatPercent,
-    formatTime,
     getCurrentUser,
     initShell,
     requireAuthNotice,

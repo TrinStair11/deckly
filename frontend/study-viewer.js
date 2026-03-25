@@ -383,9 +383,7 @@ window.studyViewer = (() => {
 
     return {
       setViewerSessionMode,
-      renderEmpty,
       renderAccessGate,
-      renderCompletion,
       renderViewer,
     };
   }

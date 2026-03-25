@@ -74,19 +74,6 @@ window.studyActions = (() => {
       if (state.mode === "interval") renderControls();
     }
 
-    function revealCard() {
-      if (state.mode === "test") return;
-      state.revealed = true;
-      syncFlipPresentation();
-      if (state.mode === "interval") renderControls();
-    }
-
-    function moveBrowse(step) {
-      state.currentIndex = Math.max(0, Math.min(state.currentIndex + step, state.sessionCards.length - 1));
-      state.revealed = false;
-      renderAll();
-    }
-
     function animateReviewExit(direction, onFinish) {
       if (state.reviewAnimating) return;
       const viewer = document.getElementById("cardViewer");
@@ -208,9 +195,6 @@ window.studyActions = (() => {
       buildTestChoices,
       startMode,
       flipCurrentCard,
-      revealCard,
-      moveBrowse,
-      animateReviewExit,
       completeSelfCheck,
       submitIntervalRating,
       answerTest,

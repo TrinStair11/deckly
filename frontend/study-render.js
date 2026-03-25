@@ -301,7 +301,6 @@ window.studyRender = (() => {
       renderSetup,
       modeLabel,
       currentDeckLink,
-      currentOwnerName,
       renderPrivacyState,
       renderHeader,
       renderStats,
