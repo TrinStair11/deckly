@@ -224,20 +224,7 @@
 <body>
   <div class="container-fluid px-0">
     <div class="row g-0 min-vh-100">
-      <aside class="col-12 col-lg-3 col-xl-2 sidebar-shell p-3 p-xl-4">
-        <div class="sidebar-inner">
-          <div class="d-flex align-items-center gap-3 mb-2 fw-semibold fs-5 px-1">
-            <div class="brand-badge"><i class="bi bi-stack"></i></div>
-            <span>TrinDeckly</span>
-          </div>
-          <nav class="nav nav-pills flex-column gap-2 sidebar-nav">
-            <a class="nav-link" href="/"><i class="bi bi-grid-1x2-fill me-2"></i>Dashboard</a>
-            <a class="nav-link" href="/#decksSection"><i class="bi bi-collection-fill me-2"></i>My Decks</a>
-            <a class="nav-link" href="/quiz"><i class="bi bi-patch-check-fill me-2"></i>Quiz</a>
-            <a class="nav-link active" href="/settings.html"><i class="bi bi-sliders me-2"></i>Settings</a>
-          </nav>
-        </div>
-      </aside>
+      <aside class="col-12 col-lg-3 col-xl-2 sidebar-shell p-3 p-xl-4" id="sidebarShell"></aside>
 
       <main class="col-12 col-lg-9 col-xl-10 p-3 p-lg-4 p-xl-4">
         <div class="d-grid gap-4">
@@ -248,34 +235,7 @@
                 <h1 class="hero-title">Account Security</h1>
                 <p class="hero-subtitle">Manage your credentials securely. Current password is required before any account change.</p>
               </div>
-              <div class="dropdown">
-                <button class="btn account-trigger" id="accountBtn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                  <span class="avatar-badge" id="accountAvatar">G</span>
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end shadow-sm rounded-4 p-2">
-                  <li class="account-summary px-3 py-2 d-none" id="accountSummary">
-                    <div class="d-flex align-items-center gap-3">
-                      <div class="avatar-badge" id="menuAvatar">G</div>
-                      <div class="min-w-0">
-                        <strong class="d-block text-truncate" id="profileName">Learner</strong>
-                        <small class="text-secondary text-truncate d-block" id="profileEmail">learner@example.com</small>
-                      </div>
-                    </div>
-                  </li>
-                  <li id="guestActions">
-                    <button class="dropdown-item rounded-3" id="accountLoginBtn" type="button">Log in</button>
-                  </li>
-                  <li id="guestSignupWrap">
-                    <button class="dropdown-item rounded-3" id="accountSignupBtn" type="button">Sign up</button>
-                  </li>
-                  <li class="d-none" id="userActions">
-                    <a class="dropdown-item rounded-3" id="accountProfileBtn" href="/">Profile</a>
-                    <a class="dropdown-item rounded-3" id="accountSettingsBtn" href="/settings.html">Settings</a>
-                    <hr class="dropdown-divider border-secondary my-2">
-                    <button class="dropdown-item rounded-3 text-danger" id="accountLogoutBtn" type="button">Log out</button>
-                  </li>
-                </ul>
-              </div>
+              <div id="accountMenuSlot"></div>
             </div>
           </section>
 
@@ -399,52 +359,43 @@
     integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
     crossorigin="anonymous"
   ></script>
+  <script src="/app-shell.js"></script>
+  <script src="/app-common.js"></script>
+  <script src="/app-auth.js"></script>
   <script>
-    const api = (path, options = {}) => {
-      const token = localStorage.getItem("token");
-      return fetch(path, {
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
-        },
-        ...options
-      }).then(async (response) => {
-        if (!response.ok) {
-          let detail = "Request failed";
-          try {
-            const payload = await response.json();
-            detail = payload.detail || detail;
-          } catch (error) {
-            detail = "Server error";
-          }
-          throw new Error(detail);
-        }
-        if (response.status === 204) return null;
-        const text = await response.text();
-        return text ? JSON.parse(text) : null;
-      });
-    };
+    const { renderSidebar, renderAccountMenu, getAccountMenuRefs } = window.appShell;
+    const { api, clearAuthToken, getCurrentUser, initAccountMenu } = window.appCommon;
+    const { getAuthModalRefs, initAuthModal } = window.appAuth;
+
+    renderSidebar(document.getElementById("sidebarShell"), {
+      active: "settings",
+      decksHref: "/#decksSection",
+    });
+    renderAccountMenu(document.getElementById("accountMenuSlot"), {
+      menuClass: "dropdown-menu dropdown-menu-end shadow-sm rounded-4 p-2",
+    });
 
     const state = {
       me: null,
-      authMode: "login",
       emailSaving: false,
       passwordSaving: false
     };
 
-    const accountAvatar = document.getElementById("accountAvatar");
-    const menuAvatar = document.getElementById("menuAvatar");
-    const profileName = document.getElementById("profileName");
-    const profileEmail = document.getElementById("profileEmail");
-    const accountSummary = document.getElementById("accountSummary");
-    const guestActions = document.getElementById("guestActions");
-    const guestSignupWrap = document.getElementById("guestSignupWrap");
-    const userActions = document.getElementById("userActions");
-    const accountLoginBtn = document.getElementById("accountLoginBtn");
-    const accountSignupBtn = document.getElementById("accountSignupBtn");
-    const accountProfileBtn = document.getElementById("accountProfileBtn");
-    const accountSettingsBtn = document.getElementById("accountSettingsBtn");
-    const accountLogoutBtn = document.getElementById("accountLogoutBtn");
+    const {
+      accountAvatar,
+      menuAvatar,
+      profileName,
+      profileEmail,
+      accountSummary,
+      guestActions,
+      guestSignupWrap,
+      userActions,
+      accountLoginBtn,
+      accountSignupBtn,
+      accountProfileBtn,
+      accountSettingsBtn,
+      accountLogoutBtn,
+    } = getAccountMenuRefs();
 
     const guestSettingsState = document.getElementById("guestSettingsState");
     const accountForms = document.getElementById("accountForms");
@@ -463,17 +414,7 @@
     const passwordStatus = document.getElementById("passwordStatus");
     const passwordForm = document.getElementById("passwordForm");
 
-    const authModalElement = document.getElementById("authModal");
-    const closeModalBtn = document.getElementById("closeModalBtn");
-    const loginTab = document.getElementById("loginTab");
-    const registerTab = document.getElementById("registerTab");
-    const authForm = document.getElementById("authForm");
-    const authSubmitBtn = document.getElementById("authSubmitBtn");
-    const authStatus = document.getElementById("authStatus");
-    const authEmail = document.getElementById("authEmail");
-    const authPassword = document.getElementById("authPassword");
-    const authModal = new bootstrap.Modal(authModalElement);
-
+    const authRefs = getAuthModalRefs({ emailId: "authEmail", passwordId: "authPassword" });
     function setStatus(node, message, type) {
       node.textContent = message || "";
       node.className = "status-line";
@@ -483,45 +424,37 @@
       if (!type) node.classList.add("text-secondary");
     }
 
-    function syncAuthMode() {
-      loginTab.classList.toggle("active", state.authMode === "login");
-      registerTab.classList.toggle("active", state.authMode === "register");
-      authSubmitBtn.textContent = state.authMode === "login" ? "Login" : "Register";
-      setStatus(authStatus, "", "");
-    }
+    const authUi = initAuthModal({
+      refs: authRefs,
+      setStatus,
+      onAuthenticated: loadProfile
+    });
 
-    function openAuth(mode = "login") {
-      state.authMode = mode;
-      syncAuthMode();
-      authModal.show();
-    }
-
-    function closeAuth() {
-      authModal.hide();
-    }
+    const accountMenuUi = initAccountMenu({
+      refs: {
+        accountAvatar,
+        menuAvatar,
+        profileName,
+        profileEmail,
+        accountSummary,
+        guestActions,
+        guestSignupWrap,
+        userActions,
+        accountLoginBtn,
+        accountSignupBtn,
+        accountProfileBtn,
+        accountSettingsBtn,
+        accountLogoutBtn,
+      },
+      onLogin: authUi.openLogin,
+      onSignup: authUi.openSignup,
+      onProfile: () => { window.location.href = "/"; },
+      onSettings: () => { window.location.href = "/settings.html"; },
+      onLogout: logout,
+    });
 
     function renderProfile() {
-      if (state.me) {
-        const label = state.me.email.split("@")[0];
-        const initial = label.charAt(0).toUpperCase() || "U";
-        accountAvatar.textContent = initial;
-        menuAvatar.textContent = initial;
-        profileName.textContent = label || "Learner";
-        profileEmail.textContent = state.me.email;
-        accountSummary.classList.remove("d-none");
-        guestActions.classList.add("d-none");
-        guestSignupWrap.classList.add("d-none");
-        userActions.classList.remove("d-none");
-      } else {
-        accountAvatar.textContent = "G";
-        menuAvatar.textContent = "G";
-        profileName.textContent = "Guest";
-        profileEmail.textContent = "Use the menu to sign in";
-        accountSummary.classList.add("d-none");
-        guestActions.classList.remove("d-none");
-        guestSignupWrap.classList.remove("d-none");
-        userActions.classList.add("d-none");
-      }
+      accountMenuUi.render(state.me);
     }
 
     function renderAccountSettings() {
@@ -544,38 +477,9 @@
     }
 
     async function loadProfile() {
-      try {
-        state.me = await api("/me");
-      } catch (error) {
-        localStorage.removeItem("token");
-        state.me = null;
-      }
+      state.me = await getCurrentUser(api);
       renderProfile();
       renderAccountSettings();
-    }
-
-    async function authenticate() {
-      const email = authEmail.value.trim();
-      const password = authPassword.value.trim();
-      if (!email || !password) {
-        setStatus(authStatus, "Fill email and password.", "error");
-        return;
-      }
-      authSubmitBtn.disabled = true;
-      try {
-        if (state.authMode === "register") {
-          await api("/register", { method: "POST", body: JSON.stringify({ email, password }) });
-        }
-        const token = await api("/login", { method: "POST", body: JSON.stringify({ email, password }) });
-        localStorage.setItem("token", token.access_token);
-        await loadProfile();
-        setStatus(authStatus, "Logged in successfully.", "success");
-        closeAuth();
-      } catch (error) {
-        setStatus(authStatus, error.message, "error");
-      } finally {
-        authSubmitBtn.disabled = false;
-      }
     }
 
     async function submitEmailUpdate(event) {
@@ -676,28 +580,15 @@
     }
 
     function logout() {
-      localStorage.removeItem("token");
+      clearAuthToken();
       state.me = null;
       renderProfile();
       renderAccountSettings();
     }
 
-    accountLoginBtn.addEventListener("click", () => openAuth("login"));
-    accountSignupBtn.addEventListener("click", () => openAuth("register"));
-    if (accountProfileBtn) accountProfileBtn.addEventListener("click", () => { window.location.href = "/"; });
-    if (accountSettingsBtn) accountSettingsBtn.addEventListener("click", () => { window.location.href = "/settings.html"; });
-    accountLogoutBtn.addEventListener("click", logout);
-    closeModalBtn.addEventListener("click", closeAuth);
-    loginTab.addEventListener("click", () => { state.authMode = "login"; syncAuthMode(); });
-    registerTab.addEventListener("click", () => { state.authMode = "register"; syncAuthMode(); });
-    authForm.addEventListener("submit", (event) => {
-      event.preventDefault();
-      authenticate();
-    });
     emailForm.addEventListener("submit", submitEmailUpdate);
     passwordForm.addEventListener("submit", submitPasswordUpdate);
 
-    syncAuthMode();
     renderProfile();
     renderAccountSettings();
     loadProfile();

@@ -198,8 +198,9 @@ def test_quiz_attempt_can_finish_early_and_marks_unanswered_wrong(db_session):
     assert result.wrong_count == 1
     assert result.total_questions == 2
     assert result.percentage == 50.0
-    assert result.review_items[1].selected_option_text is None
-    assert result.review_items[1].is_correct is False
+    unanswered_item = next(item for item in result.review_items if item.selected_option_text is None)
+    assert unanswered_item.question_text == "What does 犬 mean?"
+    assert unanswered_item.is_correct is False
 
 
 def test_update_quiz_replaces_questions_and_metadata(db_session):
