@@ -252,6 +252,7 @@ body {
 
 .decks-controls .input-group {
   margin-right: 0.2rem;
+  max-width: 320px;
 }
 
 .decks-controls .input-group-text,

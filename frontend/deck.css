@@ -163,6 +163,10 @@ body {
   gap: 0.72rem !important;
 }
 
+.share-link-group {
+  max-width: 420px;
+}
+
 .top-save-btn {
   min-height: 2.58rem;
   padding-inline: 1.1rem;
