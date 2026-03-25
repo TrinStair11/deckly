@@ -79,6 +79,30 @@ def test_published_quiz_requires_valid_questions(db_session):
       )
 
 
+def test_multiple_choice_quiz_is_rejected_before_publish(db_session):
+    owner = register_user(db_session, email=make_email())
+
+    with pytest.raises(HTTPException, match="Only single choice questions are supported right now"):
+        create_quiz(
+            schemas.QuizCreate(
+                title="Unsupported",
+                is_published=True,
+                questions=[
+                    schemas.QuizQuestionInput(
+                        question_text="Pick all valid options",
+                        question_type="multiple_choice",
+                        options=[
+                            schemas.QuizOptionInput(option_text="A", is_correct=True),
+                            schemas.QuizOptionInput(option_text="B", is_correct=True),
+                        ],
+                    )
+                ],
+            ),
+            current_user=owner,
+            db=db_session,
+        )
+
+
 def test_unpublished_quiz_is_hidden_from_other_users(db_session):
     owner = register_user(db_session, email=make_email())
     other = register_user(db_session, email=make_email())

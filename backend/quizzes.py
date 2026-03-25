@@ -9,7 +9,7 @@ from . import models, schemas
 from .time_utils import ensure_utc, now_utc
 
 
-SUPPORTED_QUESTION_TYPES = {"single_choice", "multiple_choice"}
+SUPPORTED_QUESTION_TYPES = {"single_choice"}
 
 
 def owner_name(user: models.User) -> str:
@@ -42,7 +42,7 @@ def validate_quiz_payload(payload: schemas.QuizCreate | schemas.QuizUpdate) -> N
         raise HTTPException(status_code=400, detail="Published quizzes must contain at least one valid question")
     for index, question in enumerate(questions, start=1):
         if question.question_type not in SUPPORTED_QUESTION_TYPES:
-            raise HTTPException(status_code=400, detail=f"Question {index} uses an unsupported question type")
+            raise HTTPException(status_code=400, detail="Only single choice questions are supported right now")
         if not question.question_text.strip():
             raise HTTPException(status_code=400, detail=f"Question {index} cannot be empty")
         if len(question.options) < 2:
@@ -51,10 +51,8 @@ def validate_quiz_payload(payload: schemas.QuizCreate | schemas.QuizUpdate) -> N
         if any(not option_text for option_text in cleaned_options):
             raise HTTPException(status_code=400, detail=f"Question {index} contains an empty option")
         correct_count = sum(1 for option in question.options if option.is_correct)
-        if question.question_type == "single_choice" and correct_count != 1:
+        if correct_count != 1:
             raise HTTPException(status_code=400, detail=f"Question {index} must have exactly one correct option")
-        if question.question_type == "multiple_choice" and correct_count < 1:
-            raise HTTPException(status_code=400, detail=f"Question {index} must have at least one correct option")
 
 
 def ensure_quiz_startable(quiz: models.Quiz) -> list[models.QuizQuestion]:

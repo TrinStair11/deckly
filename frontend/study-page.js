@@ -42,6 +42,7 @@
     const deckId = params.get("deck");
     const initialMode = params.get("mode") || "all";
     const initialFocusMode = params.get("focus") === "1";
+    const saveDeckIntent = params.get("intent") === "save-deck";
 
     const MODES = [
       { id: "all", label: "Review All", icon: "bi-stack", copy: "Go through every card in the deck as one full session." },
@@ -292,6 +293,49 @@
       renderProfile();
     }
 
+    function clearSaveDeckIntent() {
+      if (!saveDeckIntent) return;
+      const url = new URL(window.location.href);
+      url.searchParams.delete("intent");
+      window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+    }
+
+    function buildSaveAfterLoginUrl() {
+      const nextUrl = new URL("/study.html", window.location.origin);
+      if (deckId) nextUrl.searchParams.set("deck", deckId);
+      nextUrl.searchParams.set("intent", "save-deck");
+
+      const loginUrl = new URL("/", window.location.origin);
+      loginUrl.searchParams.set("auth", "login");
+      loginUrl.searchParams.set("next", `${nextUrl.pathname}${nextUrl.search}`);
+      return loginUrl.toString();
+    }
+
+    async function saveDeckToLibrary() {
+      const saved = await sharedApi(`/shared/decks/${deckId}/save`, { method: "POST" });
+      state.deck = { ...state.deck, ...saved };
+      renderAll();
+      return saved;
+    }
+
+    async function maybeCompleteSaveIntent() {
+      if (!saveDeckIntent || !state.me || !state.deck) return;
+      if (state.ownerAccess || state.deck.saved_in_library) {
+        clearSaveDeckIntent();
+        return;
+      }
+
+      cloneDeckBtn.disabled = true;
+      try {
+        await saveDeckToLibrary();
+      } catch (error) {
+        window.alert(error.message);
+      } finally {
+        cloneDeckBtn.disabled = false;
+        clearSaveDeckIntent();
+      }
+    }
+
     async function loadDeck() {
       if (!deckId) {
         setViewerSessionMode(false);
@@ -307,6 +351,7 @@
             state.deck = deck;
             await loadIntervalSession();
             startMode(MODES.some((mode) => mode.id === initialMode) ? initialMode : 'all');
+            await maybeCompleteSaveIntent();
             return;
           } catch (error) {
             state.ownerAccess = false;
@@ -330,6 +375,7 @@
         state.deck = deck;
         state.dueSession = dueSession;
         startMode(MODES.some((mode) => mode.id === initialMode) ? initialMode : 'all');
+        await maybeCompleteSaveIntent();
       } catch (error) {
         if (error.message === "Password is required for this deck") {
           state.shareAccessToken = "";
@@ -387,14 +433,12 @@
     cloneDeckBtn.addEventListener('click', async () => {
       if (!state.deck || state.ownerAccess) return;
       if (!state.me) {
-        window.location.href = `/deck.html?id=${deckId}`;
+        window.location.href = buildSaveAfterLoginUrl();
         return;
       }
       cloneDeckBtn.disabled = true;
       try {
-        const saved = await sharedApi(`/shared/decks/${deckId}/save`, { method: 'POST' });
-        state.deck = { ...state.deck, ...saved };
-        renderAll();
+        await saveDeckToLibrary();
       } catch (error) {
         window.alert(error.message);
       } finally {
