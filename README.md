@@ -1,85 +1,86 @@
-# TrinDeckly
+# Deckly
 
-TrinDeckly is a full-stack learning app built with FastAPI, SQLite, and a static Bootstrap frontend. It combines two related workflows in one codebase:
+Deckly is a full-stack learning app built around two workflows:
 
-- flashcard decks with spaced repetition, sharing, and focused study modes
-- a standalone quiz module with authored questions, scored attempts, results, and review pages
+- flashcard decks with spaced repetition, sharing, progress tracking, and study sessions
+- standalone quizzes with authored questions, attempts, scoring, results, and review
 
-The FastAPI app serves the JSON API, uploaded media, and the shipped frontend from a single process.
+The backend is a single FastAPI app that serves the API, uploaded media, and the bundled frontend.
 
-## What Is In The App
+## What The Project Does
 
-- JWT authentication with registration, login, profile lookup, email change, and password change
-- deck authoring with create, update, delete, reorder, and image-backed cards
-- study modes for decks:
-  - review all cards
-  - limited review sessions
-  - interval review using spaced repetition state
-  - test mode for self-check
-- deck sharing:
-  - public link sharing
-  - private password-protected sharing
-  - save a shared deck into a personal library
-- image workflows:
-  - search images through Openverse
-  - import external image URLs
-  - upload local images as base64 payloads
-- standalone quiz workflow:
-  - quiz library
-  - quiz detail and editor screens
-  - quiz attempts with answer persistence
-  - scored results and per-question review
-- static frontend pages for dashboard, deck editor, study hub, settings, and quiz flows
+### Decks
+
+- create, edit, delete, and reorder decks and cards
+- store card images from upload or external import
+- track per-user spaced repetition state
+- run study sessions in `interval`, `limited`, and `review_all` modes
+- save other users' decks into a personal library
+- share public decks by link
+- protect private decks with a password
+
+### Quizzes
+
+- create and edit quizzes with multiple questions and options
+- start attempts and save answers
+- complete attempts and calculate results
+- open result and review pages
+- block quiz mutation while attempts are still in progress
+
+### Security And Hardening
+
+- user passwords are hashed with `bcrypt`
+- private deck passwords are hashed and never returned
+- JWT signing secret is mandatory
+- auth uses an HTTP-only cookie for the main session
+- private shared decks require a separate share token in `X-Deck-Access-Token`
+- login and private deck access are rate-limited in memory
+- image import rejects non-HTTPS URLs, loopback/private hosts, invalid redirects, and oversized payloads
 
 ## Stack
 
-- Backend: FastAPI, SQLAlchemy 2.x, Pydantic 1.x
+- Backend: FastAPI
+- ORM: SQLAlchemy 2.x
+- Validation: Pydantic 1.x
 - Database: SQLite
 - Auth: `python-jose`, `bcrypt`
 - HTTP client: `httpx`
-- Frontend: static HTML, vanilla JavaScript, Bootstrap 5, Bootstrap Icons
-- Testing: `pytest`, `pytest-cov`
+- Env loading: `python-dotenv`
+- Frontend: static HTML + vanilla JavaScript
+- Tests: `pytest`, `pytest-cov`
 
 ## Repository Layout
 
 ```text
 backend/
-  auth.py                Authentication, JWT helpers, password hashing
-  db.py                  SQLite engine and lightweight schema bootstrap
-  main.py                Core API routes for auth, decks, study, sharing, images
-  quiz_router.py         Quiz API routes and pretty frontend quiz routes
-  quizzes.py             Quiz domain helpers and serialization
+  auth.py                Auth, cookies, JWT helpers
+  config.py              Auto-loading .env from repo root
+  db.py                  Engine, sessions, lightweight schema bootstrap
+  main.py                Main API routes for auth, decks, study, sharing, images
   models.py              SQLAlchemy models
-  schemas.py             Pydantic request/response models
-  spaced_repetition.py   Deck review scheduling and progress logic
+  quiz_router.py         Quiz routes
+  quizzes.py             Quiz domain logic
+  schemas.py             Pydantic schemas
+  spaced_repetition.py   Study session and scheduling logic
   time_utils.py          UTC-safe datetime helpers
 
 frontend/
-  index.html             Dashboard / deck library
-  deck.html              Deck editor and sharing UI
-  study.html             Study hub and active review UI
-  settings.html          Account settings UI
-  quiz.html              Quiz library
-  quiz-detail.html       Quiz detail page
-  quiz-editor.html       Quiz create/edit page
-  quiz-session.html      Quiz attempt flow
-  quiz-results.html      Quiz result summary
-  quiz-review.html       Quiz answer review
-  app-common.js          Shared API/auth helpers for the main app pages
-  app-auth.js            Auth modal logic
-  app-shell.js           Shared sidebar/account shell rendering
-  study-*.js             Split study session, render, viewer, and controls logic
-  quiz-common.js         Shared quiz frontend helpers
-  quiz-common.css        Shared quiz styling
+  *.html / *.js          Static app pages and client logic
 
 tests/
   test_auth.py
   test_db.py
+  test_hardening.py
   test_main.py
   test_models.py
   test_quiz.py
   test_schemas.py
 ```
+
+## Requirements
+
+- Python 3.10+
+- `pip`
 
 ## Quick Start
 
@@ -92,17 +93,19 @@ source .venv/bin/activate
 
 ### 2. Install dependencies
 
+Preferred:
+
 ```bash
 pip install -e ".[dev]"
 ```
 
-If you prefer the legacy requirements file:
+Fallback:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3. Configure environment
+### 3. Create `.env`
 
 The app auto-loads `.env` from the repository root.
 
@@ -110,7 +113,13 @@ The app auto-loads `.env` from the repository root.
 cp .env.example .env
 ```
 
-Then set at least `SECRET_KEY` in `.env`.
+Generate a real secret:
+
+```bash
+python3 -c "import secrets; print(secrets.token_hex(32))"
+```
+
+Paste the generated value into `SECRET_KEY` inside `.env`.
 
 ### 4. Run the app
 
@@ -118,57 +127,76 @@ Then set at least `SECRET_KEY` in `.env`.
 uvicorn backend.main:app --reload
 ```
 
-Open these URLs after startup:
+Open:
 
 - App UI: `http://127.0.0.1:8000/`
 - API docs: `http://127.0.0.1:8000/docs`
-- Quiz library: `http://127.0.0.1:8000/quiz`
+- Quiz UI: `http://127.0.0.1:8000/quiz`
 
-On first start the app will create:
+## Environment Variables
 
-- `deckly.db` in the repository root
-- `media/` for uploaded or imported images
+Minimal required config:
 
-## Configuration
+```env
+SECRET_KEY=replace-with-a-random-secret
+```
 
-Supported environment variables:
+Default local template:
 
-```bash
-export SECRET_KEY="required-signing-secret"
-export DATABASE_URL="sqlite:///$(pwd)/deckly.db"
-export CORS_ALLOW_ORIGINS="http://127.0.0.1:8000,http://localhost:8000"
-export OPENVERSE_API_URL="https://api.openverse.org/v1/images/"
-export MAX_IMAGE_DOWNLOAD_BYTES="5242880"
-export MAX_IMAGE_UPLOAD_BYTES="5242880"
-export LOGIN_RATE_LIMIT="5"
-export DECK_ACCESS_RATE_LIMIT="5"
+```env
+DATABASE_URL=sqlite:///./deckly.db
+CORS_ALLOW_ORIGINS=http://127.0.0.1:8000,http://localhost:8000
+OPENVERSE_API_URL=https://api.openverse.org/v1/images/
+MAX_IMAGE_DOWNLOAD_BYTES=5242880
+MAX_IMAGE_UPLOAD_BYTES=5242880
+IMAGE_REDIRECT_LIMIT=3
+LOGIN_RATE_LIMIT=5
+DECK_ACCESS_RATE_LIMIT=5
+RATE_LIMIT_WINDOW_SECONDS=600
+ACCESS_COOKIE_SECURE=false
+ACCESS_COOKIE_SAMESITE=lax
 ```
 
 Notes:
 
-- `.env` is auto-loaded from the repository root when present.
-- `SECRET_KEY` has no fallback and is required at startup.
-- Auth uses an HTTP-only cookie for signed session access tokens.
-- Private deck access uses a separate signed token returned by `POST /shared/decks/{deck_id}/access` and must be sent in `X-Deck-Access-Token`.
+- `SECRET_KEY` has no fallback. Without it the app must not start.
+- `.env` is loaded automatically on import.
 - `DATABASE_URL` defaults to `deckly.db` in the repository root.
-- `OPENVERSE_API_URL` defaults to the public Openverse image API.
-- `CORS_ALLOW_ORIGINS` defaults to local development origins only.
-- Image import and upload enforce size limits and basic image-type validation.
-- Media files are stored in `media/` and served from `/media/...`.
+- CORS defaults to localhost only.
+- image limits are in bytes
+- rate limiting is in-memory, so it is process-local
 
 ## Running Tests
-
-Run tests from the repository root with:
 
 ```bash
 pytest
 ```
 
-Test configuration lives in `pytest.ini` and currently enforces backend coverage of at least `85%`.
+Coverage is enforced by `pytest.ini`.
+
+Current backend test status after the latest hardening pass:
+
+- `77 passed`
+- coverage above `85%`
+
+## Auth Model
+
+`POST /login` returns a token payload for compatibility, but the main app flow uses an HTTP-only cookie.
+
+Main authenticated requests:
+
+- browser frontend uses the cookie automatically
+- direct API clients can still use Bearer auth
+
+Private deck sharing is separate from account auth:
+
+1. call `POST /shared/decks/{deck_id}/access` with the deck password
+2. receive a short-lived share token
+3. send that token in `X-Deck-Access-Token` to shared/private deck endpoints
 
 ## API Overview
 
-### Authentication
+### Auth
 
 - `POST /register`
 - `POST /login`
@@ -190,7 +218,7 @@ Test configuration lives in `pytest.ini` and currently enforces backend coverage
 - `PUT /decks/{deck_id}/cards/reorder`
 - `GET /cards`
 
-### Study And Progress
+### Study
 
 - `GET /decks/{deck_id}/study/session`
 - `GET /decks/{deck_id}/study`
@@ -227,22 +255,33 @@ Test configuration lives in `pytest.ini` and currently enforces backend coverage
 - `POST /quiz-attempts/{attempt_id}/complete`
 - `GET /quiz-attempts/{attempt_id}/results`
 
-## Development Notes
+## Important Behavior
 
-- The backend applies lightweight schema compatibility updates on app startup via `ensure_schema()`.
-- The app mounts `frontend/` at `/` and `media/` at `/media`.
-- Quiz pages use dedicated pretty routes such as `/quiz`, `/quiz/create`, and `/quiz/{quiz_id}/start`.
-- CORS is controlled by `CORS_ALLOW_ORIGINS` and defaults to localhost only.
-- The repository does not include a production deployment setup yet.
+- deck and quiz validation strips whitespace and rejects blank required fields
+- private saved decks still require a valid share token after visibility changes
+- deck list/detail GET routes no longer create progress rows just by reading
+- batch deck creation preserves card order correctly
+- image upload validates actual file signature instead of trusting filename
+- quiz updates and deletes are blocked when there are active attempts
 
-## Security Notes
+## Local Data
 
-- User passwords and deck share passwords are hashed with `bcrypt`.
-- Private deck links require a password-derived access token before content is returned.
-- External image import only allows HTTPS URLs and rejects loopback/private hosts.
-- Login and private deck access endpoints apply in-memory rate limiting.
-- Do not commit local secrets, `deckly.db`, or uploaded media to a public repository.
+Runtime artifacts created locally:
+
+- `deckly.db`
+- `media/`
+- `.env`
+- pytest and coverage caches
+
+These files should not be committed.
+
+## Current Limitations
+
+- database migrations are still lightweight compatibility updates, not full Alembic migrations
+- SQLite is fine for local/dev usage but not a serious production database
+- rate limiting is local-memory only
+- the frontend is static and intentionally simple
 
 ## License
 
-No license file is included yet. Add one before publishing or accepting external contributions.
+No license file is included yet.
