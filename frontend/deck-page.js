@@ -70,6 +70,10 @@
     });
   };
 
+  function deckAccessHeaders() {
+    return state.shareAccessToken ? { "X-Deck-Access-Token": state.shareAccessToken } : {};
+  }
+
   const accountRefs = getAccountMenuRefs();
   const authRefs = getAuthModalRefs();
   const dom = {
@@ -124,9 +128,9 @@
     onSignup: authUi.openSignup,
     onProfile: () => navigateAway("/"),
     onSettings: () => navigateAway("/settings.html"),
-    onLogout: () => {
+    onLogout: async () => {
       if (!confirmLeave()) return;
-      clearAuthToken();
+      await clearAuthToken();
       navigateAway("/");
     },
   });
@@ -156,7 +160,7 @@
   }
 
   function ownerLabel() {
-    return state.deckOwner?.owner_name || state.deckOwner?.owner_email || "Unknown creator";
+    return state.deckOwner?.owner_name || "Unknown creator";
   }
 
   function markDirty() {
@@ -195,7 +199,6 @@
       ? {
           owner_id: deck.owner_id,
           owner_name: deck.owner_name,
-          owner_email: deck.owner_email,
         }
       : null;
     state.ownerAccess = !deck ? !state.deckId : Boolean(state.me && deck.owner_id === state.me.id);
@@ -315,7 +318,7 @@
 
       if (state.me) {
         try {
-          deck = await api(`/decks/${state.deckId}`);
+          deck = await api(`/decks/${state.deckId}`, { headers: deckAccessHeaders() });
         } catch (error) {
           // Fall back to shared access below.
         }
@@ -628,7 +631,7 @@
         }
       }
 
-      const freshDeck = await api(`/decks/${targetDeckId}`);
+      const freshDeck = await api(`/decks/${targetDeckId}`, { headers: deckAccessHeaders() });
       hydrateDraft(freshDeck);
       setStatus(dom.deckStatusMessage, "Deck saved.", "success");
       navigateAway(`/study.html?deck=${targetDeckId}`);

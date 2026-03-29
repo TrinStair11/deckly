@@ -1,13 +1,21 @@
 import base64
 import binascii
+import ipaddress
 import mimetypes
 import os
+import socket
+import time
+from collections import defaultdict
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from pathlib import Path
+from threading import Lock
+from typing import Annotated, Literal
+from urllib.parse import urljoin, urlparse
 from uuid import uuid4
 
 import httpx
-from fastapi import Depends, FastAPI, Header, HTTPException, status
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from jose import JWTError, jwt
@@ -18,12 +26,15 @@ from .auth import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
     ALGORITHM,
     SECRET_KEY,
+    clear_auth_cookie,
     create_access_token,
     get_current_user,
     get_db,
     hash_password,
+    set_auth_cookie,
     verify_password,
 )
+from .config import load_local_env
 from .db import ensure_schema
 from .spaced_repetition import (
     advance_session,
@@ -42,6 +53,7 @@ from .quiz_router import (
     answer_quiz_question,
     complete_quiz_attempt,
     create_quiz,
+    delete_quiz,
     get_quiz_attempt,
     get_quiz_attempt_results,
     get_quiz_detail,
@@ -52,13 +64,28 @@ from .quiz_router import (
     update_quiz,
 )
 
-ensure_schema()
+@asynccontextmanager
+async def app_lifespan(_: FastAPI):
+    ensure_schema()
+    yield
 
-app = FastAPI(title="Deckly")
+
+load_local_env()
+
+app = FastAPI(title="Deckly", lifespan=app_lifespan)
+
+
+def parse_cors_origins(raw_value: str) -> list[str]:
+    return [origin.strip() for origin in raw_value.split(",") if origin.strip()]
+
+
+CORS_ALLOW_ORIGINS = parse_cors_origins(
+    os.getenv("CORS_ALLOW_ORIGINS", "http://127.0.0.1:8000,http://localhost:8000")
+)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=CORS_ALLOW_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -70,10 +97,112 @@ MEDIA_DIR.mkdir(parents=True, exist_ok=True)
 OPENVERSE_API_URL = os.getenv("OPENVERSE_API_URL", "https://api.openverse.org/v1/images/")
 IMAGE_SEARCH_TIMEOUT = 15.0
 ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
+MAX_IMAGE_DOWNLOAD_BYTES = int(os.getenv("MAX_IMAGE_DOWNLOAD_BYTES", str(5 * 1024 * 1024)))
+MAX_IMAGE_UPLOAD_BYTES = int(os.getenv("MAX_IMAGE_UPLOAD_BYTES", str(5 * 1024 * 1024)))
+IMAGE_REDIRECT_LIMIT = int(os.getenv("IMAGE_REDIRECT_LIMIT", "3"))
+LOGIN_RATE_LIMIT = int(os.getenv("LOGIN_RATE_LIMIT", "5"))
+DECK_ACCESS_RATE_LIMIT = int(os.getenv("DECK_ACCESS_RATE_LIMIT", "5"))
+RATE_LIMIT_WINDOW_SECONDS = int(os.getenv("RATE_LIMIT_WINDOW_SECONDS", "600"))
+FAILED_ATTEMPTS: dict[str, dict[str, list[float]]] = defaultdict(dict)
+FAILED_ATTEMPTS_LOCK = Lock()
+
+
+def detect_image_extension(content: bytes) -> str | None:
+    if content.startswith(b"\xff\xd8\xff"):
+        return ".jpg"
+    if content.startswith(b"\x89PNG\r\n\x1a\n"):
+        return ".png"
+    if content.startswith((b"GIF87a", b"GIF89a")):
+        return ".gif"
+    if len(content) >= 12 and content[:4] == b"RIFF" and content[8:12] == b"WEBP":
+        return ".webp"
+    return None
+
+
+def is_public_ip_address(raw_address: str) -> bool:
+    address = ipaddress.ip_address(raw_address)
+    return not (
+        address.is_private
+        or address.is_loopback
+        or address.is_link_local
+        or address.is_multicast
+        or address.is_reserved
+        or address.is_unspecified
+    )
+
+
+def validate_external_image_url(source_url: str) -> str:
+    parsed = urlparse(source_url.strip())
+    if parsed.scheme.lower() != "https":
+        raise HTTPException(status_code=400, detail="Only https image URLs are allowed")
+    if not parsed.hostname or parsed.username or parsed.password:
+        raise HTTPException(status_code=400, detail="Invalid image URL")
+
+    try:
+        resolved_addresses = {
+            item[4][0]
+            for item in socket.getaddrinfo(parsed.hostname, parsed.port or 443, type=socket.SOCK_STREAM)
+        }
+    except socket.gaierror as error:
+        raise HTTPException(status_code=400, detail="Image host could not be resolved") from error
+
+    if not resolved_addresses or any(not is_public_ip_address(address) for address in resolved_addresses):
+        raise HTTPException(status_code=400, detail="Image host is not allowed")
+    return parsed.geturl()
+
+
+def ensure_redirect_allowed(current_url: str, location: str) -> str:
+    redirected_url = urljoin(current_url, location)
+    return validate_external_image_url(redirected_url)
+
+
+def get_rate_limit_bucket(scope: str) -> dict[str, list[float]]:
+    return FAILED_ATTEMPTS[scope]
+
+
+def rate_limit_key(scope: str, identifier: str, request: Request | None) -> str:
+    client_host = request.client.host if request and request.client else "unknown"
+    return f"{scope}:{client_host}:{identifier.strip().lower()}"
+
+
+def enforce_rate_limit(scope: str, identifier: str, request: Request | None, limit: int) -> str:
+    key = rate_limit_key(scope, identifier, request)
+    now = time.time()
+    with FAILED_ATTEMPTS_LOCK:
+        attempts = [timestamp for timestamp in get_rate_limit_bucket(scope).get(key, []) if now - timestamp < RATE_LIMIT_WINDOW_SECONDS]
+        get_rate_limit_bucket(scope)[key] = attempts
+        if len(attempts) >= limit:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Too many failed attempts. Try again later",
+            )
+    return key
+
+
+def record_rate_limit_failure(scope: str, key: str) -> None:
+    now = time.time()
+    with FAILED_ATTEMPTS_LOCK:
+        attempts = [timestamp for timestamp in get_rate_limit_bucket(scope).get(key, []) if now - timestamp < RATE_LIMIT_WINDOW_SECONDS]
+        attempts.append(now)
+        get_rate_limit_bucket(scope)[key] = attempts
+
+
+def clear_rate_limit_failures(scope: str, key: str) -> None:
+    with FAILED_ATTEMPTS_LOCK:
+        get_rate_limit_bucket(scope).pop(key, None)
 
 
 def guess_image_extension(content_type: str | None, fallback_name: str = "") -> str:
-    guessed = mimetypes.guess_extension((content_type or "").split(";")[0].strip()) if content_type else None
+    normalized_type = (content_type or "").split(";")[0].strip().lower()
+    guessed = {
+        "image/jpeg": ".jpg",
+        "image/jpg": ".jpg",
+        "image/png": ".png",
+        "image/gif": ".gif",
+        "image/webp": ".webp",
+    }.get(normalized_type)
+    if not guessed and normalized_type:
+        guessed = mimetypes.guess_extension(normalized_type)
     if guessed in {".jpe"}:
         guessed = ".jpg"
     if guessed and guessed.lower() in ALLOWED_IMAGE_EXTENSIONS:
@@ -127,16 +256,51 @@ def search_openverse_images(query: str, page: int, page_size: int) -> list[schem
 
 
 def download_external_image(source_url: str) -> str:
+    current_url = validate_external_image_url(source_url)
+    redirects_followed = 0
+
     try:
-        with httpx.Client(timeout=IMAGE_SEARCH_TIMEOUT, follow_redirects=True) as client:
-            response = client.get(source_url, headers={"User-Agent": "Deckly/1.0"})
-            response.raise_for_status()
+        with httpx.Client(timeout=IMAGE_SEARCH_TIMEOUT, follow_redirects=False) as client:
+            while True:
+                with client.stream("GET", current_url, headers={"User-Agent": "Deckly/1.0"}) as response:
+                    if response.status_code in {301, 302, 303, 307, 308}:
+                        location = response.headers.get("location")
+                        if not location:
+                            raise HTTPException(status_code=502, detail="Image provider returned an invalid redirect")
+                        redirects_followed += 1
+                        if redirects_followed > IMAGE_REDIRECT_LIMIT:
+                            raise HTTPException(status_code=502, detail="Image provider redirected too many times")
+                        current_url = ensure_redirect_allowed(current_url, location)
+                        continue
+
+                    response.raise_for_status()
+                    content_type = response.headers.get("content-type", "")
+                    if not content_type.startswith("image/"):
+                        raise HTTPException(status_code=400, detail="The selected file is not an image")
+
+                    content_length = response.headers.get("content-length")
+                    if content_length and int(content_length) > MAX_IMAGE_DOWNLOAD_BYTES:
+                        raise HTTPException(status_code=413, detail="The selected image is too large")
+
+                    content = bytearray()
+                    for chunk in response.iter_bytes():
+                        content.extend(chunk)
+                        if len(content) > MAX_IMAGE_DOWNLOAD_BYTES:
+                            raise HTTPException(status_code=413, detail="The selected image is too large")
+
+                    if not content:
+                        raise HTTPException(status_code=400, detail="The selected image is empty")
+
+                    detected_extension = detect_image_extension(bytes(content))
+                    if not detected_extension:
+                        raise HTTPException(status_code=400, detail="The selected file is not a supported image")
+
+                    extension = detected_extension or guess_image_extension(content_type, current_url)
+                    return store_image_bytes(bytes(content), extension)
+    except HTTPException:
+        raise
     except httpx.HTTPError as error:
         raise HTTPException(status_code=502, detail="Failed to download the selected image") from error
-    content_type = response.headers.get("content-type", "")
-    if not content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="The selected file is not an image")
-    return store_image_bytes(response.content, guess_image_extension(content_type, source_url))
 
 
 def get_owner_name(user: models.User) -> str:
@@ -175,7 +339,6 @@ def serialize_deck(
         card_count=len(get_active_cards(deck)),
         owner_id=deck.owner_id,
         owner_name=get_owner_name(deck.owner),
-        owner_email=deck.owner.email,
         is_owner=is_owner,
         saved_in_library=saved_in_library,
         saved_at=saved_link.saved_at if saved_in_library else None,
@@ -183,15 +346,15 @@ def serialize_deck(
     )
 
 
-def serialize_share_meta(deck: models.Deck) -> schemas.DeckShareMeta:
+def serialize_share_meta(deck: models.Deck, reveal_owner: bool = False) -> schemas.DeckShareMeta:
+    is_public = deck.visibility == "public"
     return schemas.DeckShareMeta(
         id=deck.id,
-        title=deck.title,
+        title=deck.title if is_public or reveal_owner else "Private deck",
         visibility=deck.visibility,
         requires_password=deck.visibility == "private",
-        owner_id=deck.owner_id,
-        owner_name=get_owner_name(deck.owner),
-        owner_email=deck.owner.email,
+        owner_id=deck.owner_id if is_public or reveal_owner else None,
+        owner_name=get_owner_name(deck.owner) if is_public or reveal_owner else None,
     )
 
 
@@ -234,12 +397,19 @@ def get_owned_deck_or_404(deck_id: int, user_id: int, db: Session) -> models.Dec
     return deck
 
 
-def get_accessible_deck_or_404(deck_id: int, user_id: int, db: Session) -> tuple[models.Deck, models.UserSavedDeck | None]:
+def get_accessible_deck_or_404(
+    deck_id: int,
+    user_id: int,
+    db: Session,
+    deck_access_token: str | None = None,
+) -> tuple[models.Deck, models.UserSavedDeck | None]:
     deck = get_deck_or_404(deck_id, db)
     if deck.owner_id == user_id:
         return deck, None
     saved_link = get_saved_deck_link(deck_id, user_id, db)
     if saved_link:
+        if deck.visibility == "private":
+            ensure_shared_deck_access(deck, deck_access_token)
         return deck, saved_link
     raise HTTPException(status_code=403, detail="You do not have access to this deck")
 
@@ -281,25 +451,30 @@ def get_card_in_deck_or_404(deck_id: int, card_id: int, db: Session) -> models.C
     return card
 
 
-def save_deck_to_library(deck: models.Deck, current_user: models.User, db: Session) -> models.UserSavedDeck | None:
+def save_deck_to_library(
+    deck: models.Deck,
+    current_user: models.User,
+    db: Session,
+) -> tuple[models.UserSavedDeck, bool]:
     if deck.owner_id == current_user.id:
-        return None
+        raise HTTPException(status_code=400, detail="You cannot save your own deck")
     saved_link = get_saved_deck_link(deck.id, current_user.id, db)
     if saved_link:
-        return saved_link
+        return saved_link, False
     saved_link = models.UserSavedDeck(user_id=current_user.id, deck_id=deck.id)
     db.add(saved_link)
     db.commit()
     db.refresh(saved_link)
-    return saved_link
+    return saved_link, True
 
 
 @app.post("/register", response_model=schemas.UserOut, status_code=status.HTTP_201_CREATED)
 def register(payload: schemas.UserCreate, db: Session = Depends(get_db)):
-    existing = db.query(models.User).filter(models.User.email == payload.email).first()
+    normalized_email = payload.email.strip().lower()
+    existing = db.query(models.User).filter(models.User.email == normalized_email).first()
     if existing:
         raise HTTPException(status_code=400, detail="User already exists")
-    user = models.User(email=payload.email, password_hash=hash_password(payload.password))
+    user = models.User(email=normalized_email, password_hash=hash_password(payload.password))
     db.add(user)
     db.commit()
     db.refresh(user)
@@ -307,12 +482,29 @@ def register(payload: schemas.UserCreate, db: Session = Depends(get_db)):
 
 
 @app.post("/login", response_model=schemas.Token)
-def login(payload: schemas.UserLogin, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.email == payload.email).first()
+def login(
+    payload: schemas.UserLogin,
+    db: Session = Depends(get_db),
+    response: Response = None,
+    request: Request = None,
+):
+    normalized_email = payload.email.strip().lower()
+    rate_limit_scope = enforce_rate_limit("login", normalized_email, request, LOGIN_RATE_LIMIT)
+    user = db.query(models.User).filter(models.User.email == normalized_email).first()
     if not user or not verify_password(payload.password, user.password_hash):
+        record_rate_limit_failure("login", rate_limit_scope)
         raise HTTPException(status_code=401, detail="Invalid credentials")
     token = create_access_token({"sub": str(user.id)}, expires_delta=timedelta(minutes=60 * 24))
+    if response is not None:
+        set_auth_cookie(response, token)
+    clear_rate_limit_failures("login", rate_limit_scope)
     return {"access_token": token, "token_type": "bearer"}
+
+
+@app.post("/logout", response_model=schemas.AccountActionResult)
+def logout(response: Response):
+    clear_auth_cookie(response)
+    return schemas.AccountActionResult(message="Logged out successfully")
 
 
 @app.get("/me", response_model=schemas.UserOut)
@@ -369,7 +561,7 @@ def update_account_password(
 
 @app.post("/decks", response_model=schemas.DeckOut, status_code=status.HTTP_201_CREATED)
 def create_deck(deck: schemas.DeckCreate, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
-    visibility, password = validate_deck_privacy(deck.visibility, deck.password) if deck.visibility == "private" else ("public", "")
+    visibility, password = validate_deck_privacy(deck.visibility, deck.password if deck.visibility == "private" else "")
     now = utcnow()
     new_deck = models.Deck(
         title=deck.title.strip(),
@@ -382,13 +574,14 @@ def create_deck(deck: schemas.DeckCreate, current_user=Depends(get_current_user)
     )
     db.add(new_deck)
     db.flush()
-    for card in deck.cards:
+    next_position = get_next_card_position(new_deck.id, db)
+    for position_offset, card in enumerate(deck.cards):
         db.add(
             models.Card(
                 front=card.front.strip(),
                 back=card.back.strip(),
                 image_url=card.image_url.strip(),
-                position=get_next_card_position(new_deck.id, db),
+                position=next_position + position_offset,
                 deck_id=new_deck.id,
                 created_at=now,
                 updated_at=now,
@@ -413,70 +606,123 @@ def list_decks(current_user=Depends(get_current_user), db: Session = Depends(get
             deck,
             current_user_id=current_user.id,
             saved_link=saved_link,
-            progress=refresh_user_deck_progress(deck, current_user.id, db),
+            progress=refresh_user_deck_progress(deck, current_user.id, db, persist=False),
         )
         for _, deck, saved_link in items
     ]
 
 
 @app.get("/decks/{deck_id}", response_model=schemas.DeckDetail)
-def get_deck(deck_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
-    deck, saved_link = get_accessible_deck_or_404(deck_id, current_user.id, db)
-    return build_deck_detail_for_user(deck, db=db, serialize_deck=serialize_deck, current_user_id=current_user.id, saved_link=saved_link)
+def get_deck(
+    deck_id: int,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+    x_deck_access_token: Annotated[str | None, Header()] = None,
+):
+    deck, saved_link = get_accessible_deck_or_404(deck_id, current_user.id, db, x_deck_access_token)
+    return build_deck_detail_for_user(
+        deck,
+        db=db,
+        serialize_deck=serialize_deck,
+        current_user_id=current_user.id,
+        saved_link=saved_link,
+        persist_progress=False,
+    )
 
 
 @app.get("/decks/{deck_id}/study/session", response_model=schemas.StudySession)
 def get_study_session(
     deck_id: int,
     mode: str = "interval",
-    limit: int | None = None,
-    new_cards_limit: int = 10,
+    limit: Annotated[int | None, Query(ge=1)] = None,
+    new_cards_limit: Annotated[int, Query(ge=0, le=200)] = 10,
     shuffle_cards: bool = False,
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
+    x_deck_access_token: Annotated[str | None, Header()] = None,
 ):
-    deck, _ = get_accessible_deck_or_404(deck_id, current_user.id, db)
-    return build_study_session(deck, current_user, db, mode=mode, limit=limit, new_cards_limit=new_cards_limit, shuffle_cards=shuffle_cards)
+    deck, _ = get_accessible_deck_or_404(deck_id, current_user.id, db, x_deck_access_token)
+    return build_study_session(
+        deck,
+        current_user,
+        db,
+        mode=mode,
+        limit=limit,
+        new_cards_limit=new_cards_limit,
+        shuffle_cards=shuffle_cards,
+        persist_progress=False,
+    )
 
 
 @app.get("/decks/{deck_id}/study", response_model=schemas.StudySession)
-def get_legacy_study_session(deck_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
-    deck, _ = get_accessible_deck_or_404(deck_id, current_user.id, db)
-    return build_study_session(deck, current_user, db, mode="interval")
+def get_legacy_study_session(
+    deck_id: int,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+    x_deck_access_token: Annotated[str | None, Header()] = None,
+):
+    deck, _ = get_accessible_deck_or_404(deck_id, current_user.id, db, x_deck_access_token)
+    return build_study_session(deck, current_user, db, mode="interval", persist_progress=False)
 
 
 @app.get("/decks/{deck_id}/progress", response_model=schemas.ProgressOut)
-def get_deck_progress(deck_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
-    deck, _ = get_accessible_deck_or_404(deck_id, current_user.id, db)
-    progress = refresh_user_deck_progress(deck, current_user.id, db)
-    db.commit()
+def get_deck_progress(
+    deck_id: int,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+    x_deck_access_token: Annotated[str | None, Header()] = None,
+):
+    deck, _ = get_accessible_deck_or_404(deck_id, current_user.id, db, x_deck_access_token)
+    progress = refresh_user_deck_progress(deck, current_user.id, db, persist=False)
     return progress
 
 
 @app.get("/shared/decks/{deck_id}/meta", response_model=schemas.DeckShareMeta)
-def get_shared_deck_meta(deck_id: int, db: Session = Depends(get_db)):
-    return serialize_share_meta(get_deck_or_404(deck_id, db))
+def get_shared_deck_meta(
+    deck_id: int,
+    db: Session = Depends(get_db),
+    x_deck_access_token: Annotated[str | None, Header()] = None,
+):
+    deck = get_deck_or_404(deck_id, db)
+    reveal_owner = bool(x_deck_access_token and verify_deck_access_token(x_deck_access_token, deck.id))
+    return serialize_share_meta(deck, reveal_owner=reveal_owner)
 
 
 @app.post("/shared/decks/{deck_id}/access", response_model=schemas.DeckAccessToken)
-def access_private_deck(deck_id: int, payload: schemas.DeckAccessRequest, db: Session = Depends(get_db)):
+def access_private_deck(
+    deck_id: int,
+    payload: schemas.DeckAccessRequest,
+    db: Session = Depends(get_db),
+    request: Request = None,
+):
     deck = get_deck_or_404(deck_id, db)
     if deck.visibility != "private":
         raise HTTPException(status_code=400, detail="This deck does not require a password")
+    rate_limit_scope = enforce_rate_limit("deck-access", str(deck_id), request, DECK_ACCESS_RATE_LIMIT)
     if not deck.password_hash or not verify_password(payload.password, deck.password_hash):
+        record_rate_limit_failure("deck-access", rate_limit_scope)
         raise HTTPException(status_code=401, detail="Incorrect deck password")
-    return {"access_token": create_deck_access_token(deck.id), "token_type": "bearer"}
+    clear_rate_limit_failures("deck-access", rate_limit_scope)
+    return {"access_token": create_deck_access_token(deck.id), "token_type": "deck-access"}
 
 
 @app.get("/shared/decks/{deck_id}", response_model=schemas.DeckDetail)
-def get_shared_deck(deck_id: int, db: Session = Depends(get_db), x_deck_access_token: str | None = Header(default=None)):
+def get_shared_deck(
+    deck_id: int,
+    db: Session = Depends(get_db),
+    x_deck_access_token: Annotated[str | None, Header()] = None,
+):
     deck = get_deck_or_404(deck_id, db)
     ensure_shared_deck_access(deck, x_deck_access_token)
-    return build_deck_detail_for_user(deck, db=db, serialize_deck=serialize_deck)
+    return build_deck_detail_for_user(deck, db=db, serialize_deck=serialize_deck, persist_progress=False)
 
 
 @app.get("/shared/decks/{deck_id}/study", response_model=schemas.StudySession)
-def get_shared_study_session(deck_id: int, db: Session = Depends(get_db), x_deck_access_token: str | None = Header(default=None)):
+def get_shared_study_session(
+    deck_id: int,
+    db: Session = Depends(get_db),
+    x_deck_access_token: Annotated[str | None, Header()] = None,
+):
     deck = get_deck_or_404(deck_id, db)
     ensure_shared_deck_access(deck, x_deck_access_token)
     active_cards = get_active_cards(deck)
@@ -509,13 +755,16 @@ def save_shared_deck(
     deck_id: int,
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
-    x_deck_access_token: str | None = Header(default=None),
+    x_deck_access_token: Annotated[str | None, Header()] = None,
+    response: Response = None,
 ):
     deck = get_deck_or_404(deck_id, db)
     ensure_shared_deck_access(deck, x_deck_access_token)
-    saved_link = save_deck_to_library(deck, current_user, db)
+    saved_link, created = save_deck_to_library(deck, current_user, db)
     progress = refresh_user_deck_progress(deck, current_user.id, db)
     db.commit()
+    if response is not None and not created:
+        response.status_code = status.HTTP_200_OK
     return serialize_deck(deck, current_user_id=current_user.id, saved_link=saved_link, progress=progress)
 
 
@@ -598,6 +847,8 @@ def reorder_cards(deck_id: int, payload: schemas.CardReorder, current_user=Depen
     cards_by_id = {card.id: card for card in get_active_cards(deck)}
     if {item.id for item in payload.items} != set(cards_by_id):
         raise HTTPException(status_code=400, detail="Reorder payload must include every card in the deck")
+    if len({item.position for item in payload.items}) != len(payload.items):
+        raise HTTPException(status_code=400, detail="Reorder payload must use unique positions")
     for item in payload.items:
         cards_by_id[item.id].position = item.position
         cards_by_id[item.id].updated_at = utcnow()
@@ -607,8 +858,13 @@ def reorder_cards(deck_id: int, payload: schemas.CardReorder, current_user=Depen
 
 
 @app.post("/reviews/submit", response_model=schemas.ReviewResult)
-def submit_review(payload: schemas.ReviewSubmit, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
-    deck, _ = get_accessible_deck_or_404(payload.deck_id, current_user.id, db)
+def submit_review(
+    payload: schemas.ReviewSubmit,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+    x_deck_access_token: Annotated[str | None, Header()] = None,
+):
+    deck, _ = get_accessible_deck_or_404(payload.deck_id, current_user.id, db, x_deck_access_token)
     get_card_in_deck_or_404(deck.id, payload.card_id, db)
     state = ensure_user_card_state(current_user.id, deck.id, payload.card_id, db)
     now = utcnow()
@@ -649,7 +905,13 @@ def submit_review(payload: schemas.ReviewSubmit, current_user=Depends(get_curren
 
 
 @app.post("/cards/{card_id}/review", response_model=schemas.ReviewResult)
-def review_card(card_id: int, payload: schemas.CardReview, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+def review_card(
+    card_id: int,
+    payload: schemas.CardReview,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+    x_deck_access_token: Annotated[str | None, Header()] = None,
+):
     card = db.query(models.Card).filter(models.Card.id == card_id, models.Card.deleted_at.is_(None)).first()
     if not card:
         raise HTTPException(status_code=404, detail="Card not found")
@@ -657,6 +919,7 @@ def review_card(card_id: int, payload: schemas.CardReview, current_user=Depends(
         schemas.ReviewSubmit(deck_id=card.deck_id, card_id=card.id, rating=payload.rating, session_id=uuid4().hex),
         current_user=current_user,
         db=db,
+        x_deck_access_token=x_deck_access_token,
     )
 
 
@@ -697,7 +960,11 @@ def upload_image(payload: schemas.ImageUploadRequest, current_user=Depends(get_c
         raise HTTPException(status_code=400, detail="Invalid image payload") from error
     if not content:
         raise HTTPException(status_code=400, detail="Image payload is empty")
-    extension = guess_image_extension(None, payload.filename)
+    if len(content) > MAX_IMAGE_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="Image payload is too large")
+    extension = detect_image_extension(content)
+    if not extension:
+        raise HTTPException(status_code=400, detail="Uploaded file is not a supported image")
     return schemas.StoredImageOut(image_url=store_image_bytes(content, extension))
 
 

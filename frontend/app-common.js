@@ -1,14 +1,23 @@
 window.appCommon = (() => {
-  function clearAuthToken() {
-    localStorage.removeItem("token");
+  async function clearAuthToken() {
+    try {
+      await fetch("/logout", {
+        method: "POST",
+        credentials: "same-origin",
+        keepalive: true,
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (error) {
+      // Best effort logout for cookie-based auth.
+    }
   }
 
-  function setAuthToken(token) {
-    localStorage.setItem("token", token);
+  function setAuthToken() {
+    // Authentication uses an httpOnly cookie.
   }
 
   function getAuthToken() {
-    return localStorage.getItem("token");
+    return null;
   }
 
   function escapeHtml(value) {
@@ -26,13 +35,15 @@ window.appCommon = (() => {
   }
 
   async function api(path, options = {}) {
-    const token = getAuthToken();
     const headers = {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(options.headers || {}),
     };
-    const response = await fetch(path, { ...options, headers });
+    const response = await fetch(path, {
+      ...options,
+      credentials: "same-origin",
+      headers,
+    });
     if (!response.ok) {
       let detail = "Request failed";
       try {
@@ -51,7 +62,7 @@ window.appCommon = (() => {
     try {
       return await apiClient("/me");
     } catch (error) {
-      clearAuthToken();
+      await clearAuthToken();
       return null;
     }
   }

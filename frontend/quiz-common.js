@@ -9,13 +9,15 @@ window.quizApp = (() => {
   }
 
   async function api(path, options = {}) {
-    const token = localStorage.getItem("token");
     const headers = {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(options.headers || {}),
     };
-    const response = await fetch(path, { ...options, headers });
+    const response = await fetch(path, {
+      ...options,
+      credentials: "same-origin",
+      headers,
+    });
     if (!response.ok) {
       let detail = "Request failed";
       try {
@@ -31,11 +33,24 @@ window.quizApp = (() => {
     return text ? JSON.parse(text) : null;
   }
 
+  async function logout() {
+    try {
+      await fetch("/logout", {
+        method: "POST",
+        credentials: "same-origin",
+        keepalive: true,
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (error) {
+      // Best effort logout for cookie-based auth.
+    }
+  }
+
   async function getCurrentUser() {
     try {
       return await api("/me");
     } catch (error) {
-      localStorage.removeItem("token");
+      await logout();
       return null;
     }
   }
@@ -86,8 +101,8 @@ window.quizApp = (() => {
     if (accountProfileBtn) accountProfileBtn.onclick = () => { window.location.href = "/"; };
     if (accountSettingsBtn) accountSettingsBtn.onclick = () => { window.location.href = "/settings.html"; };
     if (accountLogoutBtn) {
-      accountLogoutBtn.onclick = () => {
-        localStorage.removeItem("token");
+      accountLogoutBtn.onclick = async () => {
+        await logout();
         window.location.href = "/";
       };
     }

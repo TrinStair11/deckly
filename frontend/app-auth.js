@@ -1,5 +1,5 @@
 window.appAuth = (() => {
-  const { api, setAuthToken } = window.appCommon;
+  const { api } = window.appCommon;
 
   function getAuthModalRefs({ root = document, emailId = "email", passwordId = "password" } = {}) {
     return {
@@ -82,7 +82,6 @@ window.appAuth = (() => {
           method: "POST",
           body: JSON.stringify({ email, password }),
         });
-        setAuthToken(token.access_token);
         if (typeof onAuthenticated === "function") {
           await onAuthenticated({ email, mode, token });
         }

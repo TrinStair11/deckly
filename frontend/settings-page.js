@@ -197,8 +197,8 @@
     }
   }
 
-  function logout() {
-    clearAuthToken();
+  async function logout() {
+    await clearAuthToken();
     state.me = null;
     renderProfile();
     renderAccountSettings();

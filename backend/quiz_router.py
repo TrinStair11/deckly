@@ -12,6 +12,7 @@ from .quizzes import (
     build_attempt_session,
     build_option_order_map,
     build_question_order,
+    ensure_quiz_mutation_allowed,
     ensure_quiz_startable,
     finalize_attempt,
     get_accessible_quiz_or_404,
@@ -123,6 +124,7 @@ def get_quiz_edit_data(quiz_id: int, current_user=Depends(get_current_user), db:
 def update_quiz(quiz_id: int, payload: schemas.QuizUpdate, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     validate_quiz_payload(payload)
     quiz = get_owned_quiz_or_404(quiz_id, current_user, db)
+    ensure_quiz_mutation_allowed(quiz, db)
     apply_quiz_payload(quiz, payload)
     replace_quiz_questions(quiz, payload.questions, db)
     db.commit()
@@ -133,6 +135,7 @@ def update_quiz(quiz_id: int, payload: schemas.QuizUpdate, current_user=Depends(
 @router.delete("/quizzes/{quiz_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_quiz(quiz_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     quiz = get_owned_quiz_or_404(quiz_id, current_user, db)
+    ensure_quiz_mutation_allowed(quiz, db)
     db.delete(quiz)
     db.commit()
 

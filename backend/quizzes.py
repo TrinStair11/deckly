@@ -117,6 +117,19 @@ def get_owned_quiz_or_404(quiz_id: int, current_user: models.User, db: Session) 
     return quiz
 
 
+def ensure_quiz_mutation_allowed(quiz: models.Quiz, db: Session) -> None:
+    in_progress_attempts = (
+        db.query(models.QuizAttempt)
+        .filter(models.QuizAttempt.quiz_id == quiz.id, models.QuizAttempt.status == "in_progress")
+        .count()
+    )
+    if in_progress_attempts:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Quiz cannot be changed while attempts are in progress",
+        )
+
+
 def get_attempt_or_404(attempt_id: int, current_user: models.User, db: Session) -> models.QuizAttempt:
     attempt = db.query(models.QuizAttempt).filter(models.QuizAttempt.id == attempt_id).first()
     if not attempt:
@@ -240,7 +253,6 @@ def serialize_quiz_summary(quiz: models.Quiz, current_user: models.User | None, 
         attempt_count=attempt_count,
         owner_id=quiz.owner_id,
         owner_name=owner_name(quiz.owner),
-        owner_email=quiz.owner.email,
         can_edit=bool(current_user and quiz.owner_id == current_user.id),
         last_attempt_percentage=last_percentage,
         best_attempt_percentage=best_percentage,

@@ -202,7 +202,7 @@
       const tags = deck.tags && deck.tags.length ? deck.tags : getDeckTags(deck);
       const visibilityClass = deck.visibility === "private" ? "status-private" : "status-public";
       const visibilityLabel = deck.visibility === "private" ? "Private" : "Public";
-      const ownerName = deck.owner_name || deck.owner_email || "Unknown creator";
+      const ownerName = deck.owner_name || "Unknown creator";
 
       return `
         <div class="${colClass}">
@@ -286,8 +286,8 @@
     }
   }
 
-  function logout() {
-    clearAuthToken();
+  async function logout() {
+    await clearAuthToken();
     state.me = null;
     state.decks = [];
     state.openDeckMenuId = null;

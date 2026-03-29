@@ -1,5 +1,7 @@
 from datetime import datetime
 
+import pytest
+
 from backend import schemas
 
 
@@ -23,7 +25,6 @@ def test_deck_out_schema_exposes_progress():
         card_count=3,
         owner_id=5,
         owner_name="owner",
-        owner_email="owner@example.com",
         is_owner=True,
         progress=schemas.ProgressOut(
             total_cards=3,
@@ -94,6 +95,26 @@ def test_study_session_schema_keeps_mode_and_progress():
     assert session.mode == "interval"
     assert session.current_index == 1
     assert session.progress.total_cards == 10
+
+
+def test_deck_visibility_is_normalized_and_invalid_values_are_rejected():
+    payload = schemas.DeckCreate(name="React", visibility=" PRIVATE ")
+
+    assert payload.visibility == "private"
+
+    with pytest.raises(ValueError):
+        schemas.DeckCreate(name="React", visibility="garbage")
+
+
+def test_blank_strings_are_rejected_for_required_schema_fields():
+    with pytest.raises(ValueError):
+        schemas.DeckCreate(name="   ")
+
+    with pytest.raises(ValueError):
+        schemas.CardCreate(front="   ", back="Hello")
+
+    with pytest.raises(ValueError):
+        schemas.QuizCreate(title="   ")
 
 
 def test_account_settings_schemas_capture_payload():

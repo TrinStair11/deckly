@@ -117,7 +117,7 @@ window.studyRender = (() => {
     }
 
     function currentOwnerName() {
-      return state.deck?.owner_name || state.sharedMeta?.owner_name || state.deck?.owner_email || state.sharedMeta?.owner_email || "Unknown creator";
+      return state.deck?.owner_name || state.sharedMeta?.owner_name || "Unknown creator";
     }
 
     function renderPrivacyState() {

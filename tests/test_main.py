@@ -124,6 +124,7 @@ def test_private_deck_access_requires_password(db_session):
     detail = get_shared_deck(deck.id, db=db_session, x_deck_access_token=token["access_token"])
 
     assert meta.requires_password is True
+    assert meta.owner_name is None
     assert detail.title == "Secret deck"
 
 
@@ -461,6 +462,59 @@ def test_owner_updates_are_visible_to_saved_deck_users(db_session):
     assert updated.description == "Fresh source"
 
 
+def test_create_deck_assigns_incrementing_card_positions(db_session):
+    owner = register_user(db_session, email=make_email())
+
+    created = create_deck(
+        schemas.DeckCreate(
+            name="Ordered",
+            cards=[
+                schemas.CardSeed(front="One", back="1"),
+                schemas.CardSeed(front="Two", back="2"),
+                schemas.CardSeed(front="Three", back="3"),
+            ],
+        ),
+        current_user=owner,
+        db=db_session,
+    )
+
+    cards = (
+        db_session.query(models.Card)
+        .filter(models.Card.deck_id == created.id)
+        .order_by(models.Card.id)
+        .all()
+    )
+
+    assert [card.position for card in cards] == [0, 1, 2]
+
+
+def test_saved_private_deck_requires_access_token_after_visibility_change(db_session):
+    owner = register_user(db_session, email=make_email())
+    learner = register_user(db_session, email=make_email())
+    created = create_deck(
+        schemas.DeckCreate(name="Protected", description="Deck"),
+        current_user=owner,
+        db=db_session,
+    )
+    deck = db_session.query(models.Deck).filter(models.Deck.id == created.id).first()
+    save_deck_to_library(deck, learner, db_session)
+
+    update_deck(
+        created.id,
+        schemas.DeckUpdate(name="Protected", description="Deck", visibility="private", access_password="abcd"),
+        current_user=owner,
+        db=db_session,
+    )
+
+    with pytest.raises(HTTPException, match="Password is required for this deck"):
+        get_deck(created.id, current_user=learner, db=db_session)
+
+    token = access_private_deck(created.id, schemas.DeckAccessRequest(password="abcd"), db=db_session)
+    detail = get_deck(created.id, current_user=learner, db=db_session, x_deck_access_token=token["access_token"])
+
+    assert detail.title == "Protected"
+
+
 def test_only_owner_can_edit_deck_content(db_session):
     owner = register_user(db_session, email=make_email())
     other = register_user(db_session, email=make_email())
@@ -531,7 +585,10 @@ def test_import_image_returns_internal_media_url(monkeypatch, db_session):
 
 def test_upload_image_decodes_base64_payload(db_session):
     user = register_user(db_session, email=make_email())
-    payload = schemas.ImageUploadRequest(filename="card.png", content_base64="aGVsbG8=")
+    payload = schemas.ImageUploadRequest(
+        filename="card.png",
+        content_base64="iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jr1UAAAAASUVORK5CYII=",
+    )
 
     response = upload_image(payload, current_user=user)
 

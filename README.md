@@ -93,10 +93,26 @@ source .venv/bin/activate
 ### 2. Install dependencies
 
 ```bash
+pip install -e ".[dev]"
+```
+
+If you prefer the legacy requirements file:
+
+```bash
 pip install -r requirements.txt
 ```
 
-### 3. Run the app
+### 3. Configure environment
+
+The app auto-loads `.env` from the repository root.
+
+```bash
+cp .env.example .env
+```
+
+Then set at least `SECRET_KEY` in `.env`.
+
+### 4. Run the app
 
 ```bash
 uvicorn backend.main:app --reload
@@ -115,18 +131,29 @@ On first start the app will create:
 
 ## Configuration
 
-The project runs locally without extra configuration, but these environment variables are supported:
+Supported environment variables:
 
 ```bash
-export SECRET_KEY="replace-this-in-real-environments"
+export SECRET_KEY="required-signing-secret"
+export DATABASE_URL="sqlite:///$(pwd)/deckly.db"
+export CORS_ALLOW_ORIGINS="http://127.0.0.1:8000,http://localhost:8000"
 export OPENVERSE_API_URL="https://api.openverse.org/v1/images/"
+export MAX_IMAGE_DOWNLOAD_BYTES="5242880"
+export MAX_IMAGE_UPLOAD_BYTES="5242880"
+export LOGIN_RATE_LIMIT="5"
+export DECK_ACCESS_RATE_LIMIT="5"
 ```
 
 Notes:
 
-- `SECRET_KEY` defaults to a development value in `backend/auth.py`.
-- Auth tokens and private deck access tokens are signed with `SECRET_KEY`.
+- `.env` is auto-loaded from the repository root when present.
+- `SECRET_KEY` has no fallback and is required at startup.
+- Auth uses an HTTP-only cookie for signed session access tokens.
+- Private deck access uses a separate signed token returned by `POST /shared/decks/{deck_id}/access` and must be sent in `X-Deck-Access-Token`.
+- `DATABASE_URL` defaults to `deckly.db` in the repository root.
 - `OPENVERSE_API_URL` defaults to the public Openverse image API.
+- `CORS_ALLOW_ORIGINS` defaults to local development origins only.
+- Image import and upload enforce size limits and basic image-type validation.
 - Media files are stored in `media/` and served from `/media/...`.
 
 ## Running Tests
@@ -134,7 +161,7 @@ Notes:
 Run tests from the repository root with:
 
 ```bash
-PYTHONPATH=. pytest
+pytest
 ```
 
 Test configuration lives in `pytest.ini` and currently enforces backend coverage of at least `85%`.
@@ -145,6 +172,7 @@ Test configuration lives in `pytest.ini` and currently enforces backend coverage
 
 - `POST /register`
 - `POST /login`
+- `POST /logout`
 - `GET /me`
 - `PUT /account/email`
 - `PUT /account/password`
@@ -201,17 +229,18 @@ Test configuration lives in `pytest.ini` and currently enforces backend coverage
 
 ## Development Notes
 
-- The backend applies lightweight schema compatibility updates on startup via `ensure_schema()`.
+- The backend applies lightweight schema compatibility updates on app startup via `ensure_schema()`.
 - The app mounts `frontend/` at `/` and `media/` at `/media`.
 - Quiz pages use dedicated pretty routes such as `/quiz`, `/quiz/create`, and `/quiz/{quiz_id}/start`.
-- CORS is currently open to all origins in development.
+- CORS is controlled by `CORS_ALLOW_ORIGINS` and defaults to localhost only.
 - The repository does not include a production deployment setup yet.
 
 ## Security Notes
 
 - User passwords and deck share passwords are hashed with `bcrypt`.
 - Private deck links require a password-derived access token before content is returned.
-- The default `SECRET_KEY` is for local development only.
+- External image import only allows HTTPS URLs and rejects loopback/private hosts.
+- Login and private deck access endpoints apply in-memory rate limiting.
 - Do not commit local secrets, `deckly.db`, or uploaded media to a public repository.
 
 ## License

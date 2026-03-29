@@ -102,12 +102,33 @@ def serialize_card(card: models.Card, state: models.UserCardState | None = None)
     )
 
 
-def refresh_user_deck_progress(deck: models.Deck, user_id: int, db: Session) -> models.UserDeckProgress:
-    row = get_user_deck_progress_row(deck.id, user_id, db)
-    if not row:
+def refresh_user_deck_progress(
+    deck: models.Deck,
+    user_id: int,
+    db: Session,
+    persist: bool = True,
+) -> models.UserDeckProgress:
+    existing_row = get_user_deck_progress_row(deck.id, user_id, db)
+    if existing_row and not persist:
+        row = models.UserDeckProgress(
+            user_id=existing_row.user_id,
+            deck_id=existing_row.deck_id,
+            total_cards=existing_row.total_cards,
+            new_count=existing_row.new_available_count,
+            learning_count=existing_row.learning_count,
+            review_count=existing_row.review_count,
+            due_count=existing_row.due_review_count,
+            known_count=existing_row.known_count,
+            last_studied_at=existing_row.last_studied_at,
+            updated_at=existing_row.updated_at,
+        )
+    elif existing_row:
+        row = existing_row
+    else:
         row = models.UserDeckProgress(user_id=user_id, deck_id=deck.id)
-        db.add(row)
-        db.flush()
+        if persist:
+            db.add(row)
+            db.flush()
 
     active_cards = get_active_cards(deck)
     active_card_ids = [card.id for card in active_cards]
@@ -141,7 +162,8 @@ def refresh_user_deck_progress(deck: models.Deck, user_id: int, db: Session) -> 
     )
     row.last_studied_at = max((ensure_utc(state.last_reviewed_at) for state in states if state.last_reviewed_at), default=row.last_studied_at)
     row.updated_at = now
-    db.flush()
+    if persist:
+        db.flush()
     return row
 
 
@@ -151,6 +173,7 @@ def build_deck_detail_for_user(
     serialize_deck,
     current_user_id: int | None = None,
     saved_link: models.UserSavedDeck | None = None,
+    persist_progress: bool = False,
 ) -> schemas.DeckDetail:
     states_by_card_id = {}
     progress = None
@@ -166,9 +189,9 @@ def build_deck_detail_for_user(
             .all()
         )
         states_by_card_id = {state.card_id: state for state in states}
-        progress = refresh_user_deck_progress(deck, current_user_id, db)
+        progress = refresh_user_deck_progress(deck, current_user_id, db, persist=persist_progress)
     elif current_user_id is not None:
-        progress = refresh_user_deck_progress(deck, current_user_id, db)
+        progress = refresh_user_deck_progress(deck, current_user_id, db, persist=persist_progress)
     return schemas.DeckDetail(
         **serialize_deck(deck, current_user_id=current_user_id, saved_link=saved_link, progress=progress).dict(),
         cards=[serialize_card(card, states_by_card_id.get(card.id)) for card in active_cards],
@@ -371,9 +394,14 @@ def build_study_session(
     limit: int | None = None,
     new_cards_limit: int = 10,
     shuffle_cards: bool = False,
+    persist_progress: bool = False,
 ) -> schemas.StudySession:
     if mode not in {"review_all", "limited", "interval"}:
         raise HTTPException(status_code=400, detail="Unsupported study mode")
+    if limit is not None and limit < 1:
+        raise HTTPException(status_code=400, detail="Study session limit must be at least 1")
+    if new_cards_limit < 0:
+        raise HTTPException(status_code=400, detail="New cards limit cannot be negative")
 
     active_cards = get_active_cards(deck)
     active_card_ids = {card.id for card in active_cards}
@@ -425,7 +453,7 @@ def build_study_session(
             .all()
         )
     states_by_card_id = {state.card_id: state for state in states}
-    progress = refresh_user_deck_progress(deck, current_user.id, db)
+    progress = refresh_user_deck_progress(deck, current_user.id, db, persist=persist_progress)
 
     return schemas.StudySession(
         session_id=session.id,

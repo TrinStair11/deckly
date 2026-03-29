@@ -1,7 +1,24 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, constr, validator
+
+
+NonEmptyText = constr(strip_whitespace=True, min_length=1)
+DeckTitle = constr(strip_whitespace=True, min_length=1, max_length=120)
+DeckDescription = constr(strip_whitespace=True, max_length=500)
+QuizTitle = constr(strip_whitespace=True, min_length=1, max_length=160)
+QuizDescription = constr(strip_whitespace=True, max_length=1000)
+QuizCategory = constr(strip_whitespace=True, max_length=120)
+QuizLanguage = constr(strip_whitespace=True, max_length=120)
+QuizCoverImage = constr(strip_whitespace=True, max_length=2000)
+QuizQuestionText = constr(strip_whitespace=True, min_length=1, max_length=2000)
+QuizExplanation = constr(strip_whitespace=True, max_length=2000)
+QuizOptionText = constr(strip_whitespace=True, min_length=1, max_length=500)
+ImageSearchQuery = constr(strip_whitespace=True, min_length=1, max_length=200)
+ImageSourceUrl = constr(strip_whitespace=True, min_length=1, max_length=2000)
+UploadFilename = constr(strip_whitespace=True, min_length=1, max_length=255)
+VisibilityInput = constr(strip_whitespace=True, min_length=1, max_length=20)
 
 
 class UserCreate(BaseModel):
@@ -29,30 +46,44 @@ class Token(BaseModel):
 
 
 class CardSeed(BaseModel):
-    front: str = Field(min_length=1)
-    back: str = Field(min_length=1)
+    front: NonEmptyText
+    back: NonEmptyText
     image_url: str = Field(default="")
 
 
 class DeckCreate(BaseModel):
-    title: str = Field(min_length=1, max_length=120, alias="name")
-    description: str = Field(default="", max_length=500)
+    title: DeckTitle = Field(alias="name")
+    description: DeckDescription = ""
     cards: list[CardSeed] = Field(default_factory=list)
-    visibility: str = Field(default="public", pattern="^(public|private)$")
+    visibility: VisibilityInput = "public"
     password: str = Field(default="", max_length=120, alias="access_password")
 
     class Config:
         allow_population_by_field_name = True
+
+    @validator("visibility")
+    def normalize_visibility(cls, value: str) -> str:
+        normalized = value.strip().lower()
+        if normalized not in {"public", "private"}:
+            raise ValueError("Visibility must be public or private")
+        return normalized
 
 
 class DeckUpdate(BaseModel):
-    title: str = Field(min_length=1, max_length=120, alias="name")
-    description: str = Field(default="", max_length=500)
-    visibility: str = Field(default="public", pattern="^(public|private)$")
+    title: DeckTitle = Field(alias="name")
+    description: DeckDescription = ""
+    visibility: VisibilityInput = "public"
     password: str = Field(default="", max_length=120, alias="access_password")
 
     class Config:
         allow_population_by_field_name = True
+
+    @validator("visibility")
+    def normalize_visibility(cls, value: str) -> str:
+        normalized = value.strip().lower()
+        if normalized not in {"public", "private"}:
+            raise ValueError("Visibility must be public or private")
+        return normalized
 
 
 class ProgressOut(BaseModel):
@@ -79,7 +110,6 @@ class DeckOut(BaseModel):
     card_count: int = 0
     owner_id: int
     owner_name: str
-    owner_email: EmailStr
     is_owner: bool = False
     saved_in_library: bool = False
     saved_at: datetime | None = None
@@ -92,14 +122,14 @@ class DeckOut(BaseModel):
 
 
 class CardCreate(BaseModel):
-    front: str = Field(min_length=1)
-    back: str = Field(min_length=1)
+    front: NonEmptyText
+    back: NonEmptyText
     image_url: str = Field(default="")
 
 
 class CardUpdate(BaseModel):
-    front: str = Field(min_length=1)
-    back: str = Field(min_length=1)
+    front: NonEmptyText
+    back: NonEmptyText
     image_url: str = Field(default="")
 
 
@@ -150,9 +180,8 @@ class DeckShareMeta(BaseModel):
     title: str
     visibility: str
     requires_password: bool
-    owner_id: int
-    owner_name: str
-    owner_email: EmailStr
+    owner_id: int | None = None
+    owner_name: str | None = None
 
     class Config:
         allow_population_by_field_name = True
@@ -164,12 +193,12 @@ class SavedDeckOut(BaseModel):
 
 
 class DeckAccessRequest(BaseModel):
-    password: str = Field(min_length=1, max_length=120)
+    password: NonEmptyText = Field(max_length=120)
 
 
 class DeckAccessToken(BaseModel):
     access_token: str
-    token_type: str = "bearer"
+    token_type: str = "deck-access"
 
 
 class CardReview(BaseModel):
@@ -211,7 +240,7 @@ class ReviewResult(BaseModel):
 
 
 class ImageSearchRequest(BaseModel):
-    query: str = Field(min_length=1, max_length=200)
+    query: ImageSearchQuery
     page: int = Field(default=1, ge=1)
     page_size: int = Field(default=12, ge=1, le=30)
 
@@ -234,12 +263,12 @@ class ImageSearchResponse(BaseModel):
 
 
 class ImageImportRequest(BaseModel):
-    source_url: str = Field(min_length=1, max_length=2000)
-    title: str = Field(default="", max_length=500)
+    source_url: ImageSourceUrl
+    title: constr(strip_whitespace=True, max_length=500) = ""
 
 
 class ImageUploadRequest(BaseModel):
-    filename: str = Field(min_length=1, max_length=255)
+    filename: UploadFilename
     content_base64: str = Field(min_length=1)
 
 
@@ -249,30 +278,30 @@ class StoredImageOut(BaseModel):
 
 class QuizOptionInput(BaseModel):
     id: int | None = None
-    option_text: str = Field(min_length=1, max_length=500)
+    option_text: QuizOptionText
     is_correct: bool = False
     order_index: int | None = Field(default=None, ge=0)
 
 
 class QuizQuestionInput(BaseModel):
     id: int | None = None
-    question_text: str = Field(min_length=1, max_length=2000)
+    question_text: QuizQuestionText
     question_type: Literal["single_choice", "multiple_choice"] = "single_choice"
-    explanation: str = Field(default="", max_length=2000)
+    explanation: QuizExplanation = ""
     order_index: int | None = Field(default=None, ge=0)
     points: int = Field(default=1, ge=1, le=100)
     options: list[QuizOptionInput] = Field(default_factory=list)
 
 
 class QuizCreate(BaseModel):
-    title: str = Field(min_length=1, max_length=160)
-    description: str = Field(default="", max_length=1000)
-    category: str = Field(default="", max_length=120)
+    title: QuizTitle
+    description: QuizDescription = ""
+    category: QuizCategory = ""
     difficulty: Literal["beginner", "intermediate", "advanced"] = "beginner"
-    subject: str = Field(default="", max_length=120)
-    language: str = Field(default="", max_length=120)
+    subject: QuizCategory = ""
+    language: QuizLanguage = ""
     is_published: bool = False
-    cover_image: str = Field(default="", max_length=2000)
+    cover_image: QuizCoverImage = ""
     estimated_time: int | None = Field(default=None, ge=1, le=600)
     tags: list[str] = Field(default_factory=list)
     questions: list[QuizQuestionInput] = Field(default_factory=list)
@@ -322,7 +351,6 @@ class QuizSummaryOut(BaseModel):
     attempt_count: int = 0
     owner_id: int
     owner_name: str
-    owner_email: EmailStr
     can_edit: bool = False
     last_attempt_percentage: float | None = None
     best_attempt_percentage: float | None = None

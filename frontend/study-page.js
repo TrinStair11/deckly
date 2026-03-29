@@ -1,5 +1,5 @@
     const { renderSidebar, renderAccountMenu, getAccountMenuRefs } = window.appShell;
-    const { api, clearAuthToken, escapeHtml, getAuthToken, getCurrentUser, initAccountMenu } = window.appCommon;
+    const { api, clearAuthToken, escapeHtml, getCurrentUser, initAccountMenu } = window.appCommon;
     const { createStudySession } = window.studySession;
     const { createStudyRenderer } = window.studyRender;
 
@@ -14,15 +14,17 @@
       menuClass: "dropdown-menu dropdown-menu-end rounded-4 p-2",
     });
 
+    const deckRequestHeaders = () => ({
+      ...(state.shareAccessToken ? { "X-Deck-Access-Token": state.shareAccessToken } : {}),
+    });
+
     const sharedApi = (path, options = {}) => {
-      const token = getAuthToken();
       const headers = {
         "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...(state.shareAccessToken ? { "X-Deck-Access-Token": state.shareAccessToken } : {}),
         ...(options.headers || {})
       };
-      return fetch(path, { ...options, headers }).then(async (response) => {
+      return fetch(path, { ...options, credentials: "same-origin", headers }).then(async (response) => {
         if (!response.ok) {
           let detail = "Request failed";
           try {
@@ -37,6 +39,14 @@
         return text ? JSON.parse(text) : null;
       });
     };
+
+    const deckApi = (path, options = {}) => api(path, {
+      ...options,
+      headers: {
+        ...deckRequestHeaders(),
+        ...(options.headers || {}),
+      },
+    });
 
     const params = new URLSearchParams(window.location.search);
     const deckId = params.get("deck");
@@ -140,7 +150,7 @@
         cardViewer,
       },
       helpers: {
-        api,
+        api: deckApi,
         sharedApi,
       },
       config: {
@@ -339,8 +349,8 @@
       }
       try {
         if (state.me) {
-          try {
-            const deck = await api(`/decks/${deckId}`);
+        try {
+            const deck = await deckApi(`/decks/${deckId}`);
             state.ownerAccess = Boolean(deck.is_owner);
             state.sharedMeta = null;
             state.deck = deck;
@@ -383,8 +393,8 @@
       }
     }
 
-    function logout() {
-      clearAuthToken();
+    async function logout() {
+      await clearAuthToken();
       window.location.href = '/';
     }
 

@@ -7,6 +7,7 @@ from backend.main import (
     answer_quiz_question,
     complete_quiz_attempt,
     create_quiz,
+    delete_quiz,
     get_quiz_attempt,
     get_quiz_attempt_results,
     get_quiz_detail,
@@ -263,3 +264,55 @@ def test_update_quiz_replaces_questions_and_metadata(db_session):
     assert updated.question_count == 1
     assert updated.category == "Kanji"
     assert updated.questions[0].question_text == "What does 山 mean?"
+
+
+def test_quiz_cannot_be_updated_while_attempt_is_in_progress(db_session):
+    owner = register_user(db_session, email=make_email())
+    learner = register_user(db_session, email=make_email())
+    created = create_quiz(build_quiz_payload(title="Original"), current_user=owner, db=db_session)
+
+    start_quiz_attempt(created.id, current_user=learner, db=db_session)
+
+    with pytest.raises(HTTPException) as exc_info:
+        update_quiz(
+            created.id,
+            schemas.QuizUpdate(
+                title="Updated Quiz",
+                description="New description",
+                category="Kanji",
+                difficulty="intermediate",
+                subject="Japanese",
+                language="English",
+                is_published=True,
+                estimated_time=8,
+                tags=["kanji"],
+                questions=[
+                    schemas.QuizQuestionInput(
+                        question_text="What does 山 mean?",
+                        question_type="single_choice",
+                        explanation="山 means mountain.",
+                        options=[
+                            schemas.QuizOptionInput(option_text="Mountain", is_correct=True),
+                            schemas.QuizOptionInput(option_text="River", is_correct=False),
+                        ],
+                    )
+                ],
+            ),
+            current_user=owner,
+            db=db_session,
+        )
+
+    assert exc_info.value.status_code == 409
+
+
+def test_quiz_cannot_be_deleted_while_attempt_is_in_progress(db_session):
+    owner = register_user(db_session, email=make_email())
+    learner = register_user(db_session, email=make_email())
+    created = create_quiz(build_quiz_payload(title="Original"), current_user=owner, db=db_session)
+
+    start_quiz_attempt(created.id, current_user=learner, db=db_session)
+
+    with pytest.raises(HTTPException) as exc_info:
+        delete_quiz(created.id, current_user=owner, db=db_session)
+
+    assert exc_info.value.status_code == 409
