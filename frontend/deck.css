@@ -167,6 +167,34 @@ body {
   max-width: 420px;
 }
 
+.deck-view-switch {
+  background: linear-gradient(165deg, rgba(17, 21, 27, 0.92) 0%, rgba(14, 17, 23, 0.94) 100%) !important;
+}
+
+.deck-view-tab {
+  min-height: 2.65rem;
+  padding-inline: 1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: #cbd5e1;
+  font-weight: 650;
+}
+
+.deck-view-tab:hover,
+.deck-view-tab:focus-visible {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.deck-view-tab.active {
+  color: #fff;
+  background: linear-gradient(180deg, #1d2128 0%, #171b22 100%);
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.22);
+}
+
 .top-save-btn {
   min-height: 2.58rem;
   padding-inline: 1.1rem;
@@ -388,6 +416,70 @@ body {
   gap: 0.2rem;
 }
 
+.compact-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-bottom: 0.72rem;
+}
+
+.study-status-pill,
+.study-meta-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.36rem;
+  min-height: 1.9rem;
+  padding: 0.28rem 0.68rem;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 640;
+  letter-spacing: 0.01em;
+}
+
+.study-status-pill {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.study-status-new {
+  background: rgba(148, 163, 184, 0.14);
+  border-color: rgba(148, 163, 184, 0.32);
+  color: #e2e8f0;
+}
+
+.study-status-learning {
+  background: rgba(251, 191, 36, 0.12);
+  border-color: rgba(251, 191, 36, 0.3);
+  color: #fde68a;
+}
+
+.study-status-review {
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.3);
+  color: #bbf7d0;
+}
+
+.study-status-relearning {
+  background: rgba(248, 113, 113, 0.12);
+  border-color: rgba(248, 113, 113, 0.28);
+  color: #fecaca;
+}
+
+.study-status-untracked {
+  background: rgba(96, 165, 250, 0.12);
+  border-color: rgba(96, 165, 250, 0.3);
+  color: #bfdbfe;
+}
+
+.study-meta-pill {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: #c8d4e3;
+}
+
+.study-meta-pill i {
+  color: #8fa2b8;
+}
+
 .card-index-badge {
   border-radius: 999px;
   padding: 0.25rem 0.72rem;
@@ -466,6 +558,102 @@ body {
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.3);
 }
 
+.interval-status-panel {
+  background: linear-gradient(168deg, rgba(17, 21, 27, 0.93) 0%, rgba(14, 17, 23, 0.95) 100%) !important;
+}
+
+.interval-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 720px;
+}
+
+.interval-summary-chip {
+  border-radius: 1rem;
+  padding: 0.82rem 0.95rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.interval-summary-label {
+  color: var(--text-subtle);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 650;
+  margin-bottom: 0.28rem;
+}
+
+.interval-summary-value {
+  font-size: 1.15rem;
+  font-weight: 750;
+  color: #f8fafc;
+}
+
+.interval-table-wrap {
+  overflow-x: auto;
+  border-radius: 1.1rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(8, 11, 16, 0.72);
+}
+
+.interval-table {
+  width: 100%;
+  min-width: 920px;
+  border-collapse: collapse;
+}
+
+.interval-table thead th {
+  padding: 0.95rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-subtle);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.interval-table tbody td {
+  padding: 0.95rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  vertical-align: top;
+}
+
+.interval-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.interval-word-main {
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.interval-word-sub {
+  margin-top: 0.16rem;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.interval-next-main {
+  font-weight: 650;
+  color: #e5edf7;
+}
+
+.interval-next-sub {
+  margin-top: 0.16rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.interval-empty-state {
+  padding: 1.25rem;
+  color: var(--text-muted);
+}
+
 .image-picker-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -518,6 +706,15 @@ body {
 
   .compact-card-grid {
     grid-template-columns: 1fr;
+  }
+
+  .compact-card-meta {
+    gap: 0.38rem;
+  }
+
+  .interval-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-width: none;
   }
 
   .compact-thumb-col {

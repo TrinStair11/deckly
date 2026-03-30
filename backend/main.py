@@ -43,6 +43,7 @@ from .spaced_repetition import (
     build_study_session,
     ensure_user_card_state,
     get_active_cards,
+    is_card_due,
     refresh_user_deck_progress,
     serialize_card,
     serialize_user_card_state,
@@ -868,8 +869,25 @@ def submit_review(
     get_card_in_deck_or_404(deck.id, payload.card_id, db)
     state = ensure_user_card_state(current_user.id, deck.id, payload.card_id, db)
     now = utcnow()
-    previous_due_at, previous_status, previous_stability, previous_difficulty = apply_review_rating(state, payload.rating, now)
-    session = advance_session(payload.session_id, payload.card_id, current_user.id, deck.id, db)
+    session = advance_session(
+        payload.session_id,
+        payload.card_id,
+        current_user.id,
+        deck.id,
+        db,
+        validate_only=True,
+    )
+    if not session and not is_card_due(state, now):
+        raise HTTPException(status_code=400, detail="Card is not due for review")
+    audit_snapshot = apply_review_rating(state, payload.rating, now)
+    session = advance_session(
+        payload.session_id,
+        payload.card_id,
+        current_user.id,
+        deck.id,
+        db,
+        rating=payload.rating,
+    )
     review_log = models.ReviewLog(
         user_id=current_user.id,
         deck_id=deck.id,
@@ -877,14 +895,16 @@ def submit_review(
         session_id=payload.session_id,
         reviewed_at=now,
         rating=payload.rating,
-        previous_status=previous_status,
+        previous_status=audit_snapshot.status,
         new_status=state.status,
-        previous_due_at=previous_due_at,
+        previous_due_at=audit_snapshot.due_at,
         new_due_at=state.due_at,
-        previous_stability=previous_stability,
+        previous_stability=audit_snapshot.legacy_stability,
         new_stability=state.stability,
-        previous_difficulty=previous_difficulty,
+        previous_difficulty=audit_snapshot.legacy_difficulty,
         new_difficulty=state.difficulty,
+        previous_ease_factor=audit_snapshot.ease_factor,
+        new_ease_factor=state.ease_factor,
         response_time_ms=payload.response_time_ms,
         created_at=now,
     )

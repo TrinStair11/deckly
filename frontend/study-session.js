@@ -4,6 +4,14 @@ window.studySession = (() => {
     const { focusTopbar, focusProgressPill, focusDeckTitleLabel, focusModeChip, cardViewer } = dom;
     const { api, sharedApi } = helpers;
     const { DEFAULT_STUDY_SETTINGS, deckId } = config;
+    const SM2_MIN_EASE_FACTOR = 1.3;
+    const SM2_MAX_EASE_FACTOR = 2.8;
+    const INITIAL_EASE_FACTOR = 2.5;
+    const LEARNING_STEPS_MS = [60_000, 10 * 60_000];
+    const RELEARNING_STEPS_MS = [10 * 60_000];
+    const FIRST_REVIEW_INTERVAL_DAYS = 1;
+    const SECOND_REVIEW_INTERVAL_DAYS = 6;
+    const RATING_QUALITY = { again: 1, hard: 3, good: 4, easy: 5 };
 
     function renderAll() {
       return actions.renderAll?.();
@@ -85,6 +93,113 @@ window.studySession = (() => {
     function currentCard() {
       clampIndex();
       return state.sessionCards[state.currentIndex] || null;
+    }
+
+    function normalizeIntervalCardState(card) {
+      const source = card?.state || {};
+      return {
+        status: source.status || "new",
+        learning_step: Number.isFinite(source.learning_step) ? source.learning_step : 0,
+        reps: Number.isFinite(source.reps) ? source.reps : 0,
+        lapses: Number.isFinite(source.lapses) ? source.lapses : 0,
+        ease_factor: Number.isFinite(source.ease_factor) ? source.ease_factor : null,
+        difficulty: Number.isFinite(source.difficulty) ? source.difficulty : INITIAL_EASE_FACTOR,
+        scheduled_days: Number.isFinite(source.scheduled_days) ? source.scheduled_days : 0,
+        elapsed_days: Number.isFinite(source.elapsed_days) ? source.elapsed_days : 0,
+        last_reviewed_at: source.last_reviewed_at || null,
+      };
+    }
+
+    function normalizeEaseFactor(rawEaseFactor) {
+      if (!Number.isFinite(rawEaseFactor)) {
+        return INITIAL_EASE_FACTOR;
+      }
+      return Math.min(Math.max(rawEaseFactor, SM2_MIN_EASE_FACTOR), SM2_MAX_EASE_FACTOR);
+    }
+
+    function getEaseFactor(stateSnapshot) {
+      if (Number.isFinite(stateSnapshot.ease_factor)) {
+        return normalizeEaseFactor(stateSnapshot.ease_factor);
+      }
+      if (
+        Number.isFinite(stateSnapshot.difficulty) &&
+        stateSnapshot.difficulty >= SM2_MIN_EASE_FACTOR &&
+        stateSnapshot.difficulty <= SM2_MAX_EASE_FACTOR
+      ) {
+        return normalizeEaseFactor(stateSnapshot.difficulty);
+      }
+      return INITIAL_EASE_FACTOR;
+    }
+
+    function nextEaseFactor(easeFactor, quality) {
+      const adjusted = easeFactor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));
+      return normalizeEaseFactor(adjusted);
+    }
+
+    function getHardLearningDelayMs(steps, currentStep) {
+      const currentDelay = steps[currentStep];
+      if (currentStep + 1 < steps.length) {
+        const nextDelay = steps[currentStep + 1];
+        return currentDelay + (nextDelay - currentDelay) / 2;
+      }
+      return Math.round(currentDelay * 1.5);
+    }
+
+    function previewLearningDelay(stateSnapshot, rating) {
+      const isRelearning = stateSnapshot.status === "relearning";
+      const steps = isRelearning ? RELEARNING_STEPS_MS : LEARNING_STEPS_MS;
+      const currentStep = Math.min(Math.max(stateSnapshot.learning_step || 0, 0), steps.length - 1);
+
+      if (rating === "again") return steps[0];
+      if (rating === "hard") return getHardLearningDelayMs(steps, currentStep);
+      if (rating === "good") {
+        if (currentStep >= steps.length - 1) return FIRST_REVIEW_INTERVAL_DAYS * 86400_000;
+        return steps[currentStep + 1];
+      }
+      return FIRST_REVIEW_INTERVAL_DAYS * 86400_000;
+    }
+
+    function previewReviewDelay(stateSnapshot, rating) {
+      const quality = RATING_QUALITY[rating];
+      const currentEaseFactor = getEaseFactor(stateSnapshot);
+      const scheduledDays = Math.max(stateSnapshot.scheduled_days || 0, 0);
+
+      if (quality < 3) return RELEARNING_STEPS_MS[0];
+
+      if ((stateSnapshot.reps || 0) <= 0) {
+        return FIRST_REVIEW_INTERVAL_DAYS * 86400_000;
+      }
+      if (stateSnapshot.reps === 1) {
+        return SECOND_REVIEW_INTERVAL_DAYS * 86400_000;
+      }
+
+      const nextEase = nextEaseFactor(currentEaseFactor, quality);
+      const baseInterval = Math.max(scheduledDays, FIRST_REVIEW_INTERVAL_DAYS);
+      return Math.ceil(baseInterval * nextEase) * 86400_000;
+    }
+
+    function formatDelayLabel(delayMs) {
+      if (delayMs < 60_000) return "now";
+      const totalMinutes = Math.round(delayMs / 60_000);
+      if (totalMinutes < 60) return `in ${totalMinutes}m`;
+      const totalHours = Math.round(delayMs / 3_600_000);
+      if (totalHours < 48) return `in ${totalHours}h`;
+      const totalDays = Math.round(delayMs / 86_400_000);
+      if (totalDays < 30) return `in ${totalDays}d`;
+      const totalMonths = Math.round(totalDays / 30);
+      return `in ${totalMonths}mo`;
+    }
+
+    function buildIntervalRatingPreviews(card) {
+      const stateSnapshot = normalizeIntervalCardState(card);
+      const computeDelay = stateSnapshot.status === "review" ? previewReviewDelay : previewLearningDelay;
+
+      return {
+        again: formatDelayLabel(computeDelay(stateSnapshot, "again")),
+        hard: formatDelayLabel(computeDelay(stateSnapshot, "hard")),
+        good: formatDelayLabel(computeDelay(stateSnapshot, "good")),
+        easy: formatDelayLabel(computeDelay(stateSnapshot, "easy")),
+      };
     }
 
     function captureSessionSnapshot() {
@@ -256,6 +371,7 @@ window.studySession = (() => {
       primaryCardSide,
       secondaryCardSide,
       currentSideLabel,
+      buildIntervalRatingPreviews,
       loadIntervalSession,
       startCurrentSessionWithSettings,
       syncFlipPresentation,

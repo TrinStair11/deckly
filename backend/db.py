@@ -69,6 +69,44 @@ def ensure_schema() -> None:
             connection.execute(text("UPDATE cards SET created_at = COALESCE(created_at, CURRENT_TIMESTAMP)"))
             connection.execute(text("UPDATE cards SET updated_at = COALESCE(updated_at, created_at, CURRENT_TIMESTAMP)"))
 
+    if _has_table(inspector, "user_card_state"):
+        state_columns = {column["name"] for column in inspector.get_columns("user_card_state")}
+        _ensure_column("user_card_state", "ease_factor", "ease_factor FLOAT DEFAULT 2.5 NOT NULL")
+        with engine.begin() as connection:
+            ease_factor_source = (
+                "CASE "
+                "WHEN difficulty BETWEEN 1.3 AND 2.8 THEN difficulty "
+                "ELSE 2.5 "
+                "END"
+                if "difficulty" in state_columns
+                else "2.5"
+            )
+            connection.execute(text(f"UPDATE user_card_state SET ease_factor = COALESCE(ease_factor, {ease_factor_source})"))
+
+    if _has_table(inspector, "review_logs"):
+        review_log_columns = {column["name"] for column in inspector.get_columns("review_logs")}
+        _ensure_column("review_logs", "previous_ease_factor", "previous_ease_factor FLOAT DEFAULT 2.5 NOT NULL")
+        _ensure_column("review_logs", "new_ease_factor", "new_ease_factor FLOAT DEFAULT 2.5 NOT NULL")
+        with engine.begin() as connection:
+            previous_source = (
+                "CASE "
+                "WHEN previous_difficulty BETWEEN 1.3 AND 2.8 THEN previous_difficulty "
+                "ELSE 2.5 "
+                "END"
+                if "previous_difficulty" in review_log_columns
+                else "2.5"
+            )
+            new_source = (
+                "CASE "
+                "WHEN new_difficulty BETWEEN 1.3 AND 2.8 THEN new_difficulty "
+                "ELSE 2.5 "
+                "END"
+                if "new_difficulty" in review_log_columns
+                else "2.5"
+            )
+            connection.execute(text(f"UPDATE review_logs SET previous_ease_factor = COALESCE(previous_ease_factor, {previous_source})"))
+            connection.execute(text(f"UPDATE review_logs SET new_ease_factor = COALESCE(new_ease_factor, {new_source})"))
+
     if _has_table(inspector, "user_deck_progress"):
         progress_columns = {column["name"] for column in inspector.get_columns("user_deck_progress")}
         _ensure_column("user_deck_progress", "new_available_count", "new_available_count INTEGER DEFAULT 0 NOT NULL")

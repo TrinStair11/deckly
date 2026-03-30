@@ -132,9 +132,9 @@ window.studyRender = (() => {
         ? "Password-protected link. Viewers must enter the deck password."
         : "Open-access link. Anyone with the URL can view this deck.";
       cloneDeckBtn.classList.toggle("d-none", Boolean(state.ownerAccess) || !state.deck || Boolean(state.deck?.saved_in_library));
-      editDeckBtn.classList.toggle("d-none", !state.ownerAccess);
+      editDeckBtn.classList.remove("d-none");
       groupsBtn.classList.toggle("d-none", !state.ownerAccess);
-      openEditorMenuBtn.classList.toggle("d-none", !state.ownerAccess);
+      openEditorMenuBtn.classList.remove("d-none");
     }
 
     function renderHeader() {
@@ -153,7 +153,8 @@ window.studyRender = (() => {
         const activeStep = Math.min(state.currentIndex + 1, Math.max(state.sessionCards.length, 1));
         deckSubtitle.textContent = `${modeLabel()} in progress — card ${activeStep} of ${state.sessionCards.length}.`;
       }
-      editDeckBtn.href = `/deck.html?id=${state.deck.id}`;
+      editDeckBtn.href = `/deck.html?id=${state.deck.id}&view=interval`;
+      editDeckBtn.innerHTML = '<i class="bi bi-list-ul me-2"></i>Word List';
       renderPrivacyState();
     }
 
@@ -279,6 +280,8 @@ window.studyRender = (() => {
         isSessionActive,
         canUndoSessionAction,
         primaryCardSide,
+        currentCard,
+        buildIntervalRatingPreviews: helpers.buildIntervalRatingPreviews,
         captureSessionSnapshot,
         pushSessionUndo,
       },

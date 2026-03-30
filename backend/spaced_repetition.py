@@ -1,4 +1,6 @@
+from dataclasses import dataclass
 import json
+import math
 import random
 from datetime import datetime, timedelta
 from uuid import uuid4
@@ -9,12 +11,36 @@ from sqlalchemy.orm import Session
 from . import models, schemas
 from .time_utils import ensure_utc, now_utc
 
-VALID_RATINGS = {"again", "hard", "good", "easy", "perfect"}
-INITIAL_STABILITY = 0.4
-INITIAL_DIFFICULTY = 5.0
-LEARNING_STEPS = [timedelta(minutes=1), timedelta(minutes=10), timedelta(days=1)]
-HARD_LEARNING_DELAYS = [timedelta(minutes=10), timedelta(days=1), timedelta(days=1)]
-GRADUATION_INTERVALS = {"good": 2.0, "easy": 3.0, "perfect": 4.0}
+VALID_RATINGS = {"again", "hard", "good", "easy"}
+SM2_RATING_QUALITY = {"again": 1, "hard": 3, "good": 4, "easy": 5}
+INITIAL_STABILITY = 0.0
+INITIAL_EASE_FACTOR = 2.5
+SM2_MIN_EASE_FACTOR = 1.3
+SM2_MAX_EASE_FACTOR = 2.8
+LEARNING_STEPS = [timedelta(minutes=1), timedelta(minutes=10)]
+RELEARNING_STEPS = [timedelta(minutes=10)]
+FIRST_REVIEW_INTERVAL_DAYS = 1.0
+SECOND_REVIEW_INTERVAL_DAYS = 6.0
+
+
+@dataclass(frozen=True)
+class ReviewAuditSnapshot:
+    due_at: datetime | None
+    status: str
+    legacy_stability: float
+    legacy_difficulty: float
+    ease_factor: float
+
+
+@dataclass(frozen=True)
+class SchedulingOutcome:
+    status: str
+    due_in: timedelta
+    scheduled_interval_days: float
+    learning_step_index: int
+    review_count: int
+    ease_factor: float
+    lapse_increment: int = 0
 
 
 def utcnow() -> datetime:
@@ -80,6 +106,7 @@ def serialize_user_card_state(state: models.UserCardState | None) -> schemas.Use
         status=state.status,
         due_at=ensure_utc(state.due_at),
         last_reviewed_at=ensure_utc(state.last_reviewed_at),
+        ease_factor=read_ease_factor(state),
         stability=state.stability,
         difficulty=state.difficulty,
         scheduled_days=state.scheduled_days,
@@ -218,7 +245,8 @@ def ensure_user_card_state(user_id: int, deck_id: int, card_id: int, db: Session
         status="new",
         due_at=now,
         stability=INITIAL_STABILITY,
-        difficulty=INITIAL_DIFFICULTY,
+        difficulty=INITIAL_EASE_FACTOR,
+        ease_factor=INITIAL_EASE_FACTOR,
         scheduled_days=0.0,
         elapsed_days=0.0,
         reps=0,
@@ -239,109 +267,191 @@ def get_state_elapsed_days(state: models.UserCardState, now: datetime) -> float:
     return max((now - reviewed_at).total_seconds() / 86400, 0.0)
 
 
-def graduate_interval_days(stability: float, rating: str, previous_status: str) -> float:
-    capped_base = min(max(stability * 2.4, 1.0), 4.0 if previous_status in {"new", "learning"} else 7.0)
-    interval = max(capped_base, GRADUATION_INTERVALS[rating])
-    return round(interval, 2)
+def is_card_due(state: models.UserCardState, now: datetime) -> bool:
+    if state.status == "new":
+        return True
+    return ensure_utc(state.due_at) <= now
 
 
-def apply_learning_step(state: models.UserCardState, due_in: timedelta, step: int, next_status: str, now: datetime) -> None:
-    state.status = next_status
-    state.learning_step = step
-    state.scheduled_days = round(due_in.total_seconds() / 86400, 4)
-    state.due_at = now + due_in
+def normalize_ease_factor(value: float | None) -> float:
+    if value is None:
+        return INITIAL_EASE_FACTOR
+    return round(min(max(value, SM2_MIN_EASE_FACTOR), SM2_MAX_EASE_FACTOR), 2)
 
 
-def graduate_to_review(state: models.UserCardState, rating: str, now: datetime, previous_status: str) -> None:
-    state.status = "review"
-    state.learning_step = 0
-    state.stability = min(
-        max(0.8, state.stability * {"good": 1.12, "easy": 1.18, "perfect": 1.22}[rating] + 0.2),
-        4.0 if previous_status in {"new", "learning"} else 12.0,
+def read_ease_factor(state: models.UserCardState) -> float:
+    if state.ease_factor is not None:
+        return normalize_ease_factor(state.ease_factor)
+    legacy_mirror = state.difficulty
+    if legacy_mirror is not None and SM2_MIN_EASE_FACTOR <= legacy_mirror <= SM2_MAX_EASE_FACTOR:
+        return normalize_ease_factor(legacy_mirror)
+    return INITIAL_EASE_FACTOR
+
+
+def sync_legacy_scheduler_fields(state: models.UserCardState, ease_factor: float) -> None:
+    normalized_ease_factor = normalize_ease_factor(ease_factor)
+    state.ease_factor = normalized_ease_factor
+    # Keep legacy compatibility for existing clients that still read `difficulty`.
+    state.difficulty = normalized_ease_factor
+    # Keep legacy compatibility for existing clients that still read `stability`.
+    state.stability = round(max(state.scheduled_days, 0.0), 2)
+
+
+def sm2_next_ease_factor(ease_factor: float, quality: int) -> float:
+    adjusted = ease_factor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02))
+    return normalize_ease_factor(adjusted)
+
+
+def build_learning_outcome(
+    next_status: str,
+    due_in: timedelta,
+    learning_step_index: int,
+    ease_factor: float,
+) -> SchedulingOutcome:
+    return SchedulingOutcome(
+        status=next_status,
+        due_in=due_in,
+        scheduled_interval_days=round(due_in.total_seconds() / 86400, 4),
+        learning_step_index=learning_step_index,
+        review_count=0,
+        ease_factor=ease_factor,
     )
-    state.difficulty = max(1.0, state.difficulty - {"good": 0.04, "easy": 0.08, "perfect": 0.1}[rating])
-    state.scheduled_days = graduate_interval_days(state.stability, rating, previous_status)
-    state.due_at = now + timedelta(days=state.scheduled_days)
 
 
-def schedule_learning(state: models.UserCardState, rating: str, now: datetime, previous_status: str) -> None:
-    next_status = "learning" if previous_status in {"new", "learning"} else "relearning"
-    current_step = max(state.learning_step, 0)
+def build_review_outcome(
+    interval_days: float,
+    review_count: int,
+    ease_factor: float,
+) -> SchedulingOutcome:
+    scheduled_interval_days = float(max(1, math.ceil(max(interval_days, 1.0))))
+    return SchedulingOutcome(
+        status="review",
+        due_in=timedelta(days=scheduled_interval_days),
+        scheduled_interval_days=scheduled_interval_days,
+        learning_step_index=0,
+        review_count=review_count,
+        ease_factor=ease_factor,
+    )
+
+
+def apply_scheduling_outcome(state: models.UserCardState, outcome: SchedulingOutcome, now: datetime) -> None:
+    state.status = outcome.status
+    state.learning_step = outcome.learning_step_index
+    state.reps = outcome.review_count
+    state.lapses += outcome.lapse_increment
+    state.scheduled_days = outcome.scheduled_interval_days
+    state.due_at = now + outcome.due_in
+    sync_legacy_scheduler_fields(state, outcome.ease_factor)
+
+
+def resolve_learning_workflow(previous_status: str) -> tuple[str, list[timedelta]]:
+    if previous_status == "relearning":
+        return "relearning", RELEARNING_STEPS
+    return "learning", LEARNING_STEPS
+
+
+def clamp_learning_step_index(raw_step_index: int, steps: list[timedelta]) -> int:
+    return min(max(raw_step_index, 0), len(steps) - 1)
+
+
+def get_hard_learning_delay(steps: list[timedelta], learning_step_index: int) -> timedelta:
+    current_delay = steps[learning_step_index]
+    if learning_step_index + 1 < len(steps):
+        next_delay = steps[learning_step_index + 1]
+        return current_delay + (next_delay - current_delay) / 2
+    return current_delay * 1.5
+
+
+def calculate_review_interval_days(
+    review_count: int,
+    scheduled_interval_days: float,
+    ease_factor: float,
+) -> float:
+    if review_count <= 0:
+        return FIRST_REVIEW_INTERVAL_DAYS
+    if review_count == 1:
+        return SECOND_REVIEW_INTERVAL_DAYS
+
+    base_interval_days = max(scheduled_interval_days, FIRST_REVIEW_INTERVAL_DAYS)
+    return base_interval_days * ease_factor
+
+
+def plan_learning_outcome(state: models.UserCardState, rating: str, previous_status: str) -> SchedulingOutcome:
+    next_status, learning_steps = resolve_learning_workflow(previous_status)
+    learning_step_index = clamp_learning_step_index(state.learning_step, learning_steps)
+    current_ease_factor = read_ease_factor(state)
 
     if rating == "again":
-        state.stability = max(0.15, state.stability * 0.72)
-        state.difficulty = min(10.0, state.difficulty + 0.25)
-        apply_learning_step(state, LEARNING_STEPS[0], 0, next_status, now)
-        return
+        return build_learning_outcome(next_status, learning_steps[0], 0, current_ease_factor)
 
     if rating == "hard":
-        state.stability = max(0.2, state.stability * 0.98 + 0.03)
-        state.difficulty = min(10.0, state.difficulty + 0.1)
-        hard_step = min(current_step, len(HARD_LEARNING_DELAYS) - 1)
-        apply_learning_step(state, HARD_LEARNING_DELAYS[hard_step], hard_step, next_status, now)
-        return
+        hard_ease_factor = sm2_next_ease_factor(current_ease_factor, SM2_RATING_QUALITY["hard"])
+        return build_learning_outcome(
+            next_status,
+            get_hard_learning_delay(learning_steps, learning_step_index),
+            learning_step_index,
+            hard_ease_factor,
+        )
 
     if rating == "good":
-        if current_step >= len(LEARNING_STEPS) - 1:
-            graduate_to_review(state, "good", now, previous_status)
-            return
-        state.stability = max(0.3, state.stability * 1.04 + 0.05)
-        state.difficulty = max(1.0, state.difficulty - 0.03)
-        next_step = current_step + 1
-        apply_learning_step(state, LEARNING_STEPS[next_step], next_step, next_status, now)
-        return
+        if learning_step_index >= len(learning_steps) - 1:
+            return build_review_outcome(FIRST_REVIEW_INTERVAL_DAYS, 1, current_ease_factor)
+        next_step_index = learning_step_index + 1
+        return build_learning_outcome(next_status, learning_steps[next_step_index], next_step_index, current_ease_factor)
 
-    if previous_status == "new" and current_step == 0:
-        state.stability = max(0.35, state.stability * (1.08 if rating == "easy" else 1.1) + 0.06)
-        state.difficulty = max(1.0, state.difficulty - (0.05 if rating == "easy" else 0.07))
-        final_step = len(LEARNING_STEPS) - 1
-        apply_learning_step(state, LEARNING_STEPS[final_step], final_step, next_status, now)
-        return
-
-    graduate_to_review(state, rating, now, previous_status)
+    easy_ease_factor = sm2_next_ease_factor(current_ease_factor, SM2_RATING_QUALITY["easy"])
+    return build_review_outcome(FIRST_REVIEW_INTERVAL_DAYS, 1, easy_ease_factor)
 
 
-def schedule_review(state: models.UserCardState, rating: str, now: datetime) -> None:
-    if rating == "again":
-        state.status = "relearning"
-        state.learning_step = 0
-        state.lapses += 1
-        state.stability = max(0.2, state.stability * 0.42)
-        state.difficulty = min(10.0, state.difficulty + 0.35)
-        state.scheduled_days = round(LEARNING_STEPS[0].total_seconds() / 86400, 4)
-        state.due_at = now + LEARNING_STEPS[0]
-        return
+def plan_review_outcome(state: models.UserCardState, rating: str) -> SchedulingOutcome:
+    quality = SM2_RATING_QUALITY[rating]
+    current_ease_factor = read_ease_factor(state)
+    review_count = max(state.reps, 0)
+    scheduled_interval_days = max(state.scheduled_days, 0.0)
 
-    scheduled_reference = max(state.scheduled_days, 1.0)
-    recall_pressure = min(1.2, max(0.75, 0.85 + (state.elapsed_days / scheduled_reference) * 0.18))
-    growth_scale = max(0.1, 1.28 - (state.difficulty / 10.0))
-    rating_factor = {"hard": 0.52, "good": 0.84, "easy": 0.98, "perfect": 1.05}[rating]
-    interval_factor = {"hard": 0.88, "good": 1.0, "easy": 1.1, "perfect": 1.15}[rating]
-    difficulty_delta = {"hard": 0.08, "good": -0.03, "easy": -0.07, "perfect": -0.09}[rating]
+    if quality < 3:
+        return SchedulingOutcome(
+            status="relearning",
+            due_in=RELEARNING_STEPS[0],
+            scheduled_interval_days=round(RELEARNING_STEPS[0].total_seconds() / 86400, 4),
+            learning_step_index=0,
+            review_count=0,
+            ease_factor=current_ease_factor,
+            lapse_increment=1,
+        )
 
-    state.status = "review"
-    state.learning_step = 0
-    state.stability = max(0.4, state.stability * (1.0 + growth_scale * rating_factor * recall_pressure) + 0.08)
-    state.difficulty = max(1.0, min(10.0, state.difficulty + difficulty_delta))
-    state.scheduled_days = round(max(1.0, state.stability * interval_factor), 2)
-    state.due_at = now + timedelta(days=state.scheduled_days)
+    next_ease_factor = sm2_next_ease_factor(current_ease_factor, quality)
+    next_interval_days = calculate_review_interval_days(
+        review_count,
+        scheduled_interval_days,
+        next_ease_factor,
+    )
+    next_review_count = 1 if review_count <= 0 else review_count + 1
+    return build_review_outcome(next_interval_days, next_review_count, next_ease_factor)
 
 
-def apply_review_rating(state: models.UserCardState, rating: str, now: datetime) -> tuple[datetime | None, str, float, float]:
+def build_review_audit_snapshot(state: models.UserCardState) -> ReviewAuditSnapshot:
+    return ReviewAuditSnapshot(
+        due_at=ensure_utc(state.due_at),
+        status=state.status,
+        legacy_stability=state.stability,
+        legacy_difficulty=state.difficulty,
+        ease_factor=read_ease_factor(state),
+    )
+
+
+def apply_review_rating(state: models.UserCardState, rating: str, now: datetime) -> ReviewAuditSnapshot:
     validated_rating = validate_rating(rating)
-    previous_due_at = ensure_utc(state.due_at)
-    previous_status = state.status
-    previous_stability = state.stability
-    previous_difficulty = state.difficulty
+    audit_snapshot = build_review_audit_snapshot(state)
     state.elapsed_days = round(get_state_elapsed_days(state, now), 4)
-    state.reps += 1
     state.updated_at = now
     state.last_reviewed_at = now
-    if previous_status in {"new", "learning", "relearning"}:
-        schedule_learning(state, validated_rating, now, previous_status)
+    if audit_snapshot.status in {"new", "learning", "relearning"}:
+        outcome = plan_learning_outcome(state, validated_rating, audit_snapshot.status)
     else:
-        schedule_review(state, validated_rating, now)
-    return previous_due_at, previous_status, previous_stability, previous_difficulty
+        outcome = plan_review_outcome(state, validated_rating)
+    apply_scheduling_outcome(state, outcome, now)
+    return audit_snapshot
 
 
 def select_session_cards(
@@ -468,7 +578,16 @@ def build_study_session(
     )
 
 
-def advance_session(session_id: str, card_id: int, user_id: int, deck_id: int, db: Session) -> models.StudySession | None:
+def advance_session(
+    session_id: str,
+    card_id: int,
+    user_id: int,
+    deck_id: int,
+    db: Session,
+    *,
+    rating: str | None = None,
+    validate_only: bool = False,
+) -> models.StudySession | None:
     session = (
         db.query(models.StudySession)
         .filter(
@@ -483,6 +602,8 @@ def advance_session(session_id: str, card_id: int, user_id: int, deck_id: int, d
 
     card_order = decode_card_order(session)
     if session.current_index >= len(card_order):
+        if validate_only:
+            return None
         session.completed_at = session.completed_at or utcnow()
         session.updated_at = utcnow()
         db.flush()
@@ -491,6 +612,13 @@ def advance_session(session_id: str, card_id: int, user_id: int, deck_id: int, d
     expected_card_id = card_order[session.current_index]
     if expected_card_id != card_id:
         raise HTTPException(status_code=400, detail="Review card does not match the current session order")
+
+    if validate_only:
+        return session
+
+    if session.mode == "interval" and rating in {"again", "hard"}:
+        card_order.append(card_id)
+        session.card_order = encode_card_order(card_order)
 
     session.current_index += 1
     session.updated_at = utcnow()

@@ -146,6 +146,7 @@ class UserCardStateOut(BaseModel):
     status: Literal["new", "learning", "review", "relearning"]
     due_at: datetime
     last_reviewed_at: datetime | None = None
+    ease_factor: float
     stability: float
     difficulty: float
     scheduled_days: float
@@ -202,7 +203,7 @@ class DeckAccessToken(BaseModel):
 
 
 class CardReview(BaseModel):
-    rating: Literal["again", "hard", "good", "easy", "perfect"]
+    rating: Literal["again", "hard", "good", "easy"]
 
 
 class StudySession(BaseModel):
@@ -223,7 +224,7 @@ class StudySession(BaseModel):
 class ReviewSubmit(BaseModel):
     deck_id: int
     card_id: int
-    rating: Literal["again", "hard", "good", "easy", "perfect"]
+    rating: Literal["again", "hard", "good", "easy"]
     session_id: str
     response_time_ms: int | None = Field(default=None, ge=0)
 

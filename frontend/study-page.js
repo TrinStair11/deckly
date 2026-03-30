@@ -176,6 +176,7 @@
       primaryCardSide,
       secondaryCardSide,
       currentSideLabel,
+      buildIntervalRatingPreviews,
       loadIntervalSession,
       startCurrentSessionWithSettings,
       syncFlipPresentation,
@@ -244,6 +245,7 @@
         primaryCardSide,
         secondaryCardSide,
         currentSideLabel,
+        buildIntervalRatingPreviews,
         canUndoSessionAction,
         shuffle,
         syncFlipPresentation,
@@ -314,6 +316,12 @@
       loginUrl.searchParams.set("auth", "login");
       loginUrl.searchParams.set("next", `${nextUrl.pathname}${nextUrl.search}`);
       return loginUrl.toString();
+    }
+
+    function openWordList(event) {
+      if (event) event.preventDefault();
+      if (!deckId) return;
+      window.location.href = `/deck.html?id=${deckId}&view=interval`;
     }
 
     async function saveDeckToLibrary() {
@@ -434,7 +442,8 @@
       }
     });
 
-    openEditorMenuBtn.addEventListener('click', () => { window.location.href = `/deck.html?id=${deckId}`; });
+    editDeckBtn.addEventListener('click', openWordList);
+    openEditorMenuBtn.addEventListener('click', openWordList);
     cloneDeckBtn.addEventListener('click', async () => {
       if (!state.deck || state.ownerAccess) return;
       if (!state.me) {
@@ -541,8 +550,7 @@
           '1': 'again',
           '2': 'hard',
           '3': 'good',
-          '4': 'easy',
-          '5': 'perfect'
+          '4': 'easy'
         };
         const rating = ratingHotkeys[event.key];
         if (rating) {

@@ -89,8 +89,11 @@ class UserCardState(Base):
     status = Column(String, default="new", nullable=False)
     due_at = Column(DateTime(timezone=True), default=now_utc, nullable=False)
     last_reviewed_at = Column(DateTime(timezone=True), nullable=True)
-    stability = Column(Float, default=0.4, nullable=False)
-    difficulty = Column(Float, default=5.0, nullable=False)
+    # Legacy compatibility snapshot. Scheduler logic does not treat this as FSRS stability.
+    stability = Column(Float, default=0.0, nullable=False)
+    # Legacy compatibility mirror for old clients. Scheduler reads/writes `ease_factor`.
+    difficulty = Column(Float, default=2.5, nullable=False)
+    ease_factor = Column(Float, default=2.5, nullable=False)
     scheduled_days = Column(Float, default=0.0, nullable=False)
     elapsed_days = Column(Float, default=0.0, nullable=False)
     reps = Column(Integer, default=0, nullable=False)
@@ -122,6 +125,8 @@ class ReviewLog(Base):
     new_stability = Column(Float, nullable=False)
     previous_difficulty = Column(Float, nullable=False)
     new_difficulty = Column(Float, nullable=False)
+    previous_ease_factor = Column(Float, default=2.5, nullable=False)
+    new_ease_factor = Column(Float, default=2.5, nullable=False)
     response_time_ms = Column(Integer, nullable=True)
     created_at = Column(DateTime(timezone=True), default=now_utc, nullable=False)
 

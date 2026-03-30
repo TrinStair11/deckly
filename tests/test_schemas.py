@@ -55,6 +55,7 @@ def test_card_out_schema_wraps_optional_state():
             status="learning",
             due_at=created_at,
             last_reviewed_at=None,
+            ease_factor=2.5,
             stability=0.4,
             difficulty=5.0,
             scheduled_days=0.0,
@@ -66,6 +67,7 @@ def test_card_out_schema_wraps_optional_state():
     )
 
     assert payload.state.status == "learning"
+    assert payload.state.ease_factor == 2.5
     assert payload.deck_id == 2
 
 
@@ -115,6 +117,14 @@ def test_blank_strings_are_rejected_for_required_schema_fields():
 
     with pytest.raises(ValueError):
         schemas.QuizCreate(title="   ")
+
+
+def test_review_rating_schema_rejects_removed_perfect_grade():
+    with pytest.raises(ValueError):
+        schemas.CardReview(rating="perfect")
+
+    with pytest.raises(ValueError):
+        schemas.ReviewSubmit(deck_id=1, card_id=1, rating="perfect", session_id="session")
 
 
 def test_account_settings_schemas_capture_payload():

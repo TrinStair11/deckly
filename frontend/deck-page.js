@@ -16,10 +16,12 @@
 
   const params = new URLSearchParams(window.location.search);
   const deckId = params.get("id");
+  const initialDeckView = params.get("view") === "interval" ? "schedule" : "editor";
 
   const state = {
     me: null,
     deckId,
+    activeDeckTab: initialDeckView,
     deckOwner: null,
     ownerAccess: !deckId,
     savedInLibrary: false,
@@ -82,6 +84,7 @@
     deckOwnerLabel: document.getElementById("deckOwnerLabel"),
     readOnlyBadge: document.getElementById("readOnlyBadge"),
     savedDeckBadge: document.getElementById("savedDeckBadge"),
+    deckSettingsSection: document.getElementById("deckSettingsSection"),
     deckTitleInput: document.getElementById("deckTitleInput"),
     deckDescriptionInput: document.getElementById("deckDescriptionInput"),
     deckVisibilityInput: document.getElementById("deckVisibilityInput"),
@@ -97,6 +100,12 @@
     footerAddCardBtn: document.getElementById("footerAddCardBtn"),
     cardsCountChip: document.getElementById("cardsCountChip"),
     cardsList: document.getElementById("cardsList"),
+    editorViewTab: document.getElementById("editorViewTab"),
+    intervalViewTab: document.getElementById("intervalViewTab"),
+    editorDeckView: document.getElementById("editorDeckView"),
+    intervalDeckView: document.getElementById("intervalDeckView"),
+    intervalSummaryGrid: document.getElementById("intervalSummaryGrid"),
+    intervalWordsList: document.getElementById("intervalWordsList"),
     saveBtn: document.getElementById("saveBtn"),
     bottomAddCardBtn: document.getElementById("bottomAddCardBtn"),
     bottomSaveBtn: document.getElementById("bottomSaveBtn"),
@@ -152,11 +161,193 @@
       front: card.front || "",
       back: card.back || "",
       image_url: card.image_url || "",
+      state: card.state || null,
     };
+  }
+
+  function formatIntervalAmount(daysValue) {
+    const days = Number(daysValue || 0);
+    if (!Number.isFinite(days) || days <= 0) return "not scheduled";
+
+    const totalMinutes = Math.max(1, Math.round(days * 24 * 60));
+    if (totalMinutes < 60) return `${totalMinutes}m`;
+
+    const totalHours = Math.round(totalMinutes / 60);
+    if (totalHours < 48) return `${totalHours}h`;
+
+    const totalDays = Math.round(days * 10) / 10;
+    return Number.isInteger(totalDays) ? `${totalDays}d` : `${totalDays.toFixed(1)}d`;
+  }
+
+  function getCardIntervalStatusMeta(card) {
+    const reviewState = card?.state || null;
+    if (!reviewState) {
+      return {
+        label: "Untracked",
+        className: "study-status-untracked",
+        intervalLabel: "Interval not started",
+        nextLabel: "Will appear after the first review",
+      };
+    }
+
+    const status = String(reviewState.status || "new").toLowerCase();
+    const statusMap = {
+      new: { label: "New", className: "study-status-new" },
+      learning: { label: "Learning", className: "study-status-learning" },
+      review: { label: "Review", className: "study-status-review" },
+      relearning: { label: "Relearning", className: "study-status-relearning" },
+    };
+    const meta = statusMap[status] || statusMap.new;
+    const dueAtMs = reviewState.due_at ? new Date(reviewState.due_at).getTime() : Number.NaN;
+    const diffMs = Number.isFinite(dueAtMs) ? dueAtMs - Date.now() : Number.NaN;
+
+    let nextLabel = "Schedule unavailable";
+    if (status === "new") {
+      nextLabel = "Will appear after the first review";
+    } else if (Number.isFinite(diffMs)) {
+      if (Math.abs(diffMs) < 60_000) nextLabel = "Due now";
+      else if (diffMs < 0) nextLabel = `Overdue by ${formatIntervalAmount(Math.abs(diffMs) / 86_400_000)}`;
+      else nextLabel = `Returns in ${formatIntervalAmount(diffMs / 86_400_000)}`;
+    }
+
+    return {
+      label: meta.label,
+      className: meta.className,
+      intervalLabel: `Interval ${formatIntervalAmount(reviewState.scheduled_days)}`,
+      nextLabel,
+    };
+  }
+
+  function formatDateTime(dateValue) {
+    if (!dateValue) return "Never";
+    const date = new Date(dateValue);
+    if (Number.isNaN(date.getTime())) return "Unknown";
+    return date.toLocaleString([], {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+
+  function buildIntervalSummary(cards) {
+    return cards.reduce((summary, card) => {
+      const reviewState = card?.state || null;
+      summary.total += 1;
+
+      if (!reviewState || reviewState.status === "new") {
+        summary.newCards += 1;
+        return summary;
+      }
+
+      if (reviewState.status === "review") {
+        summary.reviewCards += 1;
+      }
+
+      if (reviewState.status === "learning" || reviewState.status === "relearning") {
+        summary.learningCards += 1;
+      }
+
+      const dueAtMs = reviewState.due_at ? new Date(reviewState.due_at).getTime() : Number.NaN;
+      if (Number.isFinite(dueAtMs) && dueAtMs <= Date.now()) {
+        summary.dueNow += 1;
+      }
+
+      return summary;
+    }, { total: 0, dueNow: 0, learningCards: 0, reviewCards: 0, newCards: 0 });
+  }
+
+  function getVisibleIntervalCards() {
+    return (state.draft.cards || []).filter((card) => card.id || card.front.trim() || card.back.trim() || card.image_url);
+  }
+
+  function renderDeckViewTabs() {
+    const editorActive = state.activeDeckTab !== "schedule";
+    state.activeDeckTab = editorActive ? "editor" : "schedule";
+    const url = new URL(window.location.href);
+    if (state.activeDeckTab === "schedule") url.searchParams.set("view", "interval");
+    else url.searchParams.delete("view");
+    window.history.replaceState({}, "", url.toString());
+    dom.editorViewTab.classList.toggle("active", editorActive);
+    dom.intervalViewTab.classList.toggle("active", !editorActive);
+    dom.editorDeckView.classList.toggle("d-none", !editorActive);
+    dom.intervalDeckView.classList.toggle("d-none", editorActive);
+  }
+
+  function renderIntervalWordsList() {
+    const cards = getVisibleIntervalCards();
+    const summary = buildIntervalSummary(cards);
+
+    dom.intervalSummaryGrid.innerHTML = [
+      { label: "Words", value: summary.total },
+      { label: "Due Now", value: summary.dueNow },
+      { label: "Learning", value: summary.learningCards },
+      { label: "In Review", value: summary.reviewCards },
+    ].map((item) => `
+      <div class="interval-summary-chip">
+        <div class="interval-summary-label">${escapeHtml(item.label)}</div>
+        <div class="interval-summary-value">${escapeHtml(String(item.value))}</div>
+      </div>
+    `).join("");
+
+    if (!cards.length) {
+      dom.intervalWordsList.innerHTML = '<div class="interval-empty-state">No words yet. Add cards in the editor first.</div>';
+      return;
+    }
+
+    dom.intervalWordsList.innerHTML = `
+      <table class="interval-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Word</th>
+            <th>Status</th>
+            <th>Interval</th>
+            <th>Next Appearance</th>
+            <th>Last Review</th>
+            <th>EF</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${cards.map((card, index) => {
+            const statusMeta = getCardIntervalStatusMeta(card);
+            const reviewState = card?.state || null;
+            return `
+              <tr>
+                <td>${index + 1}</td>
+                <td>
+                  <div class="interval-word-main">${escapeHtml(card.front || "Untitled")}</div>
+                  <div class="interval-word-sub">${escapeHtml(card.back || "No definition yet")}</div>
+                </td>
+                <td><span class="study-status-pill ${statusMeta.className}">${escapeHtml(statusMeta.label)}</span></td>
+                <td>${escapeHtml(statusMeta.intervalLabel)}</td>
+                <td>
+                  <div class="interval-next-main">${escapeHtml(statusMeta.nextLabel)}</div>
+                  <div class="interval-next-sub">${escapeHtml(formatDateTime(reviewState?.due_at))}</div>
+                </td>
+                <td>${escapeHtml(formatDateTime(reviewState?.last_reviewed_at))}</td>
+                <td>${reviewState?.ease_factor ? escapeHtml(Number(reviewState.ease_factor).toFixed(2)) : "—"}</td>
+              </tr>
+            `;
+          }).join("")}
+        </tbody>
+      </table>
+    `;
   }
 
   function canManageDeck() {
     return !state.deckId || state.ownerAccess;
+  }
+
+  function isScheduleViewActive() {
+    return state.activeDeckTab === "schedule";
+  }
+
+  function currentExitUrl() {
+    if (isScheduleViewActive() && state.deckId) {
+      return `/study.html?deck=${state.deckId}`;
+    }
+    return "/";
   }
 
   function ownerLabel() {
@@ -219,16 +410,30 @@
 
     const isEditMode = Boolean(state.deckId);
     const canManage = canManageDeck();
+    const scheduleView = isScheduleViewActive();
 
-    dom.pageTitle.textContent = !isEditMode ? "Create Deck" : canManage ? "Edit Deck" : "View Deck";
-    dom.pageSubtitle.textContent = !isEditMode
-      ? "Create deck details and flashcards in one consistent Bootstrap workspace."
-      : canManage
-        ? "Update deck details and flashcards in one consistent Bootstrap workspace."
-        : "This deck is available in read-only mode because you are not the owner.";
+    document.title = scheduleView ? "TrinDeckly Interval Status" : "TrinDeckly Deck Editor";
+    dom.pageTitle.textContent = scheduleView
+      ? "Interval Status"
+      : !isEditMode
+        ? "Create Deck"
+        : canManage
+          ? "Edit Deck"
+          : "View Deck";
+    dom.pageSubtitle.textContent = scheduleView
+      ? "Every word in this deck, its spaced repetition state, and when it appears again."
+      : !isEditMode
+        ? "Create deck details and flashcards in one consistent Bootstrap workspace."
+        : canManage
+          ? "Update deck details and flashcards in one consistent Bootstrap workspace."
+          : "This deck is available in read-only mode because you are not the owner.";
     dom.deckOwnerLabel.textContent = state.deckOwner ? `Created by ${ownerLabel()}` : "Created by you";
     dom.readOnlyBadge.classList.toggle("d-none", canManage || !isEditMode);
     dom.savedDeckBadge.classList.toggle("d-none", !state.savedInLibrary || canManage);
+    dom.backLink.href = currentExitUrl();
+    dom.backLink.innerHTML = isScheduleViewActive() && state.deckId
+      ? '<i class="bi bi-arrow-left me-2"></i>Back to Study'
+      : '<i class="bi bi-arrow-left me-2"></i>Back to Home';
 
     dom.deckTitleInput.value = state.draft.name;
     dom.deckTitleInput.disabled = !canManage;
@@ -249,21 +454,30 @@
     dom.shareLinkInput.value = currentShareLink() || "Save the deck first to generate a shareable link.";
     dom.copyShareLinkBtn.disabled = !state.deckId;
     dom.cardsCountChip.textContent = `${state.draft.cards.length} cards`;
+    dom.deckSettingsSection.classList.toggle("d-none", scheduleView);
     dom.saveBtn.innerHTML = isEditMode
       ? '<i class="bi bi-floppy me-2"></i>Save Changes'
       : '<i class="bi bi-plus-circle me-2"></i>Create Deck';
-    dom.saveBtn.classList.toggle("d-none", !canManage);
-    dom.bottomSaveBtn.classList.toggle("d-none", !canManage);
-    dom.addCardBtn.classList.toggle("d-none", !canManage);
-    dom.footerAddCardBtn.classList.toggle("d-none", !canManage);
-    dom.bottomAddCardBtn.classList.toggle("d-none", !canManage);
+    dom.saveBtn.classList.toggle("d-none", !canManage || scheduleView);
+    dom.bottomSaveBtn.classList.toggle("d-none", !canManage || scheduleView);
+    dom.addCardBtn.classList.toggle("d-none", !canManage || scheduleView);
+    dom.footerAddCardBtn.classList.toggle("d-none", !canManage || scheduleView);
+    dom.bottomAddCardBtn.classList.toggle("d-none", !canManage || scheduleView);
+    renderDeckViewTabs();
+    renderIntervalWordsList();
+
+    if (scheduleView) {
+      return;
+    }
 
     if (!state.draft.cards.length) {
       dom.cardsList.innerHTML = '<div class="alert alert-light border shadow-sm rounded-4 mb-0">No cards yet. Start by adding the first card block.</div>';
       return;
     }
 
-    dom.cardsList.innerHTML = state.draft.cards.map((card, index) => `
+    dom.cardsList.innerHTML = state.draft.cards.map((card, index) => {
+      const statusMeta = getCardIntervalStatusMeta(card);
+      return `
       <article class="card border-0 shadow-sm rounded-4 editor-card" draggable="${canManage ? "true" : "false"}" data-card-index="${index}">
         <div class="card-body editor-card-body">
           <div class="compact-card-head">
@@ -277,6 +491,11 @@
               <button class="btn card-action-btn" type="button" data-duplicate-card="${index}" title="Duplicate"><i class="bi bi-copy"></i></button>
               <button class="btn card-action-btn action-danger" type="button" data-delete-card="${index}" title="Delete"><i class="bi bi-trash3"></i></button>
             </div>
+          </div>
+          <div class="compact-card-meta">
+            <span class="study-status-pill ${statusMeta.className}">${escapeHtml(statusMeta.label)}</span>
+            <span class="study-meta-pill"><i class="bi bi-arrow-repeat"></i>${escapeHtml(statusMeta.intervalLabel)}</span>
+            <span class="study-meta-pill"><i class="bi bi-alarm"></i>${escapeHtml(statusMeta.nextLabel)}</span>
           </div>
           <div class="compact-card-grid">
             <div>
@@ -299,7 +518,8 @@
           </div>
         </div>
       </article>
-    `).join("");
+    `;
+    }).join("");
   }
 
   async function loadProfile() {
@@ -642,7 +862,7 @@
 
   function leaveEditor() {
     if (!confirmLeave()) return;
-    navigateAway("/");
+    navigateAway(currentExitUrl());
   }
 
   function bindEvents() {
@@ -651,6 +871,14 @@
     dom.bottomAddCardBtn.addEventListener("click", () => addCard());
     dom.saveBtn.addEventListener("click", saveDeck);
     dom.bottomSaveBtn.addEventListener("click", saveDeck);
+    dom.editorViewTab.addEventListener("click", () => {
+      state.activeDeckTab = "editor";
+      renderEditor();
+    });
+    dom.intervalViewTab.addEventListener("click", () => {
+      state.activeDeckTab = "schedule";
+      renderEditor();
+    });
     dom.deckTitleInput.addEventListener("input", (event) => {
       state.draft.name = event.target.value;
       markDirty();

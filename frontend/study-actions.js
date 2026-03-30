@@ -10,6 +10,40 @@ window.studyActions = (() => {
       pushSessionUndo,
     } = helpers;
 
+    function cloneCardWithState(card, nextState = null) {
+      return {
+        ...card,
+        state: nextState ? { ...nextState } : (card?.state ? { ...card.state } : null),
+      };
+    }
+
+    function syncCardState(cardId, nextState) {
+      if (!nextState) return;
+      const applyState = (cards = []) => cards.map((item) => (
+        item.id === cardId ? { ...item, state: { ...nextState } } : item
+      ));
+      state.sessionCards = applyState(state.sessionCards);
+      if (state.deck?.cards) state.deck.cards = applyState(state.deck.cards);
+      if (state.dueSession?.cards) state.dueSession.cards = applyState(state.dueSession.cards);
+    }
+
+    function appendIntervalRepeat(cardId, nextState) {
+      const sourceCard = state.sessionCards.find((item) => item.id === cardId)
+        || state.deck?.cards?.find((item) => item.id === cardId);
+      if (!sourceCard) return;
+      state.sessionCards = [...state.sessionCards, cloneCardWithState(sourceCard, nextState)];
+      if (state.dueSession) {
+        state.dueSession.cards = [...state.sessionCards];
+        state.dueSession.card_order = [...(state.dueSession.card_order || []), cardId];
+      }
+    }
+
+    function syncIntervalSessionState(nextIndex) {
+      if (!state.dueSession) return;
+      state.dueSession.current_index = nextIndex;
+      state.dueSession.cards = [...state.sessionCards];
+    }
+
     function renderAll() {
       return actions.renderAll?.();
     }
@@ -145,8 +179,14 @@ window.studyActions = (() => {
         if (result?.progress) {
           state.deck.progress = result.progress;
         }
+        if (result?.state) {
+          syncCardState(card.id, result.state);
+        }
         if (typeof result?.session_current_index === "number") {
           nextIndex = result.session_current_index;
+        }
+        if ((rating === "again" || rating === "hard") && typeof result?.session_current_index === "number") {
+          appendIntervalRepeat(card.id, result?.state || card.state);
         }
       }
       if (rating === "again" || rating === "hard") {
@@ -161,6 +201,7 @@ window.studyActions = (() => {
       } else {
         state.currentIndex = state.sessionCards.length;
       }
+      syncIntervalSessionState(state.currentIndex);
       renderAll();
     }
 

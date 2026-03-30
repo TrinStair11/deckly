@@ -6,6 +6,8 @@ window.studyControls = (() => {
       isSessionActive,
       canUndoSessionAction,
       primaryCardSide,
+      currentCard,
+      buildIntervalRatingPreviews,
       captureSessionSnapshot,
       pushSessionUndo,
     } = helpers;
@@ -152,7 +154,7 @@ window.studyControls = (() => {
                   <ul class="dropdown-menu dropdown-menu-end rounded-4 p-2">
                     <li><button class="dropdown-item rounded-3 ${canUndoSessionAction() ? "" : "disabled"}" type="button" id="focusUndoAction" ${canUndoSessionAction() ? "" : "disabled"}>Undo last answer</button></li>
                     <li><button class="dropdown-item rounded-3" type="button" id="focusSettingsAction">Study settings</button></li>
-                    ${state.ownerAccess ? `<li><a class="dropdown-item rounded-3" href="/deck.html?id=${state.deck.id}">Open deck editor</a></li>` : ""}
+                    <li><a class="dropdown-item rounded-3" href="/deck.html?id=${state.deck.id}&view=interval">Open word list</a></li>
                     <li><button class="dropdown-item rounded-3" type="button" id="focusExitAction">Exit fullscreen</button></li>
                   </ul>
                 </div>
@@ -204,7 +206,7 @@ window.studyControls = (() => {
                     <ul class="dropdown-menu dropdown-menu-end rounded-4 p-2">
                       <li><button class="dropdown-item rounded-3" type="button" id="flipReviewBtn">Flip card</button></li>
                       <li><button class="dropdown-item rounded-3" type="button" id="reviewSettingsBtn">Study settings</button></li>
-                      ${state.ownerAccess ? `<li><a class="dropdown-item rounded-3" href="/deck.html?id=${state.deck.id}">Open deck editor</a></li>` : ""}
+                      <li><a class="dropdown-item rounded-3" href="/deck.html?id=${state.deck.id}&view=interval">Open word list</a></li>
                     </ul>
                   </div>
                 </div>
@@ -229,6 +231,7 @@ window.studyControls = (() => {
       }
 
       if (state.mode === "interval") {
+        const ratingPreviews = buildIntervalRatingPreviews(currentCard());
         controlBar.innerHTML = !state.revealed ? `
           <div class="card-body py-2 px-3 d-flex flex-column flex-xl-row justify-content-between align-items-center gap-2">
             <div>
@@ -246,16 +249,27 @@ window.studyControls = (() => {
             <div class="d-flex flex-column flex-xl-row justify-content-between align-items-xl-center gap-2">
               <div>
                 <div class="small text-secondary text-uppercase">Interval review</div>
-                <div class="fw-semibold">Rate quality to schedule next review.</div>
+                <div class="fw-semibold">Rate quality to schedule the next appearance.</div>
               </div>
               <div class="d-flex align-items-center utility-cluster">${renderFocusToggleButton()}${renderSettingsShell()}</div>
             </div>
             <div class="interval-rating-group mx-auto">
-              <button class="btn btn-danger response-btn interval-rating-btn" type="button" data-rating="again">1 Again</button>
-              <button class="btn btn-warning response-btn interval-rating-btn" type="button" data-rating="hard">2 Hard</button>
-              <button class="btn btn-secondary response-btn interval-rating-btn" type="button" data-rating="good">3 Good</button>
-              <button class="btn btn-success response-btn interval-rating-btn" type="button" data-rating="easy">4 Easy</button>
-              <button class="btn btn-primary response-btn interval-rating-btn" type="button" data-rating="perfect">5 Perfect</button>
+              <button class="btn btn-danger response-btn interval-rating-btn" type="button" data-rating="again">
+                <span class="interval-rating-main">1 Again</span>
+                <span class="interval-rating-sub">${ratingPreviews.again}</span>
+              </button>
+              <button class="btn btn-warning response-btn interval-rating-btn" type="button" data-rating="hard">
+                <span class="interval-rating-main">2 Hard</span>
+                <span class="interval-rating-sub">${ratingPreviews.hard}</span>
+              </button>
+              <button class="btn btn-secondary response-btn interval-rating-btn" type="button" data-rating="good">
+                <span class="interval-rating-main">3 Good</span>
+                <span class="interval-rating-sub">${ratingPreviews.good}</span>
+              </button>
+              <button class="btn btn-success response-btn interval-rating-btn" type="button" data-rating="easy">
+                <span class="interval-rating-main">4 Easy</span>
+                <span class="interval-rating-sub">${ratingPreviews.easy}</span>
+              </button>
             </div>
           </div>
         `;
