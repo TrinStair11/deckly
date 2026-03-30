@@ -6,6 +6,7 @@ Deckly is a full-stack learning app built around two workflows:
 - standalone quizzes with authored questions, attempts, scoring, results, and review
 
 The backend is a single FastAPI app that serves the API, uploaded media, and the bundled frontend.
+Runtime uses PostgreSQL; temporary SQLite databases are still used in tests for speed.
 
 ## What The Project Does
 
@@ -42,7 +43,7 @@ The backend is a single FastAPI app that serves the API, uploaded media, and the
 - Backend: FastAPI
 - ORM: SQLAlchemy 2.x
 - Validation: Pydantic 1.x
-- Database: SQLite
+- Database: PostgreSQL
 - Auth: `python-jose`, `bcrypt`
 - HTTP client: `httpx`
 - Env loading: `python-dotenv`
@@ -65,7 +66,7 @@ backend/
   time_utils.py          UTC-safe datetime helpers
 
 frontend/
-  *.html / *.js          Static app pages and client logic
+  *.html / *.js         Static app pages and client logic
 
 tests/
   test_auth.py
@@ -121,7 +122,17 @@ python3 -c "import secrets; print(secrets.token_hex(32))"
 
 Paste the generated value into `SECRET_KEY` inside `.env`.
 
-### 4. Run the app
+### 4. Start PostgreSQL
+
+Make sure PostgreSQL is running and the database from `.env` exists.
+
+Example for a local instance:
+
+```bash
+createdb deckly
+```
+
+### 5. Run the app
 
 ```bash
 uvicorn backend.main:app --reload
@@ -144,7 +155,10 @@ SECRET_KEY=replace-with-a-random-secret
 Default local template:
 
 ```env
-DATABASE_URL=sqlite:///./deckly.db
+DATABASE_URL=postgresql+psycopg://deckly:deckly@127.0.0.1:5432/deckly
+POSTGRES_DB=deckly
+POSTGRES_USER=deckly
+POSTGRES_PASSWORD=deckly
 CORS_ALLOW_ORIGINS=http://127.0.0.1:8000,http://localhost:8000
 OPENVERSE_API_URL=https://api.openverse.org/v1/images/
 MAX_IMAGE_DOWNLOAD_BYTES=5242880
@@ -161,7 +175,7 @@ Notes:
 
 - `SECRET_KEY` has no fallback. Without it the app must not start.
 - `.env` is loaded automatically on import.
-- `DATABASE_URL` defaults to `deckly.db` in the repository root.
+- runtime defaults to PostgreSQL on `127.0.0.1:5432`
 - CORS defaults to localhost only.
 - image limits are in bytes
 - rate limiting is in-memory, so it is process-local
@@ -176,7 +190,7 @@ Coverage is enforced by `pytest.ini`.
 
 Current backend test status after the latest hardening pass:
 
-- `77 passed`
+- `91 passed`
 - coverage above `85%`
 
 ## Auth Model
@@ -268,7 +282,6 @@ Private deck sharing is separate from account auth:
 
 Runtime artifacts created locally:
 
-- `deckly.db`
 - `media/`
 - `.env`
 - pytest and coverage caches
@@ -278,7 +291,7 @@ These files should not be committed.
 ## Current Limitations
 
 - database migrations are still lightweight compatibility updates, not full Alembic migrations
-- SQLite is fine for local/dev usage but not a serious production database
+- PostgreSQL is now the main runtime database, but migrations are still lightweight bootstrap logic
 - rate limiting is local-memory only
 - the frontend is static and intentionally simple
 

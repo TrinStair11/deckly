@@ -9,9 +9,22 @@ from .config import ROOT_DIR, load_local_env
 load_local_env()
 
 DEFAULT_DATABASE_PATH = ROOT_DIR / "deckly.db"
-DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{DEFAULT_DATABASE_PATH}")
+DEFAULT_DATABASE_URL = "postgresql+psycopg://deckly:deckly@127.0.0.1:5432/deckly"
+DATABASE_URL = os.getenv("DATABASE_URL", DEFAULT_DATABASE_URL).strip() or DEFAULT_DATABASE_URL
 
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+
+def is_sqlite_url(database_url: str) -> bool:
+    return database_url.startswith("sqlite:")
+
+
+def build_engine(database_url: str):
+    engine_kwargs = {"pool_pre_ping": True}
+    if is_sqlite_url(database_url):
+        engine_kwargs["connect_args"] = {"check_same_thread": False}
+    return create_engine(database_url, **engine_kwargs)
+
+
+engine = build_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
