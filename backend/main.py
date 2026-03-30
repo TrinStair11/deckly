@@ -17,6 +17,7 @@ from uuid import uuid4
 import httpx
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
@@ -989,6 +990,32 @@ def upload_image(payload: schemas.ImageUploadRequest, current_user=Depends(get_c
 
 
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
+PAGES_DIR = FRONTEND_DIR / "pages"
+
+
+def serve_page(*parts: str) -> FileResponse:
+    return FileResponse(PAGES_DIR.joinpath(*parts))
+
+
+@app.get("/", include_in_schema=False)
+@app.get("/index.html", include_in_schema=False)
+def home_page():
+    return serve_page("home", "index.html")
+
+
+@app.get("/deck.html", include_in_schema=False)
+def deck_page():
+    return serve_page("deck", "index.html")
+
+
+@app.get("/study.html", include_in_schema=False)
+def study_page():
+    return serve_page("study", "index.html")
+
+
+@app.get("/settings.html", include_in_schema=False)
+def settings_page():
+    return serve_page("settings", "index.html")
 
 app.mount("/media", StaticFiles(directory=MEDIA_DIR), name="media")
-app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
+app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=False), name="frontend")

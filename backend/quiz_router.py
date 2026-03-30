@@ -32,6 +32,11 @@ from .spaced_repetition import utcnow
 router = APIRouter()
 
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
+QUIZ_PAGES_DIR = FRONTEND_DIR / "pages" / "quiz"
+
+
+def serve_quiz_page(filename: str) -> FileResponse:
+    return FileResponse(QUIZ_PAGES_DIR / filename)
 
 
 @router.post("/quizzes", response_model=schemas.QuizEditorOut, status_code=status.HTTP_201_CREATED)
@@ -223,34 +228,34 @@ def get_quiz_attempt_results(attempt_id: int, current_user=Depends(get_current_u
 
 @router.get("/quiz", include_in_schema=False)
 def quiz_library_page():
-    return FileResponse(FRONTEND_DIR / "quiz.html")
+    return serve_quiz_page("library.html")
 
 
 @router.get("/quiz/create", include_in_schema=False)
 def quiz_create_page():
-    return FileResponse(FRONTEND_DIR / "quiz-editor.html")
+    return serve_quiz_page("editor.html")
 
 
 @router.get("/quiz/{quiz_id}/edit", include_in_schema=False)
 def quiz_edit_page(quiz_id: int):
-    return FileResponse(FRONTEND_DIR / "quiz-editor.html")
+    return serve_quiz_page("editor.html")
 
 
 @router.get("/quiz/{quiz_id}/start", include_in_schema=False)
 def quiz_session_page(quiz_id: int):
-    return FileResponse(FRONTEND_DIR / "quiz-session.html")
+    return serve_quiz_page("session.html")
 
 
 @router.get("/quiz/{quiz_id}/results/{attempt_id}/review", include_in_schema=False)
 def quiz_review_page(quiz_id: int, attempt_id: int):
-    return FileResponse(FRONTEND_DIR / "quiz-review.html")
+    return serve_quiz_page("review.html")
 
 
 @router.get("/quiz/{quiz_id}/results/{attempt_id}", include_in_schema=False)
 def quiz_results_page(quiz_id: int, attempt_id: int):
-    return FileResponse(FRONTEND_DIR / "quiz-results.html")
+    return serve_quiz_page("results.html")
 
 
 @router.get("/quiz/{quiz_id}", include_in_schema=False)
 def quiz_detail_page(quiz_id: int):
-    return FileResponse(FRONTEND_DIR / "quiz-detail.html")
+    return serve_quiz_page("detail.html")
