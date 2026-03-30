@@ -1,0 +1,36 @@
+services:
+  db:
+    image: postgres:16
+    container_name: deckly-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-deckly}
+      POSTGRES_USER: ${POSTGRES_USER:-deckly}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-deckly}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: deckly-app
+    restart: unless-stopped
+    depends_on:
+      - db
+    env_file:
+      - .env
+    environment:
+      APP_HOST: 0.0.0.0
+      APP_PORT: 8000
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-deckly}:${POSTGRES_PASSWORD:-deckly}@db:5432/${POSTGRES_DB:-deckly}
+    ports:
+      - "8000:8000"
+    volumes:
+      - deckly_media:/app/media
+
+volumes:
+  postgres_data:
+  deckly_media:

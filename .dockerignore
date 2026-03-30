@@ -1,0 +1,15 @@
+.git
+.gitignore
+.codex
+.coverage
+.env
+.venv
+venv
+__pycache__
+*.py[cod]
+.pytest_cache
+htmlcov
+tests
+deckly.db
+media/*
+!media/.gitkeep

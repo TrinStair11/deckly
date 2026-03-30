@@ -11,6 +11,7 @@ htmlcov/
 .venv/
 venv/
 .env
+.codex
 
 # Local runtime data
 deckly.db

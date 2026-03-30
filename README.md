@@ -66,7 +66,14 @@ backend/
   time_utils.py          UTC-safe datetime helpers
 
 frontend/
-  *.html / *.js         Static app pages and client logic
+  pages/                Page entrypoints and page-specific assets
+  shared/               Shared frontend scripts
+
+docker/
+  entrypoint.sh         Container startup wrapper
+
+Dockerfile              App image build
+compose.yaml            Local container orchestration
 
 tests/
   test_auth.py
@@ -144,6 +151,39 @@ Open:
 - API docs: `http://127.0.0.1:8000/docs`
 - Quiz UI: `http://127.0.0.1:8000/quiz`
 
+## Docker
+
+### 1. Prepare `.env`
+
+```bash
+cp .env.example .env
+```
+
+Set a real `SECRET_KEY` in `.env`.
+
+### 2. Build and run
+
+```bash
+docker compose up --build
+```
+
+Open:
+
+- App UI: `http://127.0.0.1:8000/`
+- API docs: `http://127.0.0.1:8000/docs`
+
+### 3. Stop
+
+```bash
+docker compose down
+```
+
+If you also want to remove persisted PostgreSQL and uploaded media volumes:
+
+```bash
+docker compose down -v
+```
+
 ## Environment Variables
 
 Minimal required config:
@@ -156,6 +196,8 @@ Default local template:
 
 ```env
 DATABASE_URL=postgresql+psycopg://deckly:deckly@127.0.0.1:5432/deckly
+APP_HOST=127.0.0.1
+APP_PORT=8000
 POSTGRES_DB=deckly
 POSTGRES_USER=deckly
 POSTGRES_PASSWORD=deckly
@@ -176,9 +218,16 @@ Notes:
 - `SECRET_KEY` has no fallback. Without it the app must not start.
 - `.env` is loaded automatically on import.
 - runtime defaults to PostgreSQL on `127.0.0.1:5432`
+- `APP_HOST` and `APP_PORT` are used by the Docker entrypoint and can also be reused for local shell scripts.
 - CORS defaults to localhost only.
 - image limits are in bytes
 - rate limiting is in-memory, so it is process-local
+
+Docker-specific overrides in `compose.yaml`:
+
+- `DATABASE_URL=postgresql+psycopg://...@db:5432/...`
+- PostgreSQL data is persisted in the `postgres_data` named volume
+- named volume for uploads at `/app/media`
 
 ## Running Tests
 
