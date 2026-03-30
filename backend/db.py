@@ -1,27 +1,18 @@
 import os
-from pathlib import Path
 
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-from .config import ROOT_DIR, load_local_env
+from .config import load_local_env
 
 load_local_env()
 
-DEFAULT_DATABASE_PATH = ROOT_DIR / "deckly.db"
 DEFAULT_DATABASE_URL = "postgresql+psycopg://deckly:deckly@127.0.0.1:5432/deckly"
 DATABASE_URL = os.getenv("DATABASE_URL", DEFAULT_DATABASE_URL).strip() or DEFAULT_DATABASE_URL
 
 
-def is_sqlite_url(database_url: str) -> bool:
-    return database_url.startswith("sqlite:")
-
-
 def build_engine(database_url: str):
-    engine_kwargs = {"pool_pre_ping": True}
-    if is_sqlite_url(database_url):
-        engine_kwargs["connect_args"] = {"check_same_thread": False}
-    return create_engine(database_url, **engine_kwargs)
+    return create_engine(database_url, pool_pre_ping=True)
 
 
 engine = build_engine(DATABASE_URL)
@@ -61,7 +52,7 @@ def ensure_schema() -> None:
                 connection.execute(text("ALTER TABLE decks ADD COLUMN title VARCHAR"))
                 if "name" in deck_columns:
                     connection.execute(text("UPDATE decks SET title = COALESCE(name, '')"))
-        _ensure_column("decks", "updated_at", "updated_at DATETIME")
+        _ensure_column("decks", "updated_at", "updated_at TIMESTAMP WITH TIME ZONE")
         _ensure_column("decks", "visibility", "visibility VARCHAR DEFAULT 'public' NOT NULL")
         _ensure_column("decks", "password_hash", "password_hash VARCHAR")
         with engine.begin() as connection:
@@ -75,9 +66,9 @@ def ensure_schema() -> None:
         _ensure_column("cards", "deck_id", "deck_id INTEGER")
         _ensure_column("cards", "image_url", "image_url VARCHAR DEFAULT '' NOT NULL")
         _ensure_column("cards", "position", "position INTEGER DEFAULT 0 NOT NULL")
-        _ensure_column("cards", "created_at", "created_at DATETIME")
-        _ensure_column("cards", "updated_at", "updated_at DATETIME")
-        _ensure_column("cards", "deleted_at", "deleted_at DATETIME")
+        _ensure_column("cards", "created_at", "created_at TIMESTAMP WITH TIME ZONE")
+        _ensure_column("cards", "updated_at", "updated_at TIMESTAMP WITH TIME ZONE")
+        _ensure_column("cards", "deleted_at", "deleted_at TIMESTAMP WITH TIME ZONE")
         with engine.begin() as connection:
             connection.execute(text("UPDATE cards SET created_at = COALESCE(created_at, CURRENT_TIMESTAMP)"))
             connection.execute(text("UPDATE cards SET updated_at = COALESCE(updated_at, created_at, CURRENT_TIMESTAMP)"))

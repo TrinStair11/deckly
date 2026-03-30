@@ -27,7 +27,7 @@ class Deck(Base):
     __tablename__ = "decks"
 
     id = Column(Integer, primary_key=True, index=True)
-    # Keep legacy DB compatibility: old SQLite files enforce NOT NULL on `name`.
+    # Keep legacy DB compatibility: older deployments persisted `name` as the canonical title field.
     name = Column(String, nullable=False)
     title = synonym("name")
     description = Column(String, default="", nullable=False)
@@ -143,7 +143,7 @@ class UserDeckProgress(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     deck_id = Column(Integer, ForeignKey("decks.id"), nullable=False)
     total_cards = Column(Integer, default=0, nullable=False)
-    # Keep legacy DB compatibility: old SQLite files use `new_count`/`due_count`.
+    # Keep legacy DB compatibility: older deployments use `new_count`/`due_count`.
     new_count = Column(Integer, default=0, nullable=False)
     new_available_count = synonym("new_count")
     learning_count = Column(Integer, default=0, nullable=False)

@@ -1,6 +1,7 @@
 # Python cache
 __pycache__/
 *.py[cod]
+*.egg-info/
 
 # Test and coverage artifacts
 .pytest_cache/
@@ -14,6 +15,6 @@ venv/
 .codex
 
 # Local runtime data
-deckly.db
+*.db
 media/*
 !media/.gitkeep

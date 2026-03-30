@@ -6,7 +6,7 @@ Deckly is a full-stack learning app built around two workflows:
 - standalone quizzes with authored questions, attempts, scoring, results, and review
 
 The backend is a single FastAPI app that serves the API, uploaded media, and the bundled frontend.
-Runtime uses PostgreSQL; temporary SQLite databases are still used in tests for speed.
+Runtime and tests both use PostgreSQL.
 
 ## What The Project Does
 
@@ -234,6 +234,15 @@ Docker-specific overrides in `compose.yaml`:
 ```bash
 pytest
 ```
+
+Tests create and destroy temporary PostgreSQL databases automatically. By default they connect to:
+
+```env
+TEST_DATABASE_URL=postgresql+psycopg://deckly:deckly@127.0.0.1:5432/deckly_test_bootstrap
+```
+
+Override `TEST_DATABASE_URL` if your local PostgreSQL runs elsewhere.
+The test user must also have permission to create and drop databases.
 
 Coverage is enforced by `pytest.ini`.
 

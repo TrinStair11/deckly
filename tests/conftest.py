@@ -12,7 +12,19 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 os.environ.setdefault("SECRET_KEY", "test-secret-key")
-os.environ.setdefault("DATABASE_URL", "sqlite:////tmp/deckly-test-bootstrap.db")
+from tests.postgres_utils import (
+    DEFAULT_RUNTIME_DATABASE_URL,
+    DEFAULT_TEST_DATABASE_URL,
+    create_temp_database,
+    drop_database,
+    ensure_database_exists,
+    render_database_url,
+)
+
+TEST_ADMIN_DATABASE_URL = os.getenv("DATABASE_URL", DEFAULT_RUNTIME_DATABASE_URL).strip() or DEFAULT_RUNTIME_DATABASE_URL
+TEST_BOOTSTRAP_DATABASE_URL = os.getenv("TEST_DATABASE_URL", DEFAULT_TEST_DATABASE_URL).strip() or DEFAULT_TEST_DATABASE_URL
+ensure_database_exists(TEST_BOOTSTRAP_DATABASE_URL, TEST_ADMIN_DATABASE_URL)
+os.environ["DATABASE_URL"] = TEST_BOOTSTRAP_DATABASE_URL
 
 from backend.db import Base
 from backend.auth import get_db
@@ -27,12 +39,9 @@ def clear_rate_limits():
 
 
 @pytest.fixture
-def db_session(tmp_path):
-    database_path = tmp_path / "test.db"
-    engine = create_engine(
-        f"sqlite:///{database_path}",
-        connect_args={"check_same_thread": False},
-    )
+def db_session():
+    test_database_url = create_temp_database(TEST_BOOTSTRAP_DATABASE_URL, "deckly_test")
+    engine = create_engine(render_database_url(test_database_url), pool_pre_ping=True)
     testing_session_local = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     Base.metadata.create_all(bind=engine)
     session = testing_session_local()
@@ -40,8 +49,8 @@ def db_session(tmp_path):
         yield session
     finally:
         session.close()
-        Base.metadata.drop_all(bind=engine)
         engine.dispose()
+        drop_database(test_database_url, TEST_BOOTSTRAP_DATABASE_URL)
 
 
 @pytest.fixture
