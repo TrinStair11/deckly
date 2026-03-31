@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 import json
-import math
 import random
 from datetime import datetime, timedelta
 from uuid import uuid4
@@ -18,9 +17,14 @@ INITIAL_EASE_FACTOR = 2.5
 SM2_MIN_EASE_FACTOR = 1.3
 SM2_MAX_EASE_FACTOR = 2.8
 LEARNING_STEPS = [timedelta(minutes=1), timedelta(minutes=10)]
-RELEARNING_STEPS = [timedelta(minutes=10)]
+RELEARNING_STEPS = [timedelta(minutes=10), timedelta(days=1)]
 FIRST_REVIEW_INTERVAL_DAYS = 1.0
 SECOND_REVIEW_INTERVAL_DAYS = 6.0
+LEARNING_EASY_GRADUATION_INTERVAL_DAYS = 3.0
+REVIEW_HARD_INTERVAL_MULTIPLIER = 1.2
+REVIEW_EASY_INTERVAL_MULTIPLIER = 1.3
+REVIEW_LAPSE_EASE_PENALTY = 0.2
+REVIEW_OVERDUE_BONUS_WEIGHT = 0.5
 
 
 @dataclass(frozen=True)
@@ -293,8 +297,8 @@ def sync_legacy_scheduler_fields(state: models.UserCardState, ease_factor: float
     state.ease_factor = normalized_ease_factor
     # Keep legacy compatibility for existing clients that still read `difficulty`.
     state.difficulty = normalized_ease_factor
-    # Keep legacy compatibility for existing clients that still read `stability`.
-    state.stability = round(max(state.scheduled_days, 0.0), 2)
+    # Do not fake FSRS-like stability from SM-2 intervals.
+    # The legacy field remains available for compatibility, but the scheduler does not synthesize it.
 
 
 def sm2_next_ease_factor(ease_factor: float, quality: int) -> float:
@@ -323,7 +327,7 @@ def build_review_outcome(
     review_count: int,
     ease_factor: float,
 ) -> SchedulingOutcome:
-    scheduled_interval_days = float(max(1, math.ceil(max(interval_days, 1.0))))
+    scheduled_interval_days = max(interval_days, FIRST_REVIEW_INTERVAL_DAYS)
     return SchedulingOutcome(
         status="review",
         due_in=timedelta(days=scheduled_interval_days),
@@ -362,17 +366,29 @@ def get_hard_learning_delay(steps: list[timedelta], learning_step_index: int) ->
     return current_delay * 1.5
 
 
+def calculate_interval_anchor_days(
+    scheduled_interval_days: float,
+    elapsed_days: float,
+) -> float:
+    scheduled = max(scheduled_interval_days, FIRST_REVIEW_INTERVAL_DAYS)
+    observed = max(elapsed_days, 0.0)
+    effective_elapsed = max(observed, FIRST_REVIEW_INTERVAL_DAYS)
+    if effective_elapsed <= scheduled:
+        return effective_elapsed
+    return scheduled + (effective_elapsed - scheduled) * REVIEW_OVERDUE_BONUS_WEIGHT
+
+
 def calculate_review_interval_days(
     review_count: int,
     scheduled_interval_days: float,
+    elapsed_days: float,
     ease_factor: float,
 ) -> float:
     if review_count <= 0:
         return FIRST_REVIEW_INTERVAL_DAYS
     if review_count == 1:
         return SECOND_REVIEW_INTERVAL_DAYS
-
-    base_interval_days = max(scheduled_interval_days, FIRST_REVIEW_INTERVAL_DAYS)
+    base_interval_days = calculate_interval_anchor_days(scheduled_interval_days, elapsed_days)
     return base_interval_days * ease_factor
 
 
@@ -385,12 +401,11 @@ def plan_learning_outcome(state: models.UserCardState, rating: str, previous_sta
         return build_learning_outcome(next_status, learning_steps[0], 0, current_ease_factor)
 
     if rating == "hard":
-        hard_ease_factor = sm2_next_ease_factor(current_ease_factor, SM2_RATING_QUALITY["hard"])
         return build_learning_outcome(
             next_status,
             get_hard_learning_delay(learning_steps, learning_step_index),
             learning_step_index,
-            hard_ease_factor,
+            current_ease_factor,
         )
 
     if rating == "good":
@@ -399,8 +414,10 @@ def plan_learning_outcome(state: models.UserCardState, rating: str, previous_sta
         next_step_index = learning_step_index + 1
         return build_learning_outcome(next_status, learning_steps[next_step_index], next_step_index, current_ease_factor)
 
-    easy_ease_factor = sm2_next_ease_factor(current_ease_factor, SM2_RATING_QUALITY["easy"])
-    return build_review_outcome(FIRST_REVIEW_INTERVAL_DAYS, 1, easy_ease_factor)
+    if previous_status == "relearning":
+        return build_review_outcome(FIRST_REVIEW_INTERVAL_DAYS, 1, current_ease_factor)
+
+    return build_review_outcome(LEARNING_EASY_GRADUATION_INTERVAL_DAYS, 1, current_ease_factor)
 
 
 def plan_review_outcome(state: models.UserCardState, rating: str) -> SchedulingOutcome:
@@ -408,24 +425,34 @@ def plan_review_outcome(state: models.UserCardState, rating: str) -> SchedulingO
     current_ease_factor = read_ease_factor(state)
     review_count = max(state.reps, 0)
     scheduled_interval_days = max(state.scheduled_days, 0.0)
+    elapsed_days = max(state.elapsed_days, 0.0)
 
     if quality < 3:
+        # Penalize forgotten review cards so future interval growth stays cautious after a lapse.
+        lapse_ease_factor = normalize_ease_factor(current_ease_factor - REVIEW_LAPSE_EASE_PENALTY)
         return SchedulingOutcome(
             status="relearning",
             due_in=RELEARNING_STEPS[0],
             scheduled_interval_days=round(RELEARNING_STEPS[0].total_seconds() / 86400, 4),
             learning_step_index=0,
             review_count=0,
-            ease_factor=current_ease_factor,
+            ease_factor=lapse_ease_factor,
             lapse_increment=1,
         )
 
     next_ease_factor = sm2_next_ease_factor(current_ease_factor, quality)
-    next_interval_days = calculate_review_interval_days(
-        review_count,
-        scheduled_interval_days,
-        next_ease_factor,
-    )
+    if rating == "hard":
+        base_interval_days = calculate_interval_anchor_days(scheduled_interval_days, elapsed_days)
+        next_interval_days = max(FIRST_REVIEW_INTERVAL_DAYS, base_interval_days * REVIEW_HARD_INTERVAL_MULTIPLIER)
+    else:
+        next_interval_days = calculate_review_interval_days(
+            review_count,
+            scheduled_interval_days,
+            elapsed_days,
+            next_ease_factor,
+        )
+        if rating == "easy":
+            next_interval_days *= REVIEW_EASY_INTERVAL_MULTIPLIER
     next_review_count = 1 if review_count <= 0 else review_count + 1
     return build_review_outcome(next_interval_days, next_review_count, next_ease_factor)
 

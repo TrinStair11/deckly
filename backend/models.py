@@ -5,13 +5,34 @@ from .db import Base
 from .time_utils import now_utc
 
 
+DEFAULT_EASE_FACTOR = 2.5
+EMPTY_JSON_ARRAY = "[]"
+EMPTY_JSON_OBJECT = "{}"
+
+
+def integer_primary_key_column():
+    return Column(Integer, primary_key=True, index=True)
+
+
+def string_primary_key_column():
+    return Column(String, primary_key=True, index=True)
+
+
+def created_at_column():
+    return Column(DateTime(timezone=True), default=now_utc, nullable=False)
+
+
+def updated_at_column():
+    return Column(DateTime(timezone=True), default=now_utc, nullable=False)
+
+
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = integer_primary_key_column()
     email = Column(String, unique=True, index=True, nullable=False)
     password_hash = Column(String, nullable=False)
-    created_at = Column(DateTime(timezone=True), default=now_utc, nullable=False)
+    created_at = created_at_column()
 
     decks = relationship("Deck", back_populates="owner", cascade="all, delete-orphan")
     saved_deck_links = relationship("UserSavedDeck", back_populates="user", cascade="all, delete-orphan")
@@ -26,7 +47,7 @@ class User(Base):
 class Deck(Base):
     __tablename__ = "decks"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = integer_primary_key_column()
     # Keep legacy DB compatibility: older deployments persisted `name` as the canonical title field.
     name = Column(String, nullable=False)
     title = synonym("name")
@@ -34,8 +55,8 @@ class Deck(Base):
     visibility = Column(String, default="public", nullable=False)
     password_hash = Column(String, nullable=True)
     access_password_hash = synonym("password_hash")
-    created_at = Column(DateTime(timezone=True), default=now_utc, nullable=False)
-    updated_at = Column(DateTime(timezone=True), default=now_utc, nullable=False)
+    created_at = created_at_column()
+    updated_at = updated_at_column()
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
     owner = relationship("User", back_populates="decks")
@@ -50,14 +71,14 @@ class Deck(Base):
 class Card(Base):
     __tablename__ = "cards"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = integer_primary_key_column()
     deck_id = Column(Integer, ForeignKey("decks.id"), nullable=False)
     front = Column(String, nullable=False)
     back = Column(String, nullable=False)
     image_url = Column(String, default="", nullable=False)
     position = Column(Integer, default=0, nullable=False)
-    created_at = Column(DateTime(timezone=True), default=now_utc, nullable=False)
-    updated_at = Column(DateTime(timezone=True), default=now_utc, nullable=False)
+    created_at = created_at_column()
+    updated_at = updated_at_column()
     deleted_at = Column(DateTime(timezone=True), nullable=True)
 
     deck = relationship("Deck", back_populates="cards")
@@ -69,7 +90,7 @@ class UserSavedDeck(Base):
     __tablename__ = "user_saved_decks"
     __table_args__ = (UniqueConstraint("user_id", "deck_id", name="uq_user_saved_decks_user_deck"),)
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = integer_primary_key_column()
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     deck_id = Column(Integer, ForeignKey("decks.id"), nullable=False)
     saved_at = Column(DateTime(timezone=True), default=now_utc, nullable=False)
@@ -82,25 +103,25 @@ class UserCardState(Base):
     __tablename__ = "user_card_state"
     __table_args__ = (UniqueConstraint("user_id", "card_id", name="uq_user_card_state_user_card"),)
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = integer_primary_key_column()
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     deck_id = Column(Integer, ForeignKey("decks.id"), nullable=False)
     card_id = Column(Integer, ForeignKey("cards.id"), nullable=False)
     status = Column(String, default="new", nullable=False)
     due_at = Column(DateTime(timezone=True), default=now_utc, nullable=False)
     last_reviewed_at = Column(DateTime(timezone=True), nullable=True)
-    # Legacy compatibility snapshot. Scheduler logic does not treat this as FSRS stability.
+    # Legacy compatibility field. SM-2 scheduler keeps it as-is and does not synthesize FSRS stability.
     stability = Column(Float, default=0.0, nullable=False)
     # Legacy compatibility mirror for old clients. Scheduler reads/writes `ease_factor`.
-    difficulty = Column(Float, default=2.5, nullable=False)
-    ease_factor = Column(Float, default=2.5, nullable=False)
+    difficulty = Column(Float, default=DEFAULT_EASE_FACTOR, nullable=False)
+    ease_factor = Column(Float, default=DEFAULT_EASE_FACTOR, nullable=False)
     scheduled_days = Column(Float, default=0.0, nullable=False)
     elapsed_days = Column(Float, default=0.0, nullable=False)
     reps = Column(Integer, default=0, nullable=False)
     lapses = Column(Integer, default=0, nullable=False)
     learning_step = Column(Integer, default=0, nullable=False)
-    created_at = Column(DateTime(timezone=True), default=now_utc, nullable=False)
-    updated_at = Column(DateTime(timezone=True), default=now_utc, nullable=False)
+    created_at = created_at_column()
+    updated_at = updated_at_column()
 
     user = relationship("User", back_populates="card_states")
     deck = relationship("Deck", back_populates="card_states")
@@ -110,7 +131,7 @@ class UserCardState(Base):
 class ReviewLog(Base):
     __tablename__ = "review_logs"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = integer_primary_key_column()
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     deck_id = Column(Integer, ForeignKey("decks.id"), nullable=False)
     card_id = Column(Integer, ForeignKey("cards.id"), nullable=False)
@@ -125,10 +146,10 @@ class ReviewLog(Base):
     new_stability = Column(Float, nullable=False)
     previous_difficulty = Column(Float, nullable=False)
     new_difficulty = Column(Float, nullable=False)
-    previous_ease_factor = Column(Float, default=2.5, nullable=False)
-    new_ease_factor = Column(Float, default=2.5, nullable=False)
+    previous_ease_factor = Column(Float, default=DEFAULT_EASE_FACTOR, nullable=False)
+    new_ease_factor = Column(Float, default=DEFAULT_EASE_FACTOR, nullable=False)
     response_time_ms = Column(Integer, nullable=True)
-    created_at = Column(DateTime(timezone=True), default=now_utc, nullable=False)
+    created_at = created_at_column()
 
     user = relationship("User", back_populates="review_logs")
     deck = relationship("Deck", back_populates="review_logs")
@@ -139,7 +160,7 @@ class UserDeckProgress(Base):
     __tablename__ = "user_deck_progress"
     __table_args__ = (UniqueConstraint("user_id", "deck_id", name="uq_user_deck_progress_user_deck"),)
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = integer_primary_key_column()
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     deck_id = Column(Integer, ForeignKey("decks.id"), nullable=False)
     total_cards = Column(Integer, default=0, nullable=False)
@@ -152,7 +173,7 @@ class UserDeckProgress(Base):
     due_review_count = synonym("due_count")
     known_count = Column(Integer, default=0, nullable=False)
     last_studied_at = Column(DateTime(timezone=True), nullable=True)
-    updated_at = Column(DateTime(timezone=True), default=now_utc, nullable=False)
+    updated_at = updated_at_column()
 
     user = relationship("User", back_populates="deck_progress")
     deck = relationship("Deck", back_populates="progress_rows")
@@ -161,15 +182,15 @@ class UserDeckProgress(Base):
 class StudySession(Base):
     __tablename__ = "study_sessions"
 
-    id = Column(String, primary_key=True, index=True)
+    id = string_primary_key_column()
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     deck_id = Column(Integer, ForeignKey("decks.id"), nullable=False)
     mode = Column(String, nullable=False)
     shuffle_cards = Column(Boolean, default=False, nullable=False)
-    card_order = Column(Text, default="[]", nullable=False)
+    card_order = Column(Text, default=EMPTY_JSON_ARRAY, nullable=False)
     current_index = Column(Integer, default=0, nullable=False)
-    created_at = Column(DateTime(timezone=True), default=now_utc, nullable=False)
-    updated_at = Column(DateTime(timezone=True), default=now_utc, nullable=False)
+    created_at = created_at_column()
+    updated_at = updated_at_column()
     completed_at = Column(DateTime(timezone=True), nullable=True)
 
     user = relationship("User", back_populates="study_sessions")
@@ -179,7 +200,7 @@ class StudySession(Base):
 class Quiz(Base):
     __tablename__ = "quizzes"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = integer_primary_key_column()
     title = Column(String, nullable=False)
     description = Column(String, default="", nullable=False)
     category = Column(String, default="", nullable=False)
@@ -189,9 +210,9 @@ class Quiz(Base):
     is_published = Column(Boolean, default=False, nullable=False)
     cover_image = Column(String, default="", nullable=False)
     estimated_time = Column(Integer, nullable=True)
-    tags = Column(Text, default="[]", nullable=False)
-    created_at = Column(DateTime(timezone=True), default=now_utc, nullable=False)
-    updated_at = Column(DateTime(timezone=True), default=now_utc, nullable=False)
+    tags = Column(Text, default=EMPTY_JSON_ARRAY, nullable=False)
+    created_at = created_at_column()
+    updated_at = updated_at_column()
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
     owner = relationship("User", back_populates="quizzes")
@@ -202,15 +223,15 @@ class Quiz(Base):
 class QuizQuestion(Base):
     __tablename__ = "quiz_questions"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = integer_primary_key_column()
     quiz_id = Column(Integer, ForeignKey("quizzes.id"), nullable=False)
     question_text = Column(Text, nullable=False)
     question_type = Column(String, default="single_choice", nullable=False)
     explanation = Column(Text, default="", nullable=False)
     order_index = Column(Integer, default=0, nullable=False)
     points = Column(Integer, default=1, nullable=False)
-    created_at = Column(DateTime(timezone=True), default=now_utc, nullable=False)
-    updated_at = Column(DateTime(timezone=True), default=now_utc, nullable=False)
+    created_at = created_at_column()
+    updated_at = updated_at_column()
 
     quiz = relationship("Quiz", back_populates="questions")
     options = relationship("QuizOption", back_populates="question", cascade="all, delete-orphan")
@@ -219,7 +240,7 @@ class QuizQuestion(Base):
 class QuizOption(Base):
     __tablename__ = "quiz_options"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = integer_primary_key_column()
     question_id = Column(Integer, ForeignKey("quiz_questions.id"), nullable=False)
     option_text = Column(Text, nullable=False)
     is_correct = Column(Boolean, default=False, nullable=False)
@@ -231,18 +252,18 @@ class QuizOption(Base):
 class QuizAttempt(Base):
     __tablename__ = "quiz_attempts"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = integer_primary_key_column()
     quiz_id = Column(Integer, ForeignKey("quizzes.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    started_at = Column(DateTime(timezone=True), default=now_utc, nullable=False)
+    started_at = created_at_column()
     finished_at = Column(DateTime(timezone=True), nullable=True)
     score = Column(Float, default=0.0, nullable=False)
     correct_count = Column(Integer, default=0, nullable=False)
     wrong_count = Column(Integer, default=0, nullable=False)
     total_questions = Column(Integer, default=0, nullable=False)
     status = Column(String, default="in_progress", nullable=False)
-    question_order = Column(Text, default="[]", nullable=False)
-    option_order = Column(Text, default="{}", nullable=False)
+    question_order = Column(Text, default=EMPTY_JSON_ARRAY, nullable=False)
+    option_order = Column(Text, default=EMPTY_JSON_OBJECT, nullable=False)
 
     quiz = relationship("Quiz", back_populates="attempts")
     user = relationship("User", back_populates="quiz_attempts")
@@ -253,7 +274,7 @@ class QuizAttemptAnswer(Base):
     __tablename__ = "quiz_attempt_answers"
     __table_args__ = (UniqueConstraint("attempt_id", "question_id", name="uq_quiz_attempt_answers_attempt_question"),)
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = integer_primary_key_column()
     attempt_id = Column(Integer, ForeignKey("quiz_attempts.id"), nullable=False)
     question_id = Column(Integer, nullable=False)
     selected_option_id = Column(Integer, nullable=True)

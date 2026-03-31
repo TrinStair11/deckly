@@ -458,7 +458,7 @@ def test_sm2_review_second_success_uses_six_day_interval(db_session):
     assert result.state.scheduled_days == 6.0
 
 
-def test_sm2_review_second_hard_still_uses_six_day_interval(db_session):
+def test_sm2_review_second_hard_is_more_conservative_than_good(db_session):
     owner = register_user(db_session, email=make_email())
     learner = register_user(db_session, email=make_email())
     created = create_deck(
@@ -497,10 +497,54 @@ def test_sm2_review_second_hard_still_uses_six_day_interval(db_session):
 
     assert result.state.status == "review"
     assert result.state.reps == 2
-    assert result.state.scheduled_days == 6.0
+    assert result.state.ease_factor == 2.36
+    assert result.state.scheduled_days == pytest.approx(1.2)
 
 
 def test_sm2_review_growth_uses_ease_factor_after_second_success(db_session):
+    owner = register_user(db_session, email=make_email())
+    learner = register_user(db_session, email=make_email())
+    created = create_deck(
+        schemas.DeckCreate(name="Intervals", description="Deck", cards=[schemas.CardSeed(front="One", back="1")]),
+        current_user=owner,
+        db=db_session,
+    )
+    deck = db_session.query(models.Deck).filter(models.Deck.id == created.id).first()
+    save_deck_to_library(deck, learner, db_session)
+    card = db_session.query(models.Card).filter(models.Card.deck_id == deck.id).first()
+    db_session.add(
+        models.UserCardState(
+            user_id=learner.id,
+            deck_id=deck.id,
+            card_id=card.id,
+            status="review",
+            due_at=now_utc() - timedelta(hours=1),
+            last_reviewed_at=now_utc() - timedelta(days=6),
+            stability=42.0,
+            difficulty=2.5,
+            ease_factor=2.5,
+            scheduled_days=6.0,
+            elapsed_days=6.0,
+            reps=2,
+            lapses=0,
+            learning_step=0,
+        )
+    )
+    db_session.commit()
+
+    result = submit_review(
+        schemas.ReviewSubmit(deck_id=deck.id, card_id=card.id, rating="good", session_id="sm2-review-3"),
+        current_user=learner,
+        db=db_session,
+    )
+
+    assert result.state.status == "review"
+    assert result.state.reps == 3
+    assert result.state.scheduled_days == 15.0
+    assert result.state.stability == 42.0
+
+
+def test_sm2_review_hard_growth_is_more_conservative_than_good(db_session):
     owner = register_user(db_session, email=make_email())
     learner = register_user(db_session, email=make_email())
     created = create_deck(
@@ -532,17 +576,61 @@ def test_sm2_review_growth_uses_ease_factor_after_second_success(db_session):
     db_session.commit()
 
     result = submit_review(
-        schemas.ReviewSubmit(deck_id=deck.id, card_id=card.id, rating="good", session_id="sm2-review-3"),
+        schemas.ReviewSubmit(deck_id=deck.id, card_id=card.id, rating="hard", session_id="sm2-review-3-hard"),
         current_user=learner,
         db=db_session,
     )
 
     assert result.state.status == "review"
     assert result.state.reps == 3
-    assert result.state.scheduled_days == 15.0
+    assert result.state.ease_factor == 2.36
+    assert result.state.scheduled_days == pytest.approx(7.2)
 
 
-def test_sm2_review_rounds_fractional_intervals_up_to_next_full_day(db_session):
+def test_sm2_review_easy_growth_is_more_aggressive_than_good(db_session):
+    owner = register_user(db_session, email=make_email())
+    learner = register_user(db_session, email=make_email())
+    created = create_deck(
+        schemas.DeckCreate(name="Intervals", description="Deck", cards=[schemas.CardSeed(front="One", back="1")]),
+        current_user=owner,
+        db=db_session,
+    )
+    deck = db_session.query(models.Deck).filter(models.Deck.id == created.id).first()
+    save_deck_to_library(deck, learner, db_session)
+    card = db_session.query(models.Card).filter(models.Card.deck_id == deck.id).first()
+    db_session.add(
+        models.UserCardState(
+            user_id=learner.id,
+            deck_id=deck.id,
+            card_id=card.id,
+            status="review",
+            due_at=now_utc() - timedelta(hours=1),
+            last_reviewed_at=now_utc() - timedelta(days=6),
+            stability=6.0,
+            difficulty=2.5,
+            ease_factor=2.5,
+            scheduled_days=6.0,
+            elapsed_days=6.0,
+            reps=2,
+            lapses=0,
+            learning_step=0,
+        )
+    )
+    db_session.commit()
+
+    result = submit_review(
+        schemas.ReviewSubmit(deck_id=deck.id, card_id=card.id, rating="easy", session_id="sm2-review-3-easy"),
+        current_user=learner,
+        db=db_session,
+    )
+
+    assert result.state.status == "review"
+    assert result.state.reps == 3
+    assert result.state.ease_factor == 2.6
+    assert result.state.scheduled_days == pytest.approx(20.28)
+
+
+def test_sm2_review_keeps_fractional_intervals_without_rounding_up(db_session):
     owner = register_user(db_session, email=make_email())
     learner = register_user(db_session, email=make_email())
     created = create_deck(
@@ -581,10 +669,10 @@ def test_sm2_review_rounds_fractional_intervals_up_to_next_full_day(db_session):
 
     assert result.state.status == "review"
     assert result.state.reps == 3
-    assert result.state.scheduled_days == 18.0
+    assert result.state.scheduled_days == pytest.approx(17.5)
 
 
-def test_sm2_learning_hard_keeps_step_but_adds_delay_and_lowers_ease_factor(db_session):
+def test_sm2_learning_hard_keeps_step_and_delay_without_changing_ease_factor(db_session):
     owner = register_user(db_session, email=make_email())
     learner = register_user(db_session, email=make_email())
     created = create_deck(
@@ -604,12 +692,84 @@ def test_sm2_learning_hard_keeps_step_but_adds_delay_and_lowers_ease_factor(db_s
 
     assert result.state.status == "learning"
     assert result.state.learning_step == 0
-    assert result.state.ease_factor == 2.36
+    assert result.state.ease_factor == 2.5
     assert result.next_due_at >= now_utc() + timedelta(minutes=5)
     assert result.next_due_at <= now_utc() + timedelta(minutes=7)
 
 
-def test_sm2_overdue_success_uses_standard_sm2_growth(db_session):
+def test_sm2_learning_easy_graduates_without_changing_ease_factor(db_session):
+    owner = register_user(db_session, email=make_email())
+    learner = register_user(db_session, email=make_email())
+    created = create_deck(
+        schemas.DeckCreate(name="Easy step", description="Deck", cards=[schemas.CardSeed(front="One", back="1")]),
+        current_user=owner,
+        db=db_session,
+    )
+    deck = db_session.query(models.Deck).filter(models.Deck.id == created.id).first()
+    save_deck_to_library(deck, learner, db_session)
+    card = db_session.query(models.Card).filter(models.Card.deck_id == deck.id).first()
+
+    result = submit_review(
+        schemas.ReviewSubmit(deck_id=deck.id, card_id=card.id, rating="easy", session_id="sm2-easy-learning"),
+        current_user=learner,
+        db=db_session,
+    )
+
+    assert result.state.status == "review"
+    assert result.state.reps == 1
+    assert result.state.ease_factor == 2.5
+    assert result.state.scheduled_days == 3.0
+    assert result.next_due_at >= now_utc() + timedelta(days=2, hours=23)
+    assert result.next_due_at <= now_utc() + timedelta(days=3, hours=1)
+
+
+def test_relearning_good_advances_to_cautious_one_day_step_before_review(db_session):
+    owner = register_user(db_session, email=make_email())
+    learner = register_user(db_session, email=make_email())
+    created = create_deck(
+        schemas.DeckCreate(name="Relearning", description="Deck", cards=[schemas.CardSeed(front="One", back="1")]),
+        current_user=owner,
+        db=db_session,
+    )
+    deck = db_session.query(models.Deck).filter(models.Deck.id == created.id).first()
+    save_deck_to_library(deck, learner, db_session)
+    card = db_session.query(models.Card).filter(models.Card.deck_id == deck.id).first()
+    db_session.add(
+        models.UserCardState(
+            user_id=learner.id,
+            deck_id=deck.id,
+            card_id=card.id,
+            status="relearning",
+            due_at=now_utc() - timedelta(minutes=1),
+            last_reviewed_at=now_utc() - timedelta(minutes=15),
+            stability=4.0,
+            difficulty=2.3,
+            ease_factor=2.3,
+            scheduled_days=0.0069,
+            elapsed_days=0.01,
+            reps=0,
+            lapses=1,
+            learning_step=0,
+        )
+    )
+    db_session.commit()
+
+    result = submit_review(
+        schemas.ReviewSubmit(deck_id=deck.id, card_id=card.id, rating="good", session_id="sm2-relearning-step-1"),
+        current_user=learner,
+        db=db_session,
+    )
+
+    assert result.state.status == "relearning"
+    assert result.state.learning_step == 1
+    assert result.state.reps == 0
+    assert result.state.ease_factor == 2.3
+    assert result.state.scheduled_days == 1.0
+    assert result.next_due_at >= now_utc() + timedelta(hours=23)
+    assert result.next_due_at <= now_utc() + timedelta(hours=25)
+
+
+def test_sm2_overdue_success_rewards_observed_retention(db_session):
     owner = register_user(db_session, email=make_email())
     learner = register_user(db_session, email=make_email())
     created = create_deck(
@@ -648,7 +808,7 @@ def test_sm2_overdue_success_uses_standard_sm2_growth(db_session):
 
     assert result.state.status == "review"
     assert result.state.reps == 3
-    assert result.state.scheduled_days == 15.0
+    assert result.state.scheduled_days == pytest.approx(20.0)
 
 
 def test_submit_review_rejects_non_due_card_without_matching_session(db_session):
@@ -715,6 +875,54 @@ def test_interval_session_requeues_below_four_responses(db_session):
     assert resumed.current_index == 1
     assert resumed.card_order == [card.id, card.id]
     assert [item.id for item in resumed.cards] == [card.id, card.id]
+
+
+def test_interval_session_immediate_second_success_is_less_generous_after_early_retry(db_session):
+    owner = register_user(db_session, email=make_email())
+    learner = register_user(db_session, email=make_email())
+    created = create_deck(
+        schemas.DeckCreate(name="Repeat today", description="Deck", cards=[schemas.CardSeed(front="One", back="1")]),
+        current_user=owner,
+        db=db_session,
+    )
+    deck = db_session.query(models.Deck).filter(models.Deck.id == created.id).first()
+    save_deck_to_library(deck, learner, db_session)
+    card = db_session.query(models.Card).filter(models.Card.deck_id == deck.id).first()
+    db_session.add(
+        models.UserCardState(
+            user_id=learner.id,
+            deck_id=deck.id,
+            card_id=card.id,
+            status="review",
+            due_at=now_utc() - timedelta(hours=1),
+            last_reviewed_at=now_utc() - timedelta(days=6),
+            stability=6.0,
+            difficulty=2.5,
+            ease_factor=2.5,
+            scheduled_days=6.0,
+            elapsed_days=6.0,
+            reps=2,
+            lapses=0,
+            learning_step=0,
+        )
+    )
+    db_session.commit()
+
+    session = get_study_session(deck.id, current_user=learner, db=db_session)
+    first_result = submit_review(
+        schemas.ReviewSubmit(deck_id=deck.id, card_id=card.id, rating="hard", session_id=session.session_id),
+        current_user=learner,
+        db=db_session,
+    )
+    second_result = submit_review(
+        schemas.ReviewSubmit(deck_id=deck.id, card_id=card.id, rating="good", session_id=session.session_id),
+        current_user=learner,
+        db=db_session,
+    )
+
+    assert first_result.state.scheduled_days == pytest.approx(7.2)
+    assert second_result.state.reps == 4
+    assert second_result.state.scheduled_days == pytest.approx(2.36)
 
 
 def test_interval_session_resumes_current_index_after_review(db_session):
@@ -785,7 +993,7 @@ def test_review_lapse_moves_card_to_relearning(db_session):
 
     assert result.state.status == "relearning"
     assert result.state.lapses == 1
-    assert result.state.ease_factor == 2.5
+    assert result.state.ease_factor == 2.3
     assert result.next_due_at >= now_utc() + timedelta(minutes=9)
     assert result.next_due_at <= now_utc() + timedelta(minutes=11)
 

@@ -1,48 +1,46 @@
-import json
-from pathlib import Path
-
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from fastapi.responses import FileResponse
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from . import models, schemas
 from .auth import get_current_user, get_db
+from .quiz_attempts import (
+    complete_quiz_attempt_result,
+    get_quiz_attempt_result,
+    load_quiz_attempt_session,
+    start_quiz_attempt_session,
+    submit_quiz_answer,
+)
+from .quiz_pages import (
+    page_router,
+    quiz_create_page,
+    quiz_detail_page,
+    quiz_edit_page,
+    quiz_library_page,
+    quiz_results_page,
+    quiz_review_page,
+    quiz_session_page,
+)
 from .quizzes import (
     apply_quiz_payload,
-    build_attempt_session,
-    build_option_order_map,
-    build_question_order,
     ensure_quiz_mutation_allowed,
-    ensure_quiz_startable,
-    finalize_attempt,
     get_accessible_quiz_or_404,
-    get_attempt_or_404,
     get_owned_quiz_or_404,
     list_accessible_quizzes,
     replace_quiz_questions,
     serialize_quiz_detail,
     serialize_quiz_editor,
     serialize_quiz_summary,
-    serialize_result,
-    upsert_attempt_answer,
     validate_quiz_payload,
 )
-from .spaced_repetition import utcnow
+from .time_utils import now_utc
 
 router = APIRouter()
-
-FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
-QUIZ_PAGES_DIR = FRONTEND_DIR / "pages" / "quiz"
-
-
-def serve_quiz_page(filename: str) -> FileResponse:
-    return FileResponse(QUIZ_PAGES_DIR / filename)
 
 
 @router.post("/quizzes", response_model=schemas.QuizEditorOut, status_code=status.HTTP_201_CREATED)
 def create_quiz(payload: schemas.QuizCreate, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     validate_quiz_payload(payload)
-    timestamp = utcnow()
+    timestamp = now_utc()
     quiz = models.Quiz(
         title=payload.title.strip(),
         description="",
@@ -147,31 +145,12 @@ def delete_quiz(quiz_id: int, current_user=Depends(get_current_user), db: Sessio
 
 @router.post("/quizzes/{quiz_id}/start", response_model=schemas.QuizAttemptSessionOut)
 def start_quiz_attempt(quiz_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
-    quiz = get_accessible_quiz_or_404(quiz_id, current_user, db)
-    ordered_questions = build_question_order(ensure_quiz_startable(quiz))
-    attempt = models.QuizAttempt(
-        quiz_id=quiz.id,
-        user_id=current_user.id,
-        started_at=utcnow(),
-        finished_at=None,
-        score=0.0,
-        correct_count=0,
-        wrong_count=0,
-        total_questions=len(ordered_questions),
-        status="in_progress",
-        question_order=json.dumps([question.id for question in ordered_questions]),
-        option_order=json.dumps(build_option_order_map(ordered_questions)),
-    )
-    db.add(attempt)
-    db.commit()
-    db.refresh(attempt)
-    return build_attempt_session(attempt, db)
+    return start_quiz_attempt_session(quiz_id, current_user, db)
 
 
 @router.get("/quiz-attempts/{attempt_id}", response_model=schemas.QuizAttemptSessionOut)
 def get_quiz_attempt(attempt_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
-    attempt = get_attempt_or_404(attempt_id, current_user, db)
-    return build_attempt_session(attempt, db)
+    return load_quiz_attempt_session(attempt_id, current_user, db)
 
 
 @router.put("/quiz-attempts/{attempt_id}/answers/{question_id}", response_model=schemas.QuizAttemptSessionOut)
@@ -182,80 +161,17 @@ def answer_quiz_question(
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    attempt = get_attempt_or_404(attempt_id, current_user, db)
-    if attempt.status != "in_progress":
-        raise HTTPException(status_code=400, detail="Completed quizzes cannot be changed")
-    question = (
-        db.query(models.QuizQuestion)
-        .filter(models.QuizQuestion.id == question_id, models.QuizQuestion.quiz_id == attempt.quiz_id)
-        .first()
-    )
-    if not question:
-        raise HTTPException(status_code=404, detail="Quiz question not found")
-    if question.question_type != "single_choice":
-        raise HTTPException(status_code=400, detail="Only single choice questions are supported right now")
-    selected_option = (
-        db.query(models.QuizOption)
-        .filter(models.QuizOption.id == payload.selected_option_id, models.QuizOption.question_id == question.id)
-        .first()
-    )
-    if not selected_option:
-        raise HTTPException(status_code=400, detail="Selected option does not belong to this question")
-    upsert_attempt_answer(attempt, question, selected_option, db)
-    db.commit()
-    db.refresh(attempt)
-    return build_attempt_session(attempt, db)
+    return submit_quiz_answer(attempt_id, question_id, payload, current_user, db)
 
 
 @router.post("/quiz-attempts/{attempt_id}/complete", response_model=schemas.QuizResultOut)
 def complete_quiz_attempt(attempt_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
-    attempt = get_attempt_or_404(attempt_id, current_user, db)
-    if attempt.status == "completed":
-        return serialize_result(attempt)
-    finalize_attempt(attempt, db)
-    db.commit()
-    db.refresh(attempt)
-    return serialize_result(attempt)
+    return complete_quiz_attempt_result(attempt_id, current_user, db)
 
 
 @router.get("/quiz-attempts/{attempt_id}/results", response_model=schemas.QuizResultOut)
 def get_quiz_attempt_results(attempt_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
-    attempt = get_attempt_or_404(attempt_id, current_user, db)
-    if attempt.status != "completed":
-        raise HTTPException(status_code=400, detail="Quiz attempt is not completed yet")
-    return serialize_result(attempt)
+    return get_quiz_attempt_result(attempt_id, current_user, db)
 
 
-@router.get("/quiz", include_in_schema=False)
-def quiz_library_page():
-    return serve_quiz_page("library.html")
-
-
-@router.get("/quiz/create", include_in_schema=False)
-def quiz_create_page():
-    return serve_quiz_page("editor.html")
-
-
-@router.get("/quiz/{quiz_id}/edit", include_in_schema=False)
-def quiz_edit_page(quiz_id: int):
-    return serve_quiz_page("editor.html")
-
-
-@router.get("/quiz/{quiz_id}/start", include_in_schema=False)
-def quiz_session_page(quiz_id: int):
-    return serve_quiz_page("session.html")
-
-
-@router.get("/quiz/{quiz_id}/results/{attempt_id}/review", include_in_schema=False)
-def quiz_review_page(quiz_id: int, attempt_id: int):
-    return serve_quiz_page("review.html")
-
-
-@router.get("/quiz/{quiz_id}/results/{attempt_id}", include_in_schema=False)
-def quiz_results_page(quiz_id: int, attempt_id: int):
-    return serve_quiz_page("results.html")
-
-
-@router.get("/quiz/{quiz_id}", include_in_schema=False)
-def quiz_detail_page(quiz_id: int):
-    return serve_quiz_page("detail.html")
+router.include_router(page_router)
