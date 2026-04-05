@@ -15,6 +15,14 @@ def validate_database_url(database_url: str) -> str:
     normalized_url = database_url.strip()
     if normalized_url.lower().startswith("sqlite"):
         raise RuntimeError("SQLite is no longer supported. Configure DATABASE_URL for PostgreSQL.")
+    # Normalize bare postgres:// or postgresql:// schemes to use the psycopg3
+    # driver explicitly. Railway and other platforms often inject a URL without
+    # a driver specifier, which causes SQLAlchemy to fall back to psycopg2.
+    lower = normalized_url.lower()
+    if lower.startswith("postgres://"):
+        normalized_url = "postgresql+psycopg://" + normalized_url[len("postgres://"):]
+    elif lower.startswith("postgresql://"):
+        normalized_url = "postgresql+psycopg://" + normalized_url[len("postgresql://"):]
     return normalized_url
 
 

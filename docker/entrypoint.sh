@@ -13,7 +13,15 @@ import time
 
 from sqlalchemy import create_engine, text
 
-database_url = os.environ["DATABASE_URL"]
+database_url = os.environ["DATABASE_URL"].strip()
+
+# Normalize bare postgres:// or postgresql:// to use the psycopg3 driver
+# explicitly, matching the same logic in backend/db.py.
+lower = database_url.lower()
+if lower.startswith("postgres://"):
+    database_url = "postgresql+psycopg://" + database_url[len("postgres://"):]
+elif lower.startswith("postgresql://"):
+    database_url = "postgresql+psycopg://" + database_url[len("postgresql://"):]
 
 for attempt in range(30):
     try:
