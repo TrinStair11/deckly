@@ -99,7 +99,7 @@ window.quizApp = (() => {
     if (accountLoginBtn) accountLoginBtn.onclick = () => { window.location.href = "/"; };
     if (accountSignupBtn) accountSignupBtn.onclick = () => { window.location.href = "/"; };
     if (accountProfileBtn) accountProfileBtn.onclick = () => { window.location.href = "/"; };
-    if (accountSettingsBtn) accountSettingsBtn.onclick = () => { window.location.href = "/settings.html"; };
+    if (accountSettingsBtn) accountSettingsBtn.onclick = () => { window.location.href = "/settings"; };
     if (accountLogoutBtn) {
       accountLogoutBtn.onclick = async () => {
         await logout();

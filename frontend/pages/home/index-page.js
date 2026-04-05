@@ -67,7 +67,7 @@
       window.location.href = "/";
     },
     onSettings: () => {
-      window.location.href = "/settings.html";
+      window.location.href = "/settings";
     },
     onLogout: logout,
   });
@@ -233,7 +233,7 @@
                   <span><i class="bi bi-clock-history me-1"></i>${formatUpdated(getDeckTimestamp(deck))}</span>
                   <span><i class="bi bi-link-45deg me-1"></i>${deck.visibility === "private" ? "Password-protected link" : "Open link access"}</span>
                 </div>
-                <a class="btn study-action study-btn" href="/study.html?deck=${deck.id}">
+                <a class="btn study-action study-btn" href="/study?deck=${deck.id}">
                   <i class="bi bi-play-fill"></i>Study
                 </a>
               </div>
@@ -267,7 +267,7 @@
   }
 
   function goToCreateDeck() {
-    window.location.href = "/deck.html?new=1";
+    window.location.href = "/deck?new=1";
   }
 
   async function handleDeckDelete(deckId) {
@@ -356,7 +356,7 @@
 
       const openDeckCard = event.target.closest("[data-open-deck]");
       if (openDeckCard && !event.target.closest(".dropdown") && !event.target.closest(".study-btn")) {
-        window.location.href = `/study.html?deck=${openDeckCard.dataset.openDeck}`;
+        window.location.href = `/study?deck=${openDeckCard.dataset.openDeck}`;
         return;
       }
 
@@ -364,7 +364,7 @@
       if (editButton) {
         state.openDeckMenuId = null;
         renderDecks();
-        window.location.href = `/deck.html?id=${editButton.dataset.editDeck}`;
+        window.location.href = `/deck?id=${editButton.dataset.editDeck}`;
         return;
       }
 

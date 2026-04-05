@@ -16,7 +16,7 @@ from .runtime import (
     OPENVERSE_API_URL,
 )
 
-router = APIRouter()
+router = APIRouter(tags=["Images"])
 
 
 def validate_external_image_url(source_url: str) -> str:
@@ -98,17 +98,35 @@ def build_upload_image_response(
     return schemas.StoredImageOut(image_url=store_image(content, extension))
 
 
-@router.post("/images/search", response_model=schemas.ImageSearchResponse)
+@router.post(
+    "/images/search",
+    response_model=schemas.ImageSearchResponse,
+    summary="Search images",
+    description="Search external image providers for media that can be attached to cards or quizzes.",
+    response_description="Image search results page.",
+)
 def search_images_endpoint(payload: schemas.ImageSearchRequest, current_user=Depends(get_current_user)):
     return build_search_images_response(payload, search_provider=search_openverse_images)
 
 
-@router.post("/images/import", response_model=schemas.StoredImageOut)
+@router.post(
+    "/images/import",
+    response_model=schemas.StoredImageOut,
+    summary="Import external image",
+    description="Download an external HTTPS image after validation and store it in the application's media directory.",
+    response_description="Stored image URL.",
+)
 def import_image_endpoint(payload: schemas.ImageImportRequest, current_user=Depends(get_current_user)):
     return build_import_image_response(payload, importer=download_external_image)
 
 
-@router.post("/images/upload", response_model=schemas.StoredImageOut)
+@router.post(
+    "/images/upload",
+    response_model=schemas.StoredImageOut,
+    summary="Upload image",
+    description="Decode a base64-encoded image payload, validate it, and persist the uploaded media for later use.",
+    response_description="Stored image URL.",
+)
 def upload_image_endpoint(payload: schemas.ImageUploadRequest, current_user=Depends(get_current_user)):
     return build_upload_image_response(
         payload,

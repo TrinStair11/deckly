@@ -10,10 +10,17 @@ from .auth import (
     verify_password,
 )
 
-router = APIRouter()
+router = APIRouter(tags=["Account"])
 
 
-@router.post("/register", response_model=schemas.UserOut, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/register",
+    response_model=schemas.UserOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Register account",
+    description="Create a new user account with a unique email address and a hashed password.",
+    response_description="Newly created user account.",
+)
 def register(payload: schemas.UserCreate, db: Session = Depends(get_db)):
     normalized_email = payload.email.strip().lower()
     existing = db.query(models.User).filter(models.User.email == normalized_email).first()
@@ -26,18 +33,36 @@ def register(payload: schemas.UserCreate, db: Session = Depends(get_db)):
     return user
 
 
-@router.post("/logout", response_model=schemas.AccountActionResult)
+@router.post(
+    "/logout",
+    response_model=schemas.AccountActionResult,
+    summary="Sign out",
+    description="Clear the active authentication cookie for the current browser session.",
+    response_description="Logout confirmation.",
+)
 def logout(response: Response):
     clear_auth_cookie(response)
     return schemas.AccountActionResult(message="Logged out successfully")
 
 
-@router.get("/me", response_model=schemas.UserOut)
+@router.get(
+    "/me",
+    response_model=schemas.UserOut,
+    summary="Get current account",
+    description="Return the authenticated user's profile.",
+    response_description="Current authenticated user.",
+)
 def me(current_user=Depends(get_current_user)):
     return current_user
 
 
-@router.put("/account/email", response_model=schemas.UserOut)
+@router.put(
+    "/account/email",
+    response_model=schemas.UserOut,
+    summary="Update account email",
+    description="Change the authenticated user's email address after validating the current password and email confirmation.",
+    response_description="Updated user profile.",
+)
 def update_account_email(
     payload: schemas.AccountEmailUpdate,
     current_user=Depends(get_current_user),
@@ -66,7 +91,13 @@ def update_account_email(
     return current_user
 
 
-@router.put("/account/password", response_model=schemas.AccountActionResult)
+@router.put(
+    "/account/password",
+    response_model=schemas.AccountActionResult,
+    summary="Update account password",
+    description="Change the authenticated user's password after validating the current password and confirmation fields.",
+    response_description="Password update confirmation.",
+)
 def update_account_password(
     payload: schemas.AccountPasswordUpdate,
     current_user=Depends(get_current_user),

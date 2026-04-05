@@ -10,28 +10,35 @@ window.studyActions = (() => {
       pushSessionUndo,
     } = helpers;
 
-    function cloneCardWithState(card, nextState = null) {
+    function cloneCardWithState(card, nextState = null, nextIntervalPreview = null) {
       return {
         ...card,
         state: nextState ? { ...nextState } : (card?.state ? { ...card.state } : null),
+        interval_preview: nextIntervalPreview ? { ...nextIntervalPreview } : (card?.interval_preview ? { ...card.interval_preview } : null),
       };
     }
 
-    function syncCardState(cardId, nextState) {
+    function syncCardState(cardId, nextState, nextIntervalPreview = null) {
       if (!nextState) return;
       const applyState = (cards = []) => cards.map((item) => (
-        item.id === cardId ? { ...item, state: { ...nextState } } : item
+        item.id === cardId
+          ? {
+              ...item,
+              state: { ...nextState },
+              interval_preview: nextIntervalPreview ? { ...nextIntervalPreview } : item.interval_preview,
+            }
+          : item
       ));
       state.sessionCards = applyState(state.sessionCards);
       if (state.deck?.cards) state.deck.cards = applyState(state.deck.cards);
       if (state.dueSession?.cards) state.dueSession.cards = applyState(state.dueSession.cards);
     }
 
-    function appendIntervalRepeat(cardId, nextState) {
+    function appendIntervalRepeat(cardId, nextState, nextIntervalPreview = null) {
       const sourceCard = state.sessionCards.find((item) => item.id === cardId)
         || state.deck?.cards?.find((item) => item.id === cardId);
       if (!sourceCard) return;
-      state.sessionCards = [...state.sessionCards, cloneCardWithState(sourceCard, nextState)];
+      state.sessionCards = [...state.sessionCards, cloneCardWithState(sourceCard, nextState, nextIntervalPreview)];
       if (state.dueSession) {
         state.dueSession.cards = [...state.sessionCards];
         state.dueSession.card_order = [...(state.dueSession.card_order || []), cardId];
@@ -63,6 +70,8 @@ window.studyActions = (() => {
       state.revealed = false;
       state.correct = 0;
       state.incorrect = 0;
+      state.intervalRatings = { again: 0, hard: 0, good: 0, easy: 0 };
+      state.intervalStartIndex = 0;
       state.missedCardIds = [];
       state.actionHistory = [];
       state.started = false;
@@ -87,8 +96,8 @@ window.studyActions = (() => {
       } else if (modeId === "interval") {
         state.sessionCards = [...(state.dueSession?.cards || [])];
         state.currentIndex = state.dueSession?.current_index || 0;
+        state.intervalStartIndex = state.currentIndex;
         state.intervalSessionId = state.dueSession?.session_id || "";
-        state.started = true;
       } else if (modeId === "test") {
         state.sessionCards = state.shuffleCards ? shuffle(state.deck.cards) : [...state.deck.cards];
         state.started = true;
@@ -96,6 +105,18 @@ window.studyActions = (() => {
       }
 
       renderAll();
+    }
+
+    function beginPreparedSession() {
+      if (!state.deck || !state.mode || !state.sessionCards.length) {
+        renderAll();
+        return;
+      }
+      if (state.mode === "limit" || state.mode === "interval") {
+        state.started = true;
+        state.revealed = false;
+        renderAll();
+      }
     }
 
     function flipCurrentCard() {
@@ -163,8 +184,9 @@ window.studyActions = (() => {
     async function submitIntervalRating(rating) {
       const card = currentCard();
       if (!card) return;
+      const isPersistentSession = state.dueSession?.mode === "interval";
       let nextIndex = state.currentIndex + 1;
-      if (state.me) {
+      if (isPersistentSession) {
         const sessionId = state.intervalSessionId || (window.crypto?.randomUUID?.() || `interval-${Date.now()}`);
         state.intervalSessionId = sessionId;
         const result = await api("/reviews/submit", {
@@ -180,21 +202,16 @@ window.studyActions = (() => {
           state.deck.progress = result.progress;
         }
         if (result?.state) {
-          syncCardState(card.id, result.state);
+          syncCardState(card.id, result.state, result?.interval_preview || null);
         }
         if (typeof result?.session_current_index === "number") {
           nextIndex = result.session_current_index;
         }
         if ((rating === "again" || rating === "hard") && typeof result?.session_current_index === "number") {
-          appendIntervalRepeat(card.id, result?.state || card.state);
+          appendIntervalRepeat(card.id, result?.state || card.state, result?.interval_preview || null);
         }
       }
-      if (rating === "again" || rating === "hard") {
-        state.incorrect += 1;
-        if (!state.missedCardIds.includes(card.id)) state.missedCardIds.push(card.id);
-      } else {
-        state.correct += 1;
-      }
+      state.intervalRatings[rating] = (state.intervalRatings[rating] || 0) + 1;
       if (nextIndex < state.sessionCards.length) {
         state.currentIndex = nextIndex;
         state.revealed = false;
@@ -235,6 +252,7 @@ window.studyActions = (() => {
     return {
       buildTestChoices,
       startMode,
+      beginPreparedSession,
       flipCurrentCard,
       completeSelfCheck,
       submitIntervalRating,

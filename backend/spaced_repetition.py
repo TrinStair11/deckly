@@ -121,6 +121,72 @@ def serialize_user_card_state(state: models.UserCardState | None) -> schemas.Use
     )
 
 
+def build_interval_preview_state(state: models.UserCardState | None) -> models.UserCardState:
+    now = utcnow()
+    if state is None:
+        return models.UserCardState(
+            status="new",
+            due_at=now,
+            last_reviewed_at=None,
+            stability=INITIAL_STABILITY,
+            difficulty=INITIAL_EASE_FACTOR,
+            ease_factor=INITIAL_EASE_FACTOR,
+            scheduled_days=0.0,
+            elapsed_days=0.0,
+            reps=0,
+            lapses=0,
+            learning_step=0,
+        )
+    return models.UserCardState(
+        status=state.status,
+        due_at=ensure_utc(state.due_at),
+        last_reviewed_at=ensure_utc(state.last_reviewed_at),
+        stability=state.stability,
+        difficulty=state.difficulty,
+        ease_factor=read_ease_factor(state),
+        scheduled_days=state.scheduled_days,
+        elapsed_days=round(get_state_elapsed_days(state, now), 4),
+        reps=state.reps,
+        lapses=state.lapses,
+        learning_step=state.learning_step,
+    )
+
+
+def format_interval_preview_label(delay: timedelta) -> str:
+    total_seconds = max(delay.total_seconds(), 0.0)
+    if total_seconds < 60:
+        return "now"
+    total_minutes = max(round(total_seconds / 60), 1)
+    if total_minutes < 60:
+        return f"in {total_minutes}m"
+    total_hours = round(total_seconds / 3600)
+    if total_hours < 48:
+        return f"in {total_hours}h"
+    total_days = round(total_seconds / 86400)
+    if total_days < 30:
+        return f"in {total_days}d"
+    total_months = max(round(total_days / 30), 1)
+    return f"in {total_months}mo"
+
+
+def build_interval_rating_preview(state: models.UserCardState | None) -> schemas.IntervalRatingPreview:
+    preview_state = build_interval_preview_state(state)
+
+    def preview_for(rating: str) -> str:
+        if preview_state.status in {"new", "learning", "relearning"}:
+            outcome = plan_learning_outcome(preview_state, rating, preview_state.status)
+        else:
+            outcome = plan_review_outcome(preview_state, rating)
+        return format_interval_preview_label(outcome.due_in)
+
+    return schemas.IntervalRatingPreview(
+        again=preview_for("again"),
+        hard=preview_for("hard"),
+        good=preview_for("good"),
+        easy=preview_for("easy"),
+    )
+
+
 def serialize_card(card: models.Card, state: models.UserCardState | None = None) -> schemas.CardOut:
     return schemas.CardOut(
         id=card.id,
@@ -130,6 +196,7 @@ def serialize_card(card: models.Card, state: models.UserCardState | None = None)
         position=card.position,
         deck_id=card.deck_id,
         state=serialize_user_card_state(state),
+        interval_preview=build_interval_rating_preview(state),
     )
 
 
@@ -532,6 +599,7 @@ def build_study_session(
     new_cards_limit: int = 10,
     shuffle_cards: bool = False,
     persist_progress: bool = False,
+    restart_session: bool = False,
 ) -> schemas.StudySession:
     if mode not in {"review_all", "limited", "interval"}:
         raise HTTPException(status_code=400, detail="Unsupported study mode")
@@ -543,6 +611,11 @@ def build_study_session(
     active_cards = get_active_cards(deck)
     active_card_ids = {card.id for card in active_cards}
     session = get_latest_active_session(current_user.id, deck.id, mode, shuffle_cards, db)
+    if session and restart_session:
+        session.completed_at = utcnow()
+        session.updated_at = session.completed_at
+        db.flush()
+        session = None
     if session:
         card_order = [card_id for card_id in decode_card_order(session) if card_id in active_card_ids]
         if session.current_index >= len(card_order):

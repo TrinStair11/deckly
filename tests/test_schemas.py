@@ -64,11 +64,18 @@ def test_card_out_schema_wraps_optional_state():
             lapses=0,
             learning_step=0,
         ),
+        interval_preview=schemas.IntervalRatingPreview(
+            again="in 1m",
+            hard="in 6m",
+            good="in 10m",
+            easy="in 3d",
+        ),
     )
 
     assert payload.state.status == "learning"
     assert payload.state.ease_factor == 2.5
     assert payload.deck_id == 2
+    assert payload.interval_preview.easy == "in 3d"
 
 
 def test_study_session_schema_keeps_mode_and_progress():

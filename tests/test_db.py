@@ -1,11 +1,17 @@
 import os
 
+import pytest
 from sqlalchemy import create_engine, inspect, text
 
-from backend.db import ensure_schema
+from backend.db import ensure_schema, validate_database_url
 from tests.postgres_utils import DEFAULT_TEST_DATABASE_URL, create_temp_database, drop_database, render_database_url
 
 TEST_BOOTSTRAP_DATABASE_URL = os.getenv("TEST_DATABASE_URL", DEFAULT_TEST_DATABASE_URL).strip() or DEFAULT_TEST_DATABASE_URL
+
+
+def test_validate_database_url_rejects_sqlite():
+    with pytest.raises(RuntimeError, match="SQLite is no longer supported"):
+        validate_database_url("sqlite:///./deckly.db")
 
 
 def test_ensure_schema_adds_shared_deck_and_card_columns(monkeypatch):

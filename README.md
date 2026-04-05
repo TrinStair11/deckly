@@ -172,7 +172,30 @@ Open:
 - App UI: `http://127.0.0.1:8000/`
 - API docs: `http://127.0.0.1:8000/docs`
 
-### 3. Stop
+### 3. Development mode with live reload
+
+Use the base compose file together with the dev override:
+
+```bash
+docker compose -f compose.yaml -f compose.dev.yaml up --build
+```
+
+In this mode:
+
+- backend code from `./backend` is bind-mounted into the container
+- frontend assets from `./frontend` are bind-mounted into the container
+- `uvicorn` runs with `--reload` for Python changes in `backend/`
+- frontend HTML, CSS, and JS changes are served directly from disk after a browser refresh
+
+You only need another `--build` when image-level inputs change, for example:
+
+- `Dockerfile`
+- `pyproject.toml`
+- `requirements.txt`
+
+Normal backend and frontend code edits do not require rebuilding the image in dev mode.
+
+### 4. Stop
 
 ```bash
 docker compose down
@@ -218,6 +241,7 @@ Notes:
 - `SECRET_KEY` has no fallback. Without it the app must not start.
 - `.env` is loaded automatically on import.
 - runtime defaults to PostgreSQL on `127.0.0.1:5432`
+- SQLite is not supported anymore; startup rejects `sqlite:///...` database URLs.
 - `APP_HOST` and `APP_PORT` are used by the Docker entrypoint and can also be reused for local shell scripts.
 - CORS defaults to localhost only.
 - image limits are in bytes

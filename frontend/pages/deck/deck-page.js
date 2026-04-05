@@ -5,7 +5,7 @@
 
   renderSidebar(document.getElementById("sidebarShell"), {
     active: "decks",
-    decksHref: "/deck.html?new=1",
+    decksHref: "/deck?new=1",
     homeLabel: "Home",
     variant: "panel",
   });
@@ -136,7 +136,7 @@
     onLogin: authUi.openLogin,
     onSignup: authUi.openSignup,
     onProfile: () => navigateAway("/"),
-    onSettings: () => navigateAway("/settings.html"),
+    onSettings: () => navigateAway("/settings"),
     onLogout: async () => {
       if (!confirmLeave()) return;
       await clearAuthToken();
@@ -305,7 +305,7 @@
             <th>Interval</th>
             <th>Next Appearance</th>
             <th>Last Review</th>
-            <th>EF</th>
+            <th title="Ease factor used to grow future review intervals">Ease</th>
           </tr>
         </thead>
         <tbody>
@@ -326,7 +326,7 @@
                   <div class="interval-next-sub">${escapeHtml(formatDateTime(reviewState?.due_at))}</div>
                 </td>
                 <td>${escapeHtml(formatDateTime(reviewState?.last_reviewed_at))}</td>
-                <td>${reviewState?.ease_factor ? escapeHtml(Number(reviewState.ease_factor).toFixed(2)) : "—"}</td>
+                <td title="Ease factor">${reviewState?.ease_factor ? escapeHtml(Number(reviewState.ease_factor).toFixed(2)) : "—"}</td>
               </tr>
             `;
           }).join("")}
@@ -345,7 +345,7 @@
 
   function currentExitUrl() {
     if (isScheduleViewActive() && state.deckId) {
-      return `/study.html?deck=${state.deckId}`;
+      return `/study?deck=${state.deckId}`;
     }
     return "/";
   }
@@ -382,7 +382,7 @@
 
   function currentShareLink() {
     if (!state.deckId) return "";
-    return `${window.location.origin}/study.html?deck=${state.deckId}`;
+    return `${window.location.origin}/study?deck=${state.deckId}`;
   }
 
   function hydrateDraft(deck) {
@@ -799,7 +799,7 @@
         });
         targetDeckId = created.id;
         state.deckId = String(created.id);
-        history.replaceState({}, "", `/deck.html?id=${created.id}`);
+        history.replaceState({}, "", `/deck?id=${created.id}`);
       } else {
         await api(`/decks/${targetDeckId}`, {
           method: "PUT",
@@ -854,7 +854,7 @@
       const freshDeck = await api(`/decks/${targetDeckId}`, { headers: deckAccessHeaders() });
       hydrateDraft(freshDeck);
       setStatus(dom.deckStatusMessage, "Deck saved.", "success");
-      navigateAway(`/study.html?deck=${targetDeckId}`);
+      navigateAway(`/study?deck=${targetDeckId}`);
     } catch (error) {
       setStatus(dom.deckStatusMessage, error.message, "error");
     }

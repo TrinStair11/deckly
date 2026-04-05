@@ -69,7 +69,15 @@ def apply_deck_update(deck: models.Deck, payload: schemas.DeckUpdate) -> None:
     deck.updated_at = utcnow()
 
 
-@router.post("/decks", response_model=schemas.DeckOut, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/decks",
+    response_model=schemas.DeckOut,
+    status_code=status.HTTP_201_CREATED,
+    tags=["Decks"],
+    summary="Create deck",
+    description="Create a new flashcard deck for the authenticated user, optionally including an initial batch of cards.",
+    response_description="Created deck summary.",
+)
 def create_deck(deck: schemas.DeckCreate, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     visibility, password = validate_deck_privacy(deck.visibility, deck.password if deck.visibility == "private" else "")
     now = utcnow()
@@ -104,7 +112,14 @@ def create_deck(deck: schemas.DeckCreate, current_user=Depends(get_current_user)
     return serialize_deck(new_deck, current_user_id=current_user.id, progress=progress)
 
 
-@router.get("/decks", response_model=list[schemas.DeckOut])
+@router.get(
+    "/decks",
+    response_model=list[schemas.DeckOut],
+    tags=["Decks"],
+    summary="List deck library",
+    description="Return the authenticated user's owned decks together with decks saved from other users.",
+    response_description="Deck library entries.",
+)
 def list_decks(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     owned_decks = db.query(models.Deck).filter(models.Deck.owner_id == current_user.id).all()
     saved_links = db.query(models.UserSavedDeck).filter(models.UserSavedDeck.user_id == current_user.id).all()
@@ -122,7 +137,14 @@ def list_decks(current_user=Depends(get_current_user), db: Session = Depends(get
     ]
 
 
-@router.get("/decks/{deck_id}", response_model=schemas.DeckDetail)
+@router.get(
+    "/decks/{deck_id}",
+    response_model=schemas.DeckDetail,
+    tags=["Decks"],
+    summary="Get deck details",
+    description="Load a deck that the authenticated user owns or can access. Private shared decks may require `X-Deck-Access-Token`.",
+    response_description="Detailed deck payload with cards and progress.",
+)
 def get_deck(
     deck_id: int,
     current_user=Depends(get_current_user),
@@ -140,7 +162,14 @@ def get_deck(
     )
 
 
-@router.put("/decks/{deck_id}", response_model=schemas.DeckOut)
+@router.put(
+    "/decks/{deck_id}",
+    response_model=schemas.DeckOut,
+    tags=["Decks"],
+    summary="Update deck",
+    description="Update a deck owned by the authenticated user, including title, description, visibility, and password settings.",
+    response_description="Updated deck summary.",
+)
 def update_deck(deck_id: int, payload: schemas.DeckUpdate, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     deck = get_owned_deck_or_404(deck_id, current_user.id, db)
     apply_deck_update(deck, payload)
@@ -151,7 +180,14 @@ def update_deck(deck_id: int, payload: schemas.DeckUpdate, current_user=Depends(
     return serialize_deck(deck, current_user_id=current_user.id, progress=progress)
 
 
-@router.delete("/decks/{deck_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/decks/{deck_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    tags=["Decks"],
+    summary="Delete deck",
+    description="Delete a deck owned by the authenticated user.",
+    response_description="Deck deleted successfully.",
+)
 def delete_deck(deck_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     deck = get_owned_deck_or_404(deck_id, current_user.id, db)
     db.delete(deck)

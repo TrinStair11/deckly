@@ -8,9 +8,13 @@ window.studySession = (() => {
     const SM2_MAX_EASE_FACTOR = 2.8;
     const INITIAL_EASE_FACTOR = 2.5;
     const LEARNING_STEPS_MS = [60_000, 10 * 60_000];
-    const RELEARNING_STEPS_MS = [10 * 60_000];
+    const RELEARNING_STEPS_MS = [10 * 60_000, 24 * 60 * 60_000];
     const FIRST_REVIEW_INTERVAL_DAYS = 1;
     const SECOND_REVIEW_INTERVAL_DAYS = 6;
+    const LEARNING_EASY_GRADUATION_INTERVAL_DAYS = 3;
+    const REVIEW_HARD_INTERVAL_MULTIPLIER = 1.2;
+    const REVIEW_EASY_INTERVAL_MULTIPLIER = 1.3;
+    const REVIEW_OVERDUE_BONUS_WEIGHT = 0.5;
     const RATING_QUALITY = { again: 1, hard: 3, good: 4, easy: 5 };
 
     function renderAll() {
@@ -25,14 +29,22 @@ window.studySession = (() => {
       return actions.startMode?.(modeId);
     }
 
+    function beginPreparedSession() {
+      return actions.beginPreparedSession?.();
+    }
+
     function modeLabel() {
       return actions.modeLabel?.() || "Deck Hub";
     }
 
     function normalizeStudySettings(raw = {}) {
+      const parsedNewCardsLimit = Number(raw.newCardsLimit);
       return {
         cardSideOrder: raw.cardSideOrder === "back" ? "back" : DEFAULT_STUDY_SETTINGS.cardSideOrder,
         shuffleCards: Boolean(raw.shuffleCards),
+        newCardsLimit: Number.isFinite(parsedNewCardsLimit)
+          ? Math.max(0, Math.min(200, Math.round(parsedNewCardsLimit)))
+          : DEFAULT_STUDY_SETTINGS.newCardsLimit,
       };
     }
 
@@ -50,6 +62,7 @@ window.studySession = (() => {
         normalizeStudySettings({
           cardSideOrder: state.cardSideOrder,
           shuffleCards: state.shuffleCards,
+          newCardsLimit: state.newCardsLimit,
         })
       );
       localStorage.setItem(studySettingsStorageKey(), payload);
@@ -60,6 +73,7 @@ window.studySession = (() => {
       if (!stored) {
         state.cardSideOrder = DEFAULT_STUDY_SETTINGS.cardSideOrder;
         state.shuffleCards = DEFAULT_STUDY_SETTINGS.shuffleCards;
+        state.newCardsLimit = DEFAULT_STUDY_SETTINGS.newCardsLimit;
         return;
       }
       try {
@@ -67,9 +81,11 @@ window.studySession = (() => {
         const normalized = normalizeStudySettings(parsed);
         state.cardSideOrder = normalized.cardSideOrder;
         state.shuffleCards = normalized.shuffleCards;
+        state.newCardsLimit = normalized.newCardsLimit;
       } catch (error) {
         state.cardSideOrder = DEFAULT_STUDY_SETTINGS.cardSideOrder;
         state.shuffleCards = DEFAULT_STUDY_SETTINGS.shuffleCards;
+        state.newCardsLimit = DEFAULT_STUDY_SETTINGS.newCardsLimit;
       }
     }
 
@@ -93,6 +109,18 @@ window.studySession = (() => {
     function currentCard() {
       clampIndex();
       return state.sessionCards[state.currentIndex] || null;
+    }
+
+    function canPersistIntervalSession() {
+      return Boolean(state.deck?.progress);
+    }
+
+    function isPersistentIntervalSession() {
+      return Boolean(state.dueSession?.mode === "interval" && canPersistIntervalSession());
+    }
+
+    function isPreviewIntervalSession() {
+      return Boolean(state.mode === "interval" && state.dueSession && !isPersistentIntervalSession());
     }
 
     function normalizeIntervalCardState(card) {
@@ -136,6 +164,14 @@ window.studySession = (() => {
       return normalizeEaseFactor(adjusted);
     }
 
+    function calculateIntervalAnchorDays(scheduledDays, elapsedDays) {
+      const scheduled = Math.max(scheduledDays || 0, FIRST_REVIEW_INTERVAL_DAYS);
+      const observed = Math.max(elapsedDays || 0, 0);
+      const effectiveElapsed = Math.max(observed, FIRST_REVIEW_INTERVAL_DAYS);
+      if (effectiveElapsed <= scheduled) return effectiveElapsed;
+      return scheduled + (effectiveElapsed - scheduled) * REVIEW_OVERDUE_BONUS_WEIGHT;
+    }
+
     function getHardLearningDelayMs(steps, currentStep) {
       const currentDelay = steps[currentStep];
       if (currentStep + 1 < steps.length) {
@@ -156,26 +192,32 @@ window.studySession = (() => {
         if (currentStep >= steps.length - 1) return FIRST_REVIEW_INTERVAL_DAYS * 86400_000;
         return steps[currentStep + 1];
       }
-      return FIRST_REVIEW_INTERVAL_DAYS * 86400_000;
+      return (isRelearning ? FIRST_REVIEW_INTERVAL_DAYS : LEARNING_EASY_GRADUATION_INTERVAL_DAYS) * 86400_000;
     }
 
     function previewReviewDelay(stateSnapshot, rating) {
       const quality = RATING_QUALITY[rating];
       const currentEaseFactor = getEaseFactor(stateSnapshot);
+      const reviewCount = Math.max(stateSnapshot.reps || 0, 0);
       const scheduledDays = Math.max(stateSnapshot.scheduled_days || 0, 0);
+      const elapsedDays = Math.max(stateSnapshot.elapsed_days || 0, 0);
 
       if (quality < 3) return RELEARNING_STEPS_MS[0];
-
-      if ((stateSnapshot.reps || 0) <= 0) {
-        return FIRST_REVIEW_INTERVAL_DAYS * 86400_000;
-      }
-      if (stateSnapshot.reps === 1) {
-        return SECOND_REVIEW_INTERVAL_DAYS * 86400_000;
+      if (rating === "hard") {
+        const baseInterval = calculateIntervalAnchorDays(scheduledDays, elapsedDays);
+        return Math.max(FIRST_REVIEW_INTERVAL_DAYS, baseInterval * REVIEW_HARD_INTERVAL_MULTIPLIER) * 86400_000;
       }
 
       const nextEase = nextEaseFactor(currentEaseFactor, quality);
-      const baseInterval = Math.max(scheduledDays, FIRST_REVIEW_INTERVAL_DAYS);
-      return Math.ceil(baseInterval * nextEase) * 86400_000;
+      let nextIntervalDays = FIRST_REVIEW_INTERVAL_DAYS;
+      if (reviewCount === 1) {
+        nextIntervalDays = SECOND_REVIEW_INTERVAL_DAYS;
+      } else if (reviewCount > 1) {
+        const baseInterval = calculateIntervalAnchorDays(scheduledDays, elapsedDays);
+        nextIntervalDays = baseInterval * nextEase;
+      }
+      if (rating === "easy") nextIntervalDays *= REVIEW_EASY_INTERVAL_MULTIPLIER;
+      return nextIntervalDays * 86400_000;
     }
 
     function formatDelayLabel(delayMs) {
@@ -191,6 +233,16 @@ window.studySession = (() => {
     }
 
     function buildIntervalRatingPreviews(card) {
+      const serverPreview = card?.interval_preview;
+      if (
+        serverPreview
+        && typeof serverPreview.again === "string"
+        && typeof serverPreview.hard === "string"
+        && typeof serverPreview.good === "string"
+        && typeof serverPreview.easy === "string"
+      ) {
+        return serverPreview;
+      }
       const stateSnapshot = normalizeIntervalCardState(card);
       const computeDelay = stateSnapshot.status === "review" ? previewReviewDelay : previewLearningDelay;
 
@@ -202,12 +254,57 @@ window.studySession = (() => {
       };
     }
 
+    function getIntervalQueueCards() {
+      const cards = state.dueSession?.cards || [];
+      const startIndex = Number.isFinite(state.dueSession?.current_index) ? state.dueSession.current_index : 0;
+      return cards.slice(Math.max(startIndex, 0));
+    }
+
+    function buildIntervalQueueBreakdown(cards = getIntervalQueueCards()) {
+      return cards.reduce((summary, card) => {
+        summary.total += 1;
+        const reviewState = card?.state || null;
+        if (!reviewState || reviewState.status === "new") {
+          summary.newCards += 1;
+          return summary;
+        }
+
+        if (reviewState.status === "learning") {
+          summary.learningCards += 1;
+          return summary;
+        }
+
+        if (reviewState.status === "relearning") {
+          summary.relearningCards += 1;
+          return summary;
+        }
+
+        summary.reviewCards += 1;
+        const dueAtMs = reviewState.due_at ? new Date(reviewState.due_at).getTime() : Number.NaN;
+        if (Number.isFinite(dueAtMs) && dueAtMs < Date.now()) summary.overdueCards += 1;
+        return summary;
+      }, {
+        total: 0,
+        newCards: 0,
+        learningCards: 0,
+        relearningCards: 0,
+        reviewCards: 0,
+        overdueCards: 0,
+      });
+    }
+
+    function countIntervalRepetitions(cards = state.sessionCards) {
+      if (!Array.isArray(cards) || !cards.length) return 0;
+      return Math.max(cards.length - new Set(cards.map((card) => card.id)).size, 0);
+    }
+
     function captureSessionSnapshot() {
       return {
         currentIndex: state.currentIndex,
         revealed: state.revealed,
         correct: state.correct,
         incorrect: state.incorrect,
+        intervalRatings: { ...state.intervalRatings },
         missedCardIds: [...state.missedCardIds],
         lastAnswer: state.lastAnswer ? { ...state.lastAnswer } : null,
         testChoices: [...state.testChoices]
@@ -230,6 +327,7 @@ window.studySession = (() => {
       state.revealed = snapshot.revealed;
       state.correct = snapshot.correct;
       state.incorrect = snapshot.incorrect;
+      state.intervalRatings = { ...snapshot.intervalRatings };
       state.missedCardIds = [...snapshot.missedCardIds];
       state.lastAnswer = snapshot.lastAnswer ? { ...snapshot.lastAnswer } : null;
       state.testChoices = [...snapshot.testChoices];
@@ -317,13 +415,16 @@ window.studySession = (() => {
       return (revealed ? secondaryCardSide() : primaryCardSide()) === 'front' ? 'Front' : 'Back';
     }
 
-    async function loadIntervalSession() {
+    async function loadIntervalSession(options = {}) {
       if (!deckId) return null;
-      if (state.me) {
+      const { restartSession = false } = options;
+      if (canPersistIntervalSession()) {
         const params = new URLSearchParams({
           mode: "interval",
-          shuffle_cards: state.shuffleCards ? "true" : "false"
+          shuffle_cards: state.shuffleCards ? "true" : "false",
+          new_cards_limit: String(state.newCardsLimit),
         });
+        if (restartSession) params.set("restart_session", "true");
         state.dueSession = await api(`/decks/${deckId}/study/session?${params.toString()}`);
         return state.dueSession;
       }
@@ -335,9 +436,13 @@ window.studySession = (() => {
       if (!state.mode) return;
       state.settingsOpen = false;
       if (state.mode === 'interval') {
-        await loadIntervalSession();
+        await loadIntervalSession({ restartSession: true });
+        startMode(state.mode);
+        beginPreparedSession();
+        return;
       }
       startMode(state.mode);
+      if (state.mode === 'limit') beginPreparedSession();
     }
 
     function syncFlipPresentation() {
@@ -372,6 +477,11 @@ window.studySession = (() => {
       secondaryCardSide,
       currentSideLabel,
       buildIntervalRatingPreviews,
+      isPersistentIntervalSession,
+      isPreviewIntervalSession,
+      getIntervalQueueCards,
+      buildIntervalQueueBreakdown,
+      countIntervalRepetitions,
       loadIntervalSession,
       startCurrentSessionWithSettings,
       syncFlipPresentation,

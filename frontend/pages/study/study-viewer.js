@@ -10,16 +10,20 @@ window.studyViewer = (() => {
       primaryCardSide,
       secondaryCardSide,
       currentSideLabel,
+      isPreviewIntervalSession,
+      countIntervalRepetitions,
       canUndoSessionAction,
     } = helpers;
     const {
       loadDeck,
       undoLastSessionAction,
       startMode,
+      beginPreparedSession,
       buildTestChoices,
       answerTest,
       flipCurrentCard,
       modeLabel,
+      startCurrentSessionWithSettings,
     } = actions;
     const { deckId } = config;
 
@@ -88,6 +92,8 @@ window.studyViewer = (() => {
       state.started = false;
       state.correct = 0;
       state.incorrect = 0;
+      state.intervalRatings = { again: 0, hard: 0, good: 0, easy: 0 };
+      state.intervalStartIndex = 0;
       state.missedCardIds = [];
       state.actionHistory = [];
       state.lastAnswer = null;
@@ -123,7 +129,11 @@ window.studyViewer = (() => {
       const resultsRing = document.getElementById("resultsRing");
 
       if (primaryCompletionBtn) {
-        primaryCompletionBtn.addEventListener("click", () => {
+        primaryCompletionBtn.addEventListener("click", async () => {
+          if (state.mode === "interval") {
+            await startCurrentSessionWithSettings();
+            return;
+          }
           if (missedCount) {
             runMissedReview();
             return;
@@ -131,7 +141,16 @@ window.studyViewer = (() => {
           startMode(state.mode);
         });
       }
-      if (practiceAgainBtn) practiceAgainBtn.addEventListener("click", () => startMode(state.mode));
+      if (practiceAgainBtn) {
+        practiceAgainBtn.addEventListener("click", async () => {
+          if (state.mode === "interval") {
+            await startCurrentSessionWithSettings();
+            return;
+          }
+          startMode(state.mode);
+          if (state.mode === "limit") beginPreparedSession();
+        });
+      }
       if (restartDeckBtn) {
         restartDeckBtn.addEventListener("click", () => {
           state.mode = "all";
@@ -161,6 +180,123 @@ window.studyViewer = (() => {
     function renderCompletion() {
       setViewerSessionMode(false);
       const total = state.sessionCards.length;
+
+      if (state.mode === "interval") {
+        const intervalStartIndex = state.intervalStartIndex || 0;
+        const localTotal = Math.max(total - intervalStartIndex, 0);
+        const intervalRatings = state.intervalRatings || { again: 0, hard: 0, good: 0, easy: 0 };
+        const reviewed = Math.max(Math.min(state.currentIndex, total) - intervalStartIndex, 0);
+        const repeatedToday = countIntervalRepetitions(state.sessionCards.slice(intervalStartIndex));
+        const previewOnly = isPreviewIntervalSession();
+        const dominantRating = ["again", "hard", "good", "easy"].sort(
+          (left, right) => (intervalRatings[right] || 0) - (intervalRatings[left] || 0)
+        )[0];
+        const headline = intervalRatings.again > 0
+          ? "Due queue cleared and some cards came back for extra reinforcement."
+          : intervalRatings.hard > 0
+            ? "Due queue cleared with a few tighter follow-ups."
+            : "Due queue cleared with stable recall.";
+        const primaryActionLabel = previewOnly ? "Run preview again" : "Start a fresh interval run";
+        const nextStepTitle = previewOnly ? "Unlock personal scheduling" : "Next move";
+        const nextStepCopy = previewOnly
+          ? (state.me
+            ? "Save this deck to your library to start tracking personal intervals and progress."
+            : "Sign in and save this deck to unlock personal spaced repetition scheduling.")
+          : (repeatedToday
+            ? "Cards rated Again or Hard were pushed closer. Come back later today if they return."
+            : "No cards were sent back for another pass in this run. Keep rating honestly so the schedule stays trustworthy.");
+        const dominantLabel = dominantRating ? dominantRating.charAt(0).toUpperCase() + dominantRating.slice(1) : "Good";
+        const insight = previewOnly
+          ? "This preview lets you practice the rating flow, but it does not save intervals or progress."
+          : `Most ratings were ${dominantLabel}. Keep using Again, Hard, Good, and Easy based on recall quality rather than how you want the schedule to look.`;
+        const ringDegrees = "360deg";
+
+        cardViewer.innerHTML = `
+          <div class="card-body p-4 p-xl-5 d-grid gap-5">
+            <div class="results-hero">
+              <div class="d-flex justify-content-center justify-content-xl-start">
+                <span class="results-kicker"><i class="bi bi-stars"></i>Session complete</span>
+              </div>
+              <h2 class="results-headline">${headline}</h2>
+              <p class="results-subtitle">${reviewed} of ${localTotal} cards cleared in <span class="text-light">${escapeHtml(state.deck.name)}</span>. ${repeatedToday} card${repeatedToday === 1 ? "" : "s"} repeated in this run.</p>
+            </div>
+            <div class="results-shell">
+              <div class="completion-layout">
+                <section class="completion-summary">
+                  <div class="completion-core">
+                    <div class="d-flex justify-content-center justify-content-xl-start">
+                      <div class="results-ring" id="resultsRing" style="--progress: 0deg;">
+                        <div class="results-ring-value">
+                          <div class="results-ring-number">0</div>
+                          <div class="results-ring-label">Due Left</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="completion-outcome">
+                      <div class="completion-outcome-label">Scheduling outcome</div>
+                      <div class="completion-outcome-main">Again ${intervalRatings.again} · Hard ${intervalRatings.hard} · Good ${intervalRatings.good} · Easy ${intervalRatings.easy}</div>
+                      <div class="completion-outcome-sub">Queue cleared for this run. ${previewOnly ? "Preview ratings were not saved." : "Future timing now reflects these ratings."}</div>
+                    </div>
+                  </div>
+                  <div class="completion-metric-grid">
+                    <div class="completion-metric again">
+                      <div class="completion-metric-label">Again</div>
+                      <div class="completion-metric-value">${intervalRatings.again}</div>
+                    </div>
+                    <div class="completion-metric hard">
+                      <div class="completion-metric-label">Hard</div>
+                      <div class="completion-metric-value">${intervalRatings.hard}</div>
+                    </div>
+                    <div class="completion-metric good">
+                      <div class="completion-metric-label">Good</div>
+                      <div class="completion-metric-value">${intervalRatings.good}</div>
+                    </div>
+                    <div class="completion-metric easy">
+                      <div class="completion-metric-label">Easy</div>
+                      <div class="completion-metric-value">${intervalRatings.easy}</div>
+                    </div>
+                    <div class="completion-metric repeat">
+                      <div class="completion-metric-label">Repeated Today</div>
+                      <div class="completion-metric-value">${repeatedToday}</div>
+                    </div>
+                  </div>
+                  <div class="results-insight">${insight}</div>
+                </section>
+                <aside class="completion-actions">
+                  <div class="completion-action-header">
+                    <div class="eyebrow">${nextStepTitle}</div>
+                    <h3 class="title">${previewOnly ? "Switch from preview to real scheduling" : "Keep the schedule honest"}</h3>
+                    <p class="copy">${nextStepCopy}</p>
+                  </div>
+                  <button class="btn completion-action-primary w-100 results-action-btn primary" type="button" id="primaryCompletionBtn">
+                    <span class="action-leading"><i class="bi bi-lightning-charge"></i></span>
+                    <span class="action-label">${primaryActionLabel}</span>
+                    <span class="action-tag">Recommended</span>
+                  </button>
+                  <div class="secondary-action-row">
+                    <button class="btn completion-action-secondary results-action-btn" type="button" id="practiceAgainBtn">
+                      <i class="bi bi-arrow-repeat"></i>${previewOnly ? "Run preview again" : "Restart interval queue"}
+                    </button>
+                    <button class="btn completion-action-secondary results-action-btn" type="button" id="restartDeckBtn">
+                      <i class="bi bi-postcard"></i>Restart full deck
+                    </button>
+                  </div>
+                  <div class="utility-action-row">
+                    <button class="utility-action-btn" type="button" id="returnHubBtn">
+                      <i class="bi bi-grid"></i>Return to deck hub
+                    </button>
+                  </div>
+                </aside>
+              </div>
+            </div>
+          </div>
+        `;
+        controlBar.innerHTML = "";
+        controlBar.className = "card control-card shadow-sm rounded-4 d-none";
+        bindCompletionActions(total, 0, ringDegrees);
+        return;
+      }
+
       const completed = Math.min(state.correct + state.incorrect, total);
       const successRate = total ? Math.round((state.correct / total) * 100) : 0;
       const ringDegrees = `${Math.round((successRate / 100) * 360)}deg`;
@@ -323,7 +459,7 @@ window.studyViewer = (() => {
       const mainContent = state.mode === "test" ? card.front : (showBack ? card[secondarySide] : card[primarySide]);
       const isFlippable = state.mode !== "test";
       const exitLabelClass = state.reviewExitLabel === "Know it!" ? "know" : "dontknow";
-      const showTopProgress = state.mode !== "all" && state.mode !== "limit";
+      const showTopProgress = state.mode === "test";
       const headerRowClass = showTopProgress
         ? "d-flex justify-content-between align-items-center gap-3"
         : "d-flex justify-content-start align-items-center gap-3";

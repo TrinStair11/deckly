@@ -1,0 +1,7 @@
+services:
+  app:
+    environment:
+      APP_RELOAD: "true"
+    volumes:
+      - ./backend:/app/backend
+      - ./frontend:/app/frontend

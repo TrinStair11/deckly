@@ -8,16 +8,23 @@ from .auth import get_current_user, get_db
 from .decks import get_accessible_deck_or_404
 from .spaced_repetition import build_study_session, refresh_user_deck_progress
 
-router = APIRouter()
+router = APIRouter(tags=["Study"])
 
 
-@router.get("/decks/{deck_id}/study/session", response_model=schemas.StudySession)
+@router.get(
+    "/decks/{deck_id}/study/session",
+    response_model=schemas.StudySession,
+    summary="Build study session",
+    description="Generate a study session for a deck using the requested mode, card limits, and shuffle settings. Private shared decks may require `X-Deck-Access-Token`.",
+    response_description="Prepared study session payload.",
+)
 def get_study_session(
     deck_id: int,
     mode: str = "interval",
     limit: Annotated[int | None, Query(ge=1)] = None,
     new_cards_limit: Annotated[int, Query(ge=0, le=200)] = 10,
     shuffle_cards: bool = False,
+    restart_session: bool = False,
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
     x_deck_access_token: Annotated[str | None, Header()] = None,
@@ -32,10 +39,18 @@ def get_study_session(
         new_cards_limit=new_cards_limit,
         shuffle_cards=shuffle_cards,
         persist_progress=False,
+        restart_session=restart_session,
     )
 
 
-@router.get("/decks/{deck_id}/study", response_model=schemas.StudySession)
+@router.get(
+    "/decks/{deck_id}/study",
+    response_model=schemas.StudySession,
+    summary="Get legacy study session",
+    description="Legacy study-session endpoint kept for backward compatibility. Prefer `/decks/{deck_id}/study/session` for new integrations.",
+    response_description="Prepared study session payload.",
+    deprecated=True,
+)
 def get_legacy_study_session(
     deck_id: int,
     current_user=Depends(get_current_user),
@@ -46,7 +61,13 @@ def get_legacy_study_session(
     return build_study_session(deck, current_user, db, mode="interval", persist_progress=False)
 
 
-@router.get("/decks/{deck_id}/progress", response_model=schemas.ProgressOut)
+@router.get(
+    "/decks/{deck_id}/progress",
+    response_model=schemas.ProgressOut,
+    summary="Get deck progress",
+    description="Return the current user's spaced repetition progress for the specified deck. Private shared decks may require `X-Deck-Access-Token`.",
+    response_description="Per-user deck progress snapshot.",
+)
 def get_deck_progress(
     deck_id: int,
     current_user=Depends(get_current_user),

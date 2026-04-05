@@ -29,6 +29,11 @@ window.studyRender = (() => {
       primaryCardSide,
       secondaryCardSide,
       currentSideLabel,
+      isPersistentIntervalSession,
+      isPreviewIntervalSession,
+      getIntervalQueueCards,
+      buildIntervalQueueBreakdown,
+      countIntervalRepetitions,
       canUndoSessionAction,
       shuffle,
       api,
@@ -53,8 +58,37 @@ window.studyRender = (() => {
       accountMenuUi.render(state.me);
     }
 
+    function intervalModeMeta() {
+      const previewOnly = Boolean(state.dueSession && !isPersistentIntervalSession());
+      return previewOnly
+        ? {
+            label: "Interval Preview",
+            copy: state.me
+              ? "Preview spaced repetition ratings. Save this deck to track personal scheduling."
+              : "Preview spaced repetition ratings. Sign in and save the deck to track progress.",
+          }
+        : {
+            label: "Interval Review",
+            copy: "Due cards with spaced repetition rating buttons.",
+          };
+    }
+
+    function formatIntervalQueueChips(breakdown) {
+      return [
+        breakdown.reviewCards ? { label: "Due Reviews", value: breakdown.reviewCards } : null,
+        breakdown.overdueCards ? { label: "Overdue", value: breakdown.overdueCards } : null,
+        breakdown.learningCards ? { label: "Learning", value: breakdown.learningCards } : null,
+        breakdown.relearningCards ? { label: "Relearning", value: breakdown.relearningCards } : null,
+        breakdown.newCards ? { label: "New", value: breakdown.newCards } : null,
+      ].filter(Boolean);
+    }
+
     function renderModes() {
-      modeGrid.innerHTML = MODES.map((mode) => `
+      const intervalMeta = intervalModeMeta();
+      const modes = MODES.map((mode) => (
+        mode.id === "interval" ? { ...mode, label: intervalMeta.label, copy: intervalMeta.copy } : mode
+      ));
+      modeGrid.innerHTML = modes.map((mode) => `
         <div class="col-12 col-xl-4">
           <button class="card mode-tile w-100 h-100 text-start shadow-sm rounded-4 ${state.mode === mode.id ? "active" : ""}" type="button" data-mode="${mode.id}">
             <div class="card-body d-grid gap-3">
@@ -91,15 +125,51 @@ window.studyRender = (() => {
         return;
       }
       if (state.mode === "interval" && !state.started) {
-        const dueCount = state.dueSession?.cards?.length || 0;
+        const queueCards = getIntervalQueueCards();
+        const breakdown = buildIntervalQueueBreakdown(queueCards);
+        const intervalMeta = intervalModeMeta();
+        const previewOnly = isPreviewIntervalSession();
+        const resumeSession = (state.dueSession?.current_index || 0) > 0;
+        const queueChips = formatIntervalQueueChips(breakdown);
+        const startLabel = previewOnly
+          ? (resumeSession ? "Resume Preview" : "Start Preview")
+          : (resumeSession ? "Resume Interval Review" : "Start Interval Review");
+        const ctaLabel = state.me ? "Save to My Decks" : "Sign In to Save Progress";
         setupPanel.classList.remove("d-none");
         setupPanel.innerHTML = `
           <div class="card-body d-grid gap-3">
-            <div>
-              <strong class="d-block mb-1">Interval Review Queue</strong>
-              <div class="text-secondary">${dueCount} cards are currently available in the due queue.</div>
+            <div class="d-grid gap-2">
+              <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <strong class="d-block mb-0">${intervalMeta.label} Queue</strong>
+                ${previewOnly ? '<span class="badge rounded-pill text-bg-warning text-dark">Preview only</span>' : ""}
+              </div>
+              <div class="text-secondary">
+                ${previewOnly
+                  ? `${breakdown.total} cards are available in preview. Ratings are not saved and this run does not update a personal schedule.`
+                  : `${breakdown.total} cards are currently available in the due queue.`}
+              </div>
+              ${queueChips.length ? `
+                <div class="interval-breakdown-row">
+                  ${queueChips.map((item) => `
+                    <span class="interval-breakdown-chip">
+                      <span>${escapeHtml(item.label)}</span>
+                      <strong>${escapeHtml(String(item.value))}</strong>
+                    </span>
+                  `).join("")}
+                </div>
+              ` : ""}
+              <div class="small text-secondary">
+                ${previewOnly
+                  ? (state.me
+                    ? "Save this deck to your library to unlock personal spaced repetition scheduling."
+                    : "Sign in and save this deck to unlock personal spaced repetition scheduling.")
+                  : "Queue includes due learning and relearning cards plus scheduled reviews for this run."}
+              </div>
             </div>
-            <div><button class="btn btn-light text-dark" type="button" id="startIntervalBtn">Start Interval Review</button></div>
+            <div class="d-flex gap-2 flex-wrap align-items-center">
+              <button class="btn btn-light text-dark" type="button" id="startIntervalBtn">${startLabel}</button>
+              ${previewOnly ? `<button class="btn btn-outline-light" type="button" id="intervalSaveProgressBtn">${ctaLabel}</button>` : ""}
+            </div>
           </div>
         `;
         return;
@@ -109,11 +179,12 @@ window.studyRender = (() => {
     }
 
     function modeLabel() {
+      if (state.mode === "interval") return intervalModeMeta().label;
       return MODES.find((mode) => mode.id === state.mode)?.label || "Deck Hub";
     }
 
     function currentDeckLink() {
-      return `${window.location.origin}/study.html?deck=${deckId}`;
+      return `${window.location.origin}/study?deck=${deckId}`;
     }
 
     function currentOwnerName() {
@@ -153,19 +224,99 @@ window.studyRender = (() => {
         const activeStep = Math.min(state.currentIndex + 1, Math.max(state.sessionCards.length, 1));
         deckSubtitle.textContent = `${modeLabel()} in progress — card ${activeStep} of ${state.sessionCards.length}.`;
       }
-      editDeckBtn.href = `/deck.html?id=${state.deck.id}&view=interval`;
+      editDeckBtn.href = `/deck?id=${state.deck.id}&view=interval`;
       editDeckBtn.innerHTML = '<i class="bi bi-list-ul me-2"></i>Word List';
       renderPrivacyState();
     }
 
     function renderStats() {
       const total = state.sessionCards.length;
-      const reviewed = Math.min(state.correct + state.incorrect, total);
-      const completion = total ? Math.round((reviewed / total) * 100) : 0;
-      const remaining = Math.max(total - reviewed, 0);
+      const intervalStartIndex = state.intervalStartIndex || 0;
+      const intervalTotal = state.mode === "interval" ? Math.max(total - intervalStartIndex, 0) : total;
+      const intervalRatings = state.intervalRatings || { again: 0, hard: 0, good: 0, easy: 0 };
+      const intervalReviewed = state.mode === "interval"
+        ? Math.max(Math.min(state.currentIndex, total) - intervalStartIndex, 0)
+        : intervalRatings.again + intervalRatings.hard + intervalRatings.good + intervalRatings.easy;
+      const reviewed = state.mode === "interval"
+        ? Math.min(intervalReviewed, intervalTotal)
+        : Math.min(state.correct + state.incorrect, total);
+      const completion = (state.mode === "interval" ? intervalTotal : total)
+        ? Math.round((reviewed / (state.mode === "interval" ? intervalTotal : total)) * 100)
+        : 0;
+      const remaining = Math.max((state.mode === "interval" ? intervalTotal : total) - reviewed, 0);
       const completedSession = isSessionCompleted();
+      const repeatedToday = countIntervalRepetitions(state.sessionCards.slice(intervalStartIndex));
 
       statsGrid.classList.toggle("is-completed", completedSession);
+
+      if (state.mode === "interval" && !state.started) {
+        const breakdown = buildIntervalQueueBreakdown(getIntervalQueueCards());
+        const queueStats = [
+          {
+            label: "Cards in Queue",
+            value: String(breakdown.total),
+            note: isPreviewIntervalSession() ? "Preview cards ready now" : "Ready for this run",
+            className: "stat-primary",
+          },
+          {
+            label: "Due Reviews",
+            value: String(breakdown.reviewCards),
+            note: breakdown.overdueCards ? `${breakdown.overdueCards} overdue` : "Scheduled reviews",
+            className: "stat-positive",
+          },
+          {
+            label: "Learning",
+            value: String(breakdown.learningCards + breakdown.relearningCards),
+            note: breakdown.relearningCards ? `${breakdown.relearningCards} relearning` : "Learning and relearning",
+            className: "stat-negative",
+          },
+          {
+            label: "New Cards",
+            value: String(breakdown.newCards),
+            note: isPreviewIntervalSession() ? "Preview deck cards" : `${state.newCardsLimit} max per run`,
+            className: "stat-muted",
+          },
+        ];
+        statsGrid.innerHTML = queueStats.map((item) => `
+          <div class="col-12 col-md-6 col-xxl-3">
+            <div class="card stat-card shadow-sm rounded-4 h-100 ${item.className}">
+              <div class="card-body">
+                <div class="stat-label">${item.label}</div>
+                <div class="stat-value">${item.value}</div>
+                <div class="stat-note">${item.note}</div>
+              </div>
+            </div>
+          </div>
+        `).join("");
+        return;
+      }
+
+      if (state.mode === "interval" && completedSession) {
+        const progressNote = repeatedToday
+          ? `${repeatedToday} card${repeatedToday === 1 ? "" : "s"} came back for another pass in this run.`
+          : "Due queue cleared in this run.";
+        statsGrid.innerHTML = `
+          <div class="col-12">
+            <div class="card stat-card completion-metrics-strip rounded-4 h-100">
+              <div class="card-body">
+                <div class="completion-progress-main">
+                  <div class="label">Interval Summary</div>
+                  <div class="value">${reviewed} / ${intervalTotal}</div>
+                  <div class="note">${progressNote}</div>
+                </div>
+                <div class="completion-inline-metrics">
+                  <span class="completion-chip interval-again"><span>Again</span><strong>${intervalRatings.again}</strong></span>
+                  <span class="completion-chip interval-hard"><span>Hard</span><strong>${intervalRatings.hard}</strong></span>
+                  <span class="completion-chip interval-good"><span>Good</span><strong>${intervalRatings.good}</strong></span>
+                  <span class="completion-chip interval-easy"><span>Easy</span><strong>${intervalRatings.easy}</strong></span>
+                  <span class="completion-chip remaining ${repeatedToday === 0 ? "zero" : ""}"><span>Repeated Today</span><strong>${repeatedToday}</strong></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        return;
+      }
 
       if (completedSession) {
         const progressNote = remaining === 0
@@ -189,6 +340,59 @@ window.studyRender = (() => {
             </div>
           </div>
         `;
+        return;
+      }
+
+      if (state.mode === "interval") {
+        const stats = [
+          {
+            label: "Session Progress",
+            value: intervalTotal ? `${reviewed} / ${intervalTotal}` : "0 / 0",
+            note: intervalTotal ? `${completion}% completed` : "No active cards",
+            className: "stat-primary",
+          },
+          {
+            label: "Again",
+            value: String(intervalRatings.again),
+            note: "Forgot or failed recall",
+            className: "stat-negative",
+          },
+          {
+            label: "Hard",
+            value: String(intervalRatings.hard),
+            note: "Remembered with effort",
+            className: "stat-negative",
+          },
+          {
+            label: "Good",
+            value: String(intervalRatings.good),
+            note: "Normal recall",
+            className: "stat-positive",
+          },
+          {
+            label: "Easy",
+            value: String(intervalRatings.easy),
+            note: "Instant recall",
+            className: "stat-positive",
+          },
+          {
+            label: "Repeated Today",
+            value: String(repeatedToday),
+            note: "Cards that came back in this run",
+            className: "stat-muted",
+          },
+        ];
+        statsGrid.innerHTML = stats.map((item) => `
+          <div class="col-12 col-md-6 col-xxl-3">
+            <div class="card stat-card shadow-sm rounded-4 h-100 ${item.className}">
+              <div class="card-body">
+                <div class="stat-label">${item.label}</div>
+                <div class="stat-value">${item.value}</div>
+                <div class="stat-note">${item.note}</div>
+              </div>
+            </div>
+          </div>
+        `).join("");
         return;
       }
 
@@ -258,16 +462,20 @@ window.studyRender = (() => {
         primaryCardSide,
         secondaryCardSide,
         currentSideLabel,
+        isPreviewIntervalSession,
+        countIntervalRepetitions,
         canUndoSessionAction,
       },
       actions: {
         loadDeck,
         undoLastSessionAction,
         startMode: actionApi.startMode,
+        beginPreparedSession: actionApi.beginPreparedSession,
         buildTestChoices: actionApi.buildTestChoices,
         answerTest: actionApi.answerTest,
         flipCurrentCard: actionApi.flipCurrentCard,
         modeLabel,
+        startCurrentSessionWithSettings,
         renderAll,
       },
       config: { deckId },
@@ -282,12 +490,14 @@ window.studyRender = (() => {
         primaryCardSide,
         currentCard,
         buildIntervalRatingPreviews: helpers.buildIntervalRatingPreviews,
+        isPreviewIntervalSession,
         captureSessionSnapshot,
         pushSessionUndo,
       },
       actions: {
         toggleFocusMode,
         completeSelfCheck: actionApi.completeSelfCheck,
+        beginPreparedSession: actionApi.beginPreparedSession,
         flipCurrentCard: actionApi.flipCurrentCard,
         submitIntervalRating: actionApi.submitIntervalRating,
         nextTestCard: actionApi.nextTestCard,

@@ -1,10 +1,11 @@
 import os
 import socket
 from contextlib import asynccontextmanager
+from stat import S_ISREG
 from uuid import uuid4
 
 import httpx
-from fastapi import Depends, FastAPI, Request, Response
+from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
@@ -114,7 +115,84 @@ async def app_lifespan(_: FastAPI):
 
 load_local_env()
 
-app = FastAPI(title="Deckly", lifespan=app_lifespan)
+API_DESCRIPTION = """
+Deckly API for flashcard decks, spaced repetition study flows, deck sharing, image management, and quizzes.
+
+Authentication:
+- Browser clients primarily use the HTTP-only session cookie set by the login endpoint.
+- Direct API clients can also authenticate with a Bearer token.
+
+Shared private deck endpoints may additionally require the `X-Deck-Access-Token` header.
+""".strip()
+
+OPENAPI_TAGS = [
+    {
+        "name": "Auth",
+        "description": "Authentication endpoints for creating and managing API sessions.",
+    },
+    {
+        "name": "Account",
+        "description": "User account registration, profile lookup, and credential updates.",
+    },
+    {
+        "name": "Decks",
+        "description": "Flashcard deck creation, library listing, detail lookup, and updates.",
+    },
+    {
+        "name": "Cards",
+        "description": "Card CRUD operations and card ordering within decks.",
+    },
+    {
+        "name": "Study",
+        "description": "Study session generation and per-user spaced repetition progress.",
+    },
+    {
+        "name": "Sharing",
+        "description": "Shared deck access, metadata, private deck unlock, and save-to-library flows.",
+    },
+    {
+        "name": "Reviews",
+        "description": "Review submissions that advance spaced repetition state.",
+    },
+    {
+        "name": "Images",
+        "description": "Image search, import, and upload endpoints used by deck cards and quizzes.",
+    },
+    {
+        "name": "Quizzes",
+        "description": "Quiz authoring, listing, and detail endpoints.",
+    },
+    {
+        "name": "Quiz Attempts",
+        "description": "Quiz session, answer submission, completion, and result retrieval.",
+    },
+]
+
+app = FastAPI(
+    title="Deckly API",
+    version="0.1.0",
+    description=API_DESCRIPTION,
+    openapi_tags=OPENAPI_TAGS,
+    lifespan=app_lifespan,
+    swagger_ui_parameters={
+        "displayRequestDuration": True,
+        "docExpansion": "list",
+        "persistAuthorization": True,
+    },
+)
+
+
+class FrontendStaticFiles(StaticFiles):
+    async def get_response(self, path: str, scope):
+        if path.lower().endswith(".html"):
+            raise HTTPException(status_code=404)
+        return await super().get_response(path, scope)
+
+    def lookup_path(self, path: str):
+        full_path, stat_result = super().lookup_path(path)
+        if stat_result and S_ISREG(stat_result.st_mode) and full_path.lower().endswith(".html"):
+            return "", None
+        return full_path, stat_result
 
 
 def parse_cors_origins(raw_value: str) -> list[str]:
@@ -247,4 +325,4 @@ def upload_image(payload: schemas.ImageUploadRequest, current_user=Depends(get_c
 
 
 app.mount("/media", StaticFiles(directory=MEDIA_DIR), name="media")
-app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=False), name="frontend")
+app.mount("/", FrontendStaticFiles(directory=FRONTEND_DIR, html=False), name="frontend")

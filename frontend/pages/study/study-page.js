@@ -62,7 +62,8 @@
     ];
     const DEFAULT_STUDY_SETTINGS = {
       cardSideOrder: "front",
-      shuffleCards: false
+      shuffleCards: false,
+      newCardsLimit: 10,
     };
 
     const state = {
@@ -79,8 +80,10 @@
       shareAccessToken: sessionStorage.getItem(`deck-access-${deckId}`) || "",
       correct: 0,
       incorrect: 0,
+      intervalRatings: { again: 0, hard: 0, good: 0, easy: 0 },
       sessionLimit: 10,
       intervalSessionId: "",
+      intervalStartIndex: 0,
       testChoices: [],
       lastAnswer: null,
       reviewAnimating: false,
@@ -90,6 +93,7 @@
       settingsOpen: false,
       cardSideOrder: "front",
       shuffleCards: false,
+      newCardsLimit: DEFAULT_STUDY_SETTINGS.newCardsLimit,
       focusMode: initialFocusMode
     };
 
@@ -137,6 +141,7 @@
       renderAll: null,
       renderControls: null,
       startMode: null,
+      beginPreparedSession: null,
       modeLabel: null,
     };
 
@@ -177,6 +182,11 @@
       secondaryCardSide,
       currentSideLabel,
       buildIntervalRatingPreviews,
+      isPersistentIntervalSession,
+      isPreviewIntervalSession,
+      getIntervalQueueCards,
+      buildIntervalQueueBreakdown,
+      countIntervalRepetitions,
       loadIntervalSession,
       startCurrentSessionWithSettings,
       syncFlipPresentation,
@@ -201,7 +211,7 @@
       onLogin: () => { window.location.href = "/"; },
       onSignup: () => { window.location.href = "/"; },
       onProfile: () => { window.location.href = "/"; },
-      onSettings: () => { window.location.href = "/settings.html"; },
+      onSettings: () => { window.location.href = "/settings"; },
       onLogout: logout,
     });
 
@@ -246,6 +256,11 @@
         secondaryCardSide,
         currentSideLabel,
         buildIntervalRatingPreviews,
+        isPersistentIntervalSession,
+        isPreviewIntervalSession,
+        getIntervalQueueCards,
+        buildIntervalQueueBreakdown,
+        countIntervalRepetitions,
         canUndoSessionAction,
         shuffle,
         syncFlipPresentation,
@@ -269,6 +284,7 @@
       renderStats,
       buildTestChoices,
       startMode,
+      beginPreparedSession,
       flipCurrentCard,
       completeSelfCheck,
       submitIntervalRating,
@@ -292,6 +308,7 @@
     sessionActions.renderAll = renderAll;
     sessionActions.renderControls = renderControls;
     sessionActions.startMode = startMode;
+    sessionActions.beginPreparedSession = beginPreparedSession;
     sessionActions.modeLabel = modeLabel;
 
     async function loadProfile() {
@@ -308,7 +325,7 @@
     }
 
     function buildSaveAfterLoginUrl() {
-      const nextUrl = new URL("/study.html", window.location.origin);
+      const nextUrl = new URL("/study", window.location.origin);
       if (deckId) nextUrl.searchParams.set("deck", deckId);
       nextUrl.searchParams.set("intent", "save-deck");
 
@@ -321,12 +338,13 @@
     function openWordList(event) {
       if (event) event.preventDefault();
       if (!deckId) return;
-      window.location.href = `/deck.html?id=${deckId}&view=interval`;
+      window.location.href = `/deck?id=${deckId}&view=interval`;
     }
 
     async function saveDeckToLibrary() {
       const saved = await sharedApi(`/shared/decks/${deckId}/save`, { method: "POST" });
       state.deck = { ...state.deck, ...saved };
+      await loadIntervalSession({ restartSession: true });
       renderAll();
       return saved;
     }
@@ -419,26 +437,27 @@
         renderSetup();
         return;
       }
-      if (event.target.id === 'randomToggleBtn') {
+      if (event.target.id === 'randomToggleBtn' && state.mode === 'limit') {
         state.shuffleCards = !state.shuffleCards;
         saveStudySettings();
         renderSetup();
         return;
       }
       if (event.target.id === 'startLimitBtn') {
-        const source = state.shuffleCards ? shuffle(state.deck.cards) : [...state.deck.cards];
-        state.sessionCards = source.slice(0, state.sessionLimit === 'all' ? source.length : Number(state.sessionLimit));
-        state.started = true;
-        state.currentIndex = 0;
-        state.correct = 0;
-        state.incorrect = 0;
-        state.revealed = false;
-        renderAll();
+        beginPreparedSession();
         return;
       }
       if (event.target.id === 'startIntervalBtn') {
-        await loadIntervalSession();
-        startMode('interval');
+        beginPreparedSession();
+        return;
+      }
+      if (event.target.id === 'intervalSaveProgressBtn') {
+        if (!state.deck || state.ownerAccess) return;
+        if (!state.me) {
+          window.location.href = buildSaveAfterLoginUrl();
+          return;
+        }
+        cloneDeckBtn.click();
       }
     });
 

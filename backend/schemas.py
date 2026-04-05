@@ -159,6 +159,13 @@ class UserCardStateOut(BaseModel):
         orm_mode = True
 
 
+class IntervalRatingPreview(BaseModel):
+    again: str
+    hard: str
+    good: str
+    easy: str
+
+
 class CardOut(BaseModel):
     id: int
     front: str
@@ -167,6 +174,7 @@ class CardOut(BaseModel):
     position: int
     deck_id: int
     state: UserCardStateOut | None = None
+    interval_preview: IntervalRatingPreview | None = None
 
     class Config:
         orm_mode = True
@@ -238,6 +246,7 @@ class ReviewResult(BaseModel):
     state: UserCardStateOut
     progress: ProgressOut
     next_due_at: datetime
+    interval_preview: IntervalRatingPreview | None = None
 
 
 class ImageSearchRequest(BaseModel):

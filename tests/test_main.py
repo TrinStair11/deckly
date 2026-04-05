@@ -231,6 +231,41 @@ def test_shared_study_session_returns_read_only_preview_for_public_deck(db_sessi
     assert session.mode == "review_all"
     assert session.total_cards == 1
     assert session.progress.new_available_count == 1
+    assert session.cards[0].interval_preview.again == "in 1m"
+    assert session.cards[0].interval_preview.easy == "in 3d"
+
+
+def test_interval_study_session_can_restart_with_new_card_limit(db_session):
+    owner = register_user(db_session, email=make_email())
+    learner = register_user(db_session, email=make_email())
+    created = create_deck(
+        schemas.DeckCreate(
+            name="Restartable",
+            description="Deck",
+            cards=[
+                schemas.CardSeed(front="One", back="1"),
+                schemas.CardSeed(front="Two", back="2"),
+                schemas.CardSeed(front="Three", back="3"),
+            ],
+        ),
+        current_user=owner,
+        db=db_session,
+    )
+    deck = db_session.query(models.Deck).filter(models.Deck.id == created.id).first()
+    save_deck_to_library(deck, learner, db_session)
+
+    first_session = get_study_session(deck.id, current_user=learner, db=db_session, new_cards_limit=1)
+    restarted_session = get_study_session(
+        deck.id,
+        current_user=learner,
+        db=db_session,
+        new_cards_limit=2,
+        restart_session=True,
+    )
+
+    assert first_session.total_cards == 1
+    assert restarted_session.session_id != first_session.session_id
+    assert restarted_session.total_cards == 2
 
 
 def test_save_shared_deck_creates_reference_without_duplication(db_session):
@@ -585,6 +620,46 @@ def test_sm2_review_hard_growth_is_more_conservative_than_good(db_session):
     assert result.state.reps == 3
     assert result.state.ease_factor == 2.36
     assert result.state.scheduled_days == pytest.approx(7.2)
+
+
+def test_interval_session_exposes_scheduler_aligned_rating_previews(db_session):
+    owner = register_user(db_session, email=make_email())
+    learner = register_user(db_session, email=make_email())
+    created = create_deck(
+        schemas.DeckCreate(name="Preview sync", description="Deck", cards=[schemas.CardSeed(front="One", back="1")]),
+        current_user=owner,
+        db=db_session,
+    )
+    deck = db_session.query(models.Deck).filter(models.Deck.id == created.id).first()
+    save_deck_to_library(deck, learner, db_session)
+    card = db_session.query(models.Card).filter(models.Card.deck_id == deck.id).first()
+    db_session.add(
+        models.UserCardState(
+            user_id=learner.id,
+            deck_id=deck.id,
+            card_id=card.id,
+            status="review",
+            due_at=now_utc() - timedelta(hours=1),
+            last_reviewed_at=now_utc() - timedelta(days=6),
+            stability=6.0,
+            difficulty=2.5,
+            ease_factor=2.5,
+            scheduled_days=6.0,
+            elapsed_days=6.0,
+            reps=2,
+            lapses=0,
+            learning_step=0,
+        )
+    )
+    db_session.commit()
+
+    session = get_study_session(deck.id, current_user=learner, db=db_session)
+    preview = session.cards[0].interval_preview
+
+    assert preview.again == "in 10m"
+    assert preview.hard == "in 7d"
+    assert preview.good == "in 15d"
+    assert preview.easy == "in 20d"
 
 
 def test_sm2_review_easy_growth_is_more_aggressive_than_good(db_session):

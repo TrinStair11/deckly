@@ -3,6 +3,7 @@ set -eu
 
 HOST="${APP_HOST:-0.0.0.0}"
 PORT="${APP_PORT:-8000}"
+RELOAD="${APP_RELOAD:-false}"
 
 mkdir -p /app/media
 
@@ -26,5 +27,9 @@ for attempt in range(30):
             raise
         time.sleep(1)
 PY
+
+if [ "$RELOAD" = "true" ]; then
+  exec uvicorn backend.main:app --host "$HOST" --port "$PORT" --reload --reload-dir /app/backend
+fi
 
 exec uvicorn backend.main:app --host "$HOST" --port "$PORT"

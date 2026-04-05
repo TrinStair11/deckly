@@ -12,7 +12,7 @@ window.appShell = (() => {
       quizLabel = "Quiz",
       quizHref = "/quiz",
       settingsLabel = "Settings",
-      settingsHref = "/settings.html",
+      settingsHref = "/settings",
     } = options;
 
     const navClass = variant === "panel"
@@ -76,7 +76,7 @@ window.appShell = (() => {
       buttonId = "accountBtn",
       menuId = "accountMenu",
       profileHref = "/",
-      settingsHref = "/settings.html",
+      settingsHref = "/settings",
     } = options;
 
     container.innerHTML = `

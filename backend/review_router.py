@@ -10,6 +10,7 @@ from .decks import get_accessible_deck_or_404, get_card_in_deck_or_404
 from .spaced_repetition import (
     advance_session,
     apply_review_rating,
+    build_interval_rating_preview,
     ensure_user_card_state,
     is_card_due,
     refresh_user_deck_progress,
@@ -18,7 +19,7 @@ from .spaced_repetition import (
 )
 from .time_utils import ensure_utc
 
-router = APIRouter()
+router = APIRouter(tags=["Reviews"])
 
 
 def build_review_log(
@@ -94,10 +95,17 @@ def process_review_submission(
         state=serialize_user_card_state(state),
         progress=schemas.ProgressOut.from_orm(progress),
         next_due_at=ensure_utc(state.due_at),
+        interval_preview=build_interval_rating_preview(state),
     )
 
 
-@router.post("/reviews/submit", response_model=schemas.ReviewResult)
+@router.post(
+    "/reviews/submit",
+    response_model=schemas.ReviewResult,
+    summary="Submit study review",
+    description="Submit a spaced repetition rating for a card inside an active or ad-hoc study session and advance the user's review state.",
+    response_description="Updated review result and progress snapshot.",
+)
 def submit_review(
     payload: schemas.ReviewSubmit,
     current_user=Depends(get_current_user),
@@ -107,7 +115,13 @@ def submit_review(
     return process_review_submission(payload, current_user, db, x_deck_access_token)
 
 
-@router.post("/cards/{card_id}/review", response_model=schemas.ReviewResult)
+@router.post(
+    "/cards/{card_id}/review",
+    response_model=schemas.ReviewResult,
+    summary="Review card directly",
+    description="Submit a rating for a single card without first loading a full study session. The server creates a transient session identifier automatically.",
+    response_description="Updated review result for the card.",
+)
 def review_card(
     card_id: int,
     payload: schemas.CardReview,

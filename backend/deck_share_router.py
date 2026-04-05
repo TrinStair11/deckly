@@ -18,7 +18,7 @@ from .runtime import DECK_ACCESS_RATE_LIMIT as DEFAULT_DECK_ACCESS_RATE_LIMIT
 from .security_services import grant_private_deck_access
 from .spaced_repetition import build_deck_detail_for_user, get_active_cards, refresh_user_deck_progress, serialize_card, utcnow
 
-router = APIRouter()
+router = APIRouter(tags=["Sharing"])
 
 DECK_ACCESS_RATE_LIMIT = DEFAULT_DECK_ACCESS_RATE_LIMIT
 
@@ -46,7 +46,15 @@ def build_shared_study_preview(deck: models.Deck) -> schemas.StudySession:
         cards=[serialize_card(card) for card in active_cards],
         progress=zero_progress,
     )
-@router.get("/shared/decks/{deck_id}/meta", response_model=schemas.DeckShareMeta)
+
+
+@router.get(
+    "/shared/decks/{deck_id}/meta",
+    response_model=schemas.DeckShareMeta,
+    summary="Get shared deck metadata",
+    description="Return share-safe metadata for a deck without loading the full deck body. If a valid `X-Deck-Access-Token` is supplied, private metadata can be expanded.",
+    response_description="Shared deck metadata.",
+)
 def get_shared_deck_meta(
     deck_id: int,
     db: Session = Depends(get_db),
@@ -57,7 +65,13 @@ def get_shared_deck_meta(
     return serialize_share_meta(deck, reveal_owner=reveal_owner)
 
 
-@router.get("/shared/decks/{deck_id}", response_model=schemas.DeckDetail)
+@router.get(
+    "/shared/decks/{deck_id}",
+    response_model=schemas.DeckDetail,
+    summary="Get shared deck",
+    description="Load a shared deck for preview or study. Private decks require a valid `X-Deck-Access-Token`.",
+    response_description="Shared deck details.",
+)
 def get_shared_deck(
     deck_id: int,
     db: Session = Depends(get_db),
@@ -68,7 +82,13 @@ def get_shared_deck(
     return build_deck_detail_for_user(deck, db=db, serialize_deck=serialize_deck, persist_progress=False)
 
 
-@router.get("/shared/decks/{deck_id}/study", response_model=schemas.StudySession)
+@router.get(
+    "/shared/decks/{deck_id}/study",
+    response_model=schemas.StudySession,
+    summary="Preview shared deck study",
+    description="Build a read-only study preview for a shared deck. Private decks require a valid `X-Deck-Access-Token`.",
+    response_description="Study preview for the shared deck.",
+)
 def get_shared_study_session(
     deck_id: int,
     db: Session = Depends(get_db),
@@ -79,7 +99,13 @@ def get_shared_study_session(
     return build_shared_study_preview(deck)
 
 
-@router.post("/shared/decks/{deck_id}/access", response_model=schemas.DeckAccessToken)
+@router.post(
+    "/shared/decks/{deck_id}/access",
+    response_model=schemas.DeckAccessToken,
+    summary="Unlock private shared deck",
+    description="Validate the shared deck password and issue a short-lived deck access token used in the `X-Deck-Access-Token` header.",
+    response_description="Deck access token for subsequent shared-deck requests.",
+)
 def access_private_deck_endpoint(
     deck_id: int,
     payload: schemas.DeckAccessRequest,
@@ -89,8 +115,23 @@ def access_private_deck_endpoint(
     return grant_private_deck_access(deck_id, payload, db, request=request, rate_limit=DECK_ACCESS_RATE_LIMIT)
 
 
-@router.post("/decks/{deck_id}/save-to-library", response_model=schemas.DeckOut, status_code=status.HTTP_201_CREATED)
-@router.post("/shared/decks/{deck_id}/save", response_model=schemas.DeckOut, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/decks/{deck_id}/save-to-library",
+    response_model=schemas.DeckOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Save shared deck to library",
+    description="Legacy alias for saving an accessible shared deck into the authenticated user's library.",
+    response_description="Saved deck in the user's library.",
+    deprecated=True,
+)
+@router.post(
+    "/shared/decks/{deck_id}/save",
+    response_model=schemas.DeckOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Save shared deck to library",
+    description="Save an accessible shared deck into the authenticated user's library. Private decks require a valid `X-Deck-Access-Token`.",
+    response_description="Saved deck in the user's library.",
+)
 def save_shared_deck(
     deck_id: int,
     current_user=Depends(get_current_user),

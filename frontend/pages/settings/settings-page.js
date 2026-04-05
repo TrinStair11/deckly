@@ -62,7 +62,7 @@
       window.location.href = "/";
     },
     onSettings: () => {
-      window.location.href = "/settings.html";
+      window.location.href = "/settings";
     },
     onLogout: logout,
   });

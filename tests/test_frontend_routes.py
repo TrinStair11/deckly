@@ -3,6 +3,7 @@ from pathlib import Path
 from fastapi.responses import FileResponse
 
 from backend.main import deck_page, home_page, settings_page, study_page
+from backend.page_router import router as page_router
 from backend.quiz_router import (
     quiz_create_page,
     quiz_detail_page,
@@ -29,6 +30,18 @@ def test_core_page_handlers_point_to_moved_entrypoints():
     assert_file_response(deck_page(), FRONTEND_DIR / "pages" / "deck" / "index.html")
     assert_file_response(study_page(), FRONTEND_DIR / "pages" / "study" / "index.html")
     assert_file_response(settings_page(), FRONTEND_DIR / "pages" / "settings" / "index.html")
+
+
+def test_page_router_exposes_only_canonical_urls():
+    paths = {route.path for route in page_router.routes}
+    assert "/" in paths
+    assert "/deck" in paths
+    assert "/study" in paths
+    assert "/settings" in paths
+    assert "/index.html" not in paths
+    assert "/deck.html" not in paths
+    assert "/study.html" not in paths
+    assert "/settings.html" not in paths
 
 
 def test_quiz_page_handlers_point_to_moved_entrypoints():

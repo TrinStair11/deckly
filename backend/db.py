@@ -11,8 +11,15 @@ DEFAULT_DATABASE_URL = "postgresql+psycopg://deckly:deckly@127.0.0.1:5432/deckly
 DATABASE_URL = os.getenv("DATABASE_URL", DEFAULT_DATABASE_URL).strip() or DEFAULT_DATABASE_URL
 
 
+def validate_database_url(database_url: str) -> str:
+    normalized_url = database_url.strip()
+    if normalized_url.lower().startswith("sqlite"):
+        raise RuntimeError("SQLite is no longer supported. Configure DATABASE_URL for PostgreSQL.")
+    return normalized_url
+
+
 def build_engine(database_url: str):
-    return create_engine(database_url, pool_pre_ping=True)
+    return create_engine(validate_database_url(database_url), pool_pre_ping=True)
 
 
 engine = build_engine(DATABASE_URL)
