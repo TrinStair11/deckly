@@ -14,9 +14,9 @@ LOGIN_RATE_LIMIT = DEFAULT_LOGIN_RATE_LIMIT
 @router.post(
     "/login",
     response_model=schemas.Token,
-    summary="Sign in",
-    description="Authenticate a user and create a new session. Browser clients receive the auth cookie and API clients can reuse the returned token payload.",
-    response_description="Authenticated session details and access token.",
+    summary="Вход",
+    description="Авторизовать пользователя и создать новую сессию. Браузерные клиенты получают auth-cookie, а API-клиенты могут использовать возвращённый токен.",
+    response_description="Данные авторизованной сессии и токен доступа.",
 )
 def login_endpoint(
     payload: schemas.UserLogin,

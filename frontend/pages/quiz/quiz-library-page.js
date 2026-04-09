@@ -14,7 +14,7 @@
       .sort((a, b) => a.localeCompare(b));
 
     categoryFilter.innerHTML = `
-      <option value="">All categories</option>
+      <option value="">Все категории</option>
       ${categories.map((category) => `<option value="${quizApp.escapeHtml(category)}">${quizApp.escapeHtml(category)}</option>`).join("")}
     `;
   }
@@ -40,9 +40,9 @@
     if (!items.length) {
       libraryState.innerHTML = `
         <div class="quiz-empty">
-          <h2 class="h4 mb-2">No quizzes match the current filters</h2>
-          <p class="mb-3">Try a broader search or create the first quiz for this topic.</p>
-          <a class="btn btn-outline-light rounded-pill px-4" href="/quiz/create">Create Quiz</a>
+          <h2 class="h4 mb-2">Нет квизов под текущие фильтры</h2>
+          <p class="mb-3">Попробуйте более широкий поиск или создайте первый квиз по этой теме.</p>
+          <a class="btn btn-outline-light rounded-pill px-4" href="/quiz/create">Создать квиз</a>
         </div>
       `;
       return;
@@ -55,24 +55,24 @@
             <div class="d-flex justify-content-between gap-3">
               <div>
                 <h2 class="quiz-card-title mb-2">${quizApp.escapeHtml(quiz.title)}</h2>
-                <div class="text-secondary small">by ${quizApp.escapeHtml(quiz.owner_name)}</div>
+                <div class="text-secondary small">автор: ${quizApp.escapeHtml(quiz.owner_name)}</div>
               </div>
-              ${quiz.can_edit ? '<span class="quiz-chip">Owner</span>' : `<span class="quiz-chip">${quiz.is_published ? "Published" : "Private draft"}</span>`}
+              ${quiz.can_edit ? '<span class="quiz-chip">Владелец</span>' : `<span class="quiz-chip">${quiz.is_published ? "Опубликован" : "Приватный черновик"}</span>`}
             </div>
-            <p class="text-secondary mb-0">${quizApp.escapeHtml(quiz.description || "No description provided.")}</p>
+            <p class="text-secondary mb-0">${quizApp.escapeHtml(quiz.description || "Описание не указано.")}</p>
             <div class="quiz-meta">
               ${quiz.category ? quizApp.badgeHtml(quiz.category) : ""}
               ${quiz.language ? quizApp.badgeHtml(quiz.language) : ""}
             </div>
             <div class="row g-3 text-secondary small">
-              <div class="col-6"><strong class="d-block text-light">${quiz.question_count}</strong>Questions</div>
-              <div class="col-6"><strong class="d-block text-light">${quiz.attempt_count}</strong>Total attempts</div>
-              <div class="col-6"><strong class="d-block text-light">${quizApp.formatPercent(quiz.best_attempt_percentage)}</strong>Best personal score</div>
+              <div class="col-6"><strong class="d-block text-light">${quiz.question_count}</strong>Вопросов</div>
+              <div class="col-6"><strong class="d-block text-light">${quiz.attempt_count}</strong>Всего попыток</div>
+              <div class="col-6"><strong class="d-block text-light">${quizApp.formatPercent(quiz.best_attempt_percentage)}</strong>Лучший личный результат</div>
             </div>
             <div class="d-flex flex-wrap gap-2">
-              <a class="btn btn-light text-dark rounded-pill px-4" href="/quiz/${quiz.id}">Open Quiz</a>
-              <a class="btn btn-outline-light rounded-pill px-4" href="/quiz/${quiz.id}/start">Start</a>
-              ${quiz.can_edit ? `<a class="btn btn-outline-light rounded-pill px-4" href="/quiz/${quiz.id}/edit">Edit</a>` : ""}
+              <a class="btn btn-light text-dark rounded-pill px-4" href="/quiz/${quiz.id}">Открыть квиз</a>
+              <a class="btn btn-outline-light rounded-pill px-4" href="/quiz/${quiz.id}/start">Начать</a>
+              ${quiz.can_edit ? `<a class="btn btn-outline-light rounded-pill px-4" href="/quiz/${quiz.id}/edit">Редактировать</a>` : ""}
             </div>
           </article>
         `).join("")}
@@ -84,7 +84,7 @@
     const shell = await quizApp.initShell();
     state.user = shell.currentUser;
     if (!state.user) {
-      quizApp.requireAuthNotice(libraryState, "Sign in to access the Quiz module", "Quiz attempts, authored content, and result history are attached to an account.");
+      quizApp.requireAuthNotice(libraryState, "Войдите, чтобы открыть модуль квизов", "Попытки, авторский контент и история результатов привязаны к аккаунту.");
       return;
     }
     state.quizzes = await quizApp.api("/quizzes");

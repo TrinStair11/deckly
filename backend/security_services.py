@@ -42,7 +42,7 @@ def perform_login(
     user = db.query(models.User).filter(models.User.email == normalized_email).first()
     if not user or not verify_password(payload.password, user.password_hash):
         record_rate_limit_failure("login", rate_limit_scope)
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+        raise HTTPException(status_code=401, detail="Неверные учетные данные")
     token = create_access_token({"sub": str(user.id)}, expires_delta=timedelta(minutes=60 * 24))
     if response is not None:
         set_auth_cookie(response, token)
@@ -60,10 +60,10 @@ def grant_private_deck_access(
 ) -> schemas.DeckAccessToken:
     deck = get_deck_or_404(deck_id, db)
     if deck.visibility != "private":
-        raise HTTPException(status_code=400, detail="This deck does not require a password")
+        raise HTTPException(status_code=400, detail="Для этой колоды пароль не требуется")
     rate_limit_scope = enforce_rate_limit("deck-access", str(deck_id), request, rate_limit)
     if not check_private_deck_password(payload.password, deck.password_hash):
         record_rate_limit_failure("deck-access", rate_limit_scope)
-        raise HTTPException(status_code=401, detail="Incorrect deck password")
+        raise HTTPException(status_code=401, detail="Неверный пароль колоды")
     clear_rate_limit_failures("deck-access", rate_limit_scope)
     return {"access_token": create_deck_access_token(deck.id), "token_type": "deck-access"}

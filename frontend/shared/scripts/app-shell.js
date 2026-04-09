@@ -5,13 +5,13 @@ window.appShell = (() => {
     const {
       active = "home",
       variant = "plain",
-      homeLabel = "Dashboard",
+      homeLabel = "Главная",
       homeHref = "/",
-      decksLabel = "My Decks",
+      decksLabel = "Мои колоды",
       decksHref = "/#decksSection",
-      quizLabel = "Quiz",
+      quizLabel = "Квизы",
       quizHref = "/quiz",
-      settingsLabel = "Settings",
+      settingsLabel = "Настройки",
       settingsHref = "/settings",
     } = options;
 
@@ -89,22 +89,22 @@ window.appShell = (() => {
             <div class="d-flex align-items-center gap-3">
               <div class="avatar-badge" id="menuAvatar">G</div>
               <div class="min-w-0">
-                <strong class="d-block text-truncate" id="profileName">Learner</strong>
+                <strong class="d-block text-truncate" id="profileName">Ученик</strong>
                 <small class="text-secondary text-truncate d-block" id="profileEmail">learner@example.com</small>
               </div>
             </div>
           </li>
           <li id="guestActions">
-            <button class="dropdown-item rounded-3" id="accountLoginBtn" type="button">Log in</button>
+            <button class="dropdown-item rounded-3" id="accountLoginBtn" type="button">Войти</button>
           </li>
           <li id="guestSignupWrap">
-            <button class="dropdown-item rounded-3" id="accountSignupBtn" type="button">Sign up</button>
+            <button class="dropdown-item rounded-3" id="accountSignupBtn" type="button">Регистрация</button>
           </li>
           <li class="d-none" id="userActions">
-            <a class="dropdown-item rounded-3" id="accountProfileBtn" href="${profileHref}">Profile</a>
-            <a class="dropdown-item rounded-3" id="accountSettingsBtn" href="${settingsHref}">Settings</a>
+            <a class="dropdown-item rounded-3" id="accountProfileBtn" href="${profileHref}">Профиль</a>
+            <a class="dropdown-item rounded-3" id="accountSettingsBtn" href="${settingsHref}">Настройки</a>
             <hr class="dropdown-divider border-secondary my-2">
-            <button class="dropdown-item rounded-3 text-danger" id="accountLogoutBtn" type="button">Log out</button>
+            <button class="dropdown-item rounded-3 text-danger" id="accountLogoutBtn" type="button">Выйти</button>
           </li>
         </ul>
       </div>

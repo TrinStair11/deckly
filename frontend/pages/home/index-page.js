@@ -1,6 +1,6 @@
 (() => {
   const { renderSidebar, renderAccountMenu, getAccountMenuRefs } = window.appShell;
-  const { api, clearAuthToken, escapeHtml, getCurrentUser, initAccountMenu } = window.appCommon;
+  const { api, clearAuthToken, escapeHtml, getCurrentUser, initAccountMenu, pluralize } = window.appCommon;
   const { getAuthModalRefs, initAuthModal } = window.appAuth;
   const pageParams = new URLSearchParams(window.location.search);
   const requestedAuthMode = pageParams.get("auth");
@@ -8,7 +8,7 @@
   renderSidebar(document.getElementById("sidebarShell"), {
     active: "home",
     decksHref: "#decksSection",
-    homeLabel: "Dashboard",
+    homeLabel: "Главная",
   });
   renderAccountMenu(document.getElementById("accountMenuSlot"), {
     wrapperClass: "dropdown hero-account",
@@ -94,24 +94,24 @@
   }
 
   function formatUpdated(dateString) {
-    if (!dateString) return "Updated recently";
+    if (!dateString) return "Обновлено недавно";
 
     const diffMinutes = Math.max(1, Math.round((Date.now() - new Date(dateString).getTime()) / 60000));
-    if (diffMinutes < 60) return `Updated ${diffMinutes} minutes ago`;
+    if (diffMinutes < 60) return `Обновлено ${diffMinutes} ${pluralize(diffMinutes, ["минуту", "минуты", "минут"])} назад`;
 
     const hours = Math.round(diffMinutes / 60);
-    if (hours < 24) return `Updated ${hours} hours ago`;
+    if (hours < 24) return `Обновлено ${hours} ${pluralize(hours, ["час", "часа", "часов"])} назад`;
 
     const days = Math.round(hours / 24);
-    return `Updated ${days} days ago`;
+    return `Обновлено ${days} ${pluralize(days, ["день", "дня", "дней"])} назад`;
   }
 
   function syncSortButton() {
-    dom.sortBtn.textContent = state.sortMode === "updated" ? "Sort by Updated" : "Sort by Name";
+    dom.sortBtn.textContent = state.sortMode === "updated" ? "Сортировать по обновлению" : "Сортировать по названию";
   }
 
   function syncFilterButton() {
-    dom.filterBtn.textContent = state.showOnlyActive ? "Filter: Active" : "Filter";
+    dom.filterBtn.textContent = state.showOnlyActive ? "Фильтр: активные" : "Фильтр";
   }
 
   function syncLayoutButton() {
@@ -132,13 +132,14 @@
     dom.statLearned.textContent = String(learnedCards);
     dom.learnedBadge.textContent = `+${learnedRatio}%`;
     dom.statDue.textContent = String(dueCards);
-    dom.statStreak.textContent = `${state.decks.length ? Math.min(5, state.decks.length + 1) : 0} days`;
-    dom.headerSubtitle.textContent = `You have ${dueCards} cards to review today.`;
+    const streak = state.decks.length ? Math.min(5, state.decks.length + 1) : 0;
+    dom.statStreak.textContent = `${streak} ${pluralize(streak, ["день", "дня", "дней"])}`;
+    dom.headerSubtitle.textContent = `Сегодня нужно повторить ${dueCards} ${pluralize(dueCards, ["карточку", "карточки", "карточек"])}.`;
   }
 
   function getDeckTags(deck) {
-    const firstWord = deck.name.split(" ")[0] || "Deck";
-    const secondWord = deck.name.split(" ")[1] || "Study";
+    const firstWord = deck.name.split(" ")[0] || "Колода";
+    const secondWord = deck.name.split(" ")[1] || "Учёба";
     return [firstWord, secondWord];
   }
 
@@ -169,9 +170,9 @@
         <div class="col-12">
           <div class="empty-state">
             <div class="empty-state-icon"><i class="bi bi-person-lock"></i></div>
-            <h3>Sign in to access your decks</h3>
-            <p>Use the avatar in the top-right corner to log in or create an account before managing decks.</p>
-            <button class="btn btn-outline-light rounded-pill px-4" type="button" data-open-auth>Log in</button>
+            <h3>Войдите, чтобы открыть свои колоды</h3>
+            <p>Используйте аватар в правом верхнем углу, чтобы войти или создать аккаунт перед управлением колодами.</p>
+            <button class="btn btn-outline-light rounded-pill px-4" type="button" data-open-auth>Войти</button>
           </div>
         </div>
       `;
@@ -179,10 +180,10 @@
     }
 
     if (!decks.length) {
-      const emptyTitle = query || state.showOnlyActive ? "No decks match current filters" : "No decks yet";
+      const emptyTitle = query || state.showOnlyActive ? "Нет колод под текущие фильтры" : "Колод пока нет";
       const emptyHint = query || state.showOnlyActive
-        ? "Clear the search or filter to see more decks."
-        : "Create your first deck to start building your study workspace.";
+        ? "Сбросьте поиск или фильтр, чтобы увидеть больше колод."
+        : "Создайте первую колоду, чтобы начать собирать своё учебное пространство.";
 
       dom.decksGrid.innerHTML = `
         <div class="col-12">
@@ -190,7 +191,7 @@
             <div class="empty-state-icon"><i class="bi bi-collection"></i></div>
             <h3>${emptyTitle}</h3>
             <p>${emptyHint}</p>
-            <button class="btn btn-light text-dark rounded-pill px-4" type="button" data-empty-create>Create New Deck</button>
+            <button class="btn btn-light text-dark rounded-pill px-4" type="button" data-empty-create>Создать колоду</button>
           </div>
         </div>
       `;
@@ -201,8 +202,8 @@
     dom.decksGrid.innerHTML = decks.map((deck) => {
       const tags = deck.tags && deck.tags.length ? deck.tags : getDeckTags(deck);
       const visibilityClass = deck.visibility === "private" ? "status-private" : "status-public";
-      const visibilityLabel = deck.visibility === "private" ? "Private" : "Public";
-      const ownerName = deck.owner_name || "Unknown creator";
+      const visibilityLabel = deck.visibility === "private" ? "Приватная" : "Публичная";
+      const ownerName = deck.owner_name || "Неизвестный автор";
 
       return `
         <div class="${colClass}">
@@ -212,29 +213,29 @@
                 <div class="deck-heading">
                   <div class="deck-status-row">
                     <span class="status-badge ${visibilityClass}">${visibilityLabel}</span>
-                    ${deck.saved_in_library ? '<span class="status-badge status-neutral">Saved</span>' : ""}
+                    ${deck.saved_in_library ? '<span class="status-badge status-neutral">Сохранена</span>' : ""}
                   </div>
                   <h3 class="deck-title">${escapeHtml(deck.name)}</h3>
-                  <p class="deck-description">${escapeHtml(deck.description || "A focused deck for daily recall practice.")}</p>
-                  <p class="deck-owner mb-0">Created by ${escapeHtml(ownerName)}</p>
+                  <p class="deck-description">${escapeHtml(deck.description || "Сфокусированная колода для ежедневного повторения.")}</p>
+                  <p class="deck-owner mb-0">Автор: ${escapeHtml(ownerName)}</p>
                 </div>
                 <div class="dropdown ${deck.is_owner ? "" : "d-none"}">
                   <button class="btn btn-sm btn-outline-light deck-menu-trigger" type="button" data-deck-menu="${deck.id}"><i class="bi bi-three-dots"></i></button>
                   <div class="dropdown-menu dropdown-menu-end p-2 ${state.openDeckMenuId === deck.id ? "show" : ""}">
-                    <button class="dropdown-item rounded-3" type="button" data-edit-deck="${deck.id}">Edit Deck</button>
-                    <button class="dropdown-item rounded-3 text-danger" type="button" data-delete-deck="${deck.id}">Delete Deck</button>
+                    <button class="dropdown-item rounded-3" type="button" data-edit-deck="${deck.id}">Редактировать колоду</button>
+                    <button class="dropdown-item rounded-3 text-danger" type="button" data-delete-deck="${deck.id}">Удалить колоду</button>
                   </div>
                 </div>
               </div>
               <div class="deck-tags">${tags.slice(0, 4).map((tag) => `<span class="deck-tag">${escapeHtml(tag)}</span>`).join("")}</div>
               <div class="deck-footer">
                 <div class="small deck-meta d-grid gap-1">
-                  <span><i class="bi bi-postcard me-1"></i>${deck.card_count} cards</span>
+                  <span><i class="bi bi-postcard me-1"></i>${deck.card_count} ${pluralize(deck.card_count, ["карточка", "карточки", "карточек"])}</span>
                   <span><i class="bi bi-clock-history me-1"></i>${formatUpdated(getDeckTimestamp(deck))}</span>
-                  <span><i class="bi bi-link-45deg me-1"></i>${deck.visibility === "private" ? "Password-protected link" : "Open link access"}</span>
+                  <span><i class="bi bi-link-45deg me-1"></i>${deck.visibility === "private" ? "Ссылка с паролем" : "Открытый доступ по ссылке"}</span>
                 </div>
                 <a class="btn study-action study-btn" href="/study?deck=${deck.id}">
-                  <i class="bi bi-play-fill"></i>Study
+                  <i class="bi bi-play-fill"></i>Учить
                 </a>
               </div>
             </div>
@@ -274,7 +275,7 @@
     const deck = state.decks.find((item) => item.id === deckId);
     if (!deck) return;
 
-    const confirmed = window.confirm(`Delete "${deck.name}"? This will remove all cards in the deck.`);
+    const confirmed = window.confirm(`Удалить «${deck.name}»? Все карточки в этой колоде тоже будут удалены.`);
     if (!confirmed) return;
 
     try {

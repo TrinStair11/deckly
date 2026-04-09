@@ -34,7 +34,7 @@ window.studySession = (() => {
     }
 
     function modeLabel() {
-      return actions.modeLabel?.() || "Deck Hub";
+      return actions.modeLabel?.() || "Центр колоды";
     }
 
     function normalizeStudySettings(raw = {}) {
@@ -221,15 +221,15 @@ window.studySession = (() => {
     }
 
     function formatDelayLabel(delayMs) {
-      if (delayMs < 60_000) return "now";
+      if (delayMs < 60_000) return "сейчас";
       const totalMinutes = Math.round(delayMs / 60_000);
-      if (totalMinutes < 60) return `in ${totalMinutes}m`;
+      if (totalMinutes < 60) return `через ${totalMinutes} мин`;
       const totalHours = Math.round(delayMs / 3_600_000);
-      if (totalHours < 48) return `in ${totalHours}h`;
+      if (totalHours < 48) return `через ${totalHours} ч`;
       const totalDays = Math.round(delayMs / 86_400_000);
-      if (totalDays < 30) return `in ${totalDays}d`;
+      if (totalDays < 30) return `через ${totalDays} д`;
       const totalMonths = Math.round(totalDays / 30);
-      return `in ${totalMonths}mo`;
+      return `через ${totalMonths} мес`;
     }
 
     function buildIntervalRatingPreviews(card) {
@@ -354,11 +354,11 @@ window.studySession = (() => {
       const total = state.sessionCards.length;
       const current = Math.min(state.currentIndex + 1, Math.max(total, 1));
       const progressText = isSessionCompleted()
-        ? `Complete · ${total} / ${total}`
+        ? `Завершено · ${total} / ${total}`
         : `${current} / ${total || 0}`;
       if (focusProgressPill) focusProgressPill.textContent = progressText;
       if (focusDeckTitleLabel) {
-        const name = state.deck?.name || state.sharedMeta?.name || "Study session";
+        const name = state.deck?.name || state.sharedMeta?.name || "Сессия изучения";
         focusDeckTitleLabel.textContent = name;
         focusDeckTitleLabel.title = name;
       }
@@ -412,7 +412,7 @@ window.studySession = (() => {
     }
 
     function currentSideLabel(revealed) {
-      return (revealed ? secondaryCardSide() : primaryCardSide()) === 'front' ? 'Front' : 'Back';
+      return (revealed ? secondaryCardSide() : primaryCardSide()) === 'front' ? 'Лицевая сторона' : 'Обратная сторона';
     }
 
     async function loadIntervalSession(options = {}) {

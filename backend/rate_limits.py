@@ -33,7 +33,7 @@ class InMemoryRateLimitStore:
             if len(attempts) >= limit:
                 raise HTTPException(
                     status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                    detail="Too many failed attempts. Try again later",
+                    detail="Слишком много неудачных попыток. Попробуйте позже",
                 )
         return key
 

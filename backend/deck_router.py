@@ -57,9 +57,9 @@ def apply_deck_update(deck: models.Deck, payload: schemas.DeckUpdate) -> None:
     raw_visibility = payload.visibility.strip().lower()
     password = payload.password.strip()
     if raw_visibility not in {"public", "private"}:
-        raise HTTPException(status_code=400, detail="Visibility must be public or private")
+        raise HTTPException(status_code=400, detail="Видимость должна быть public или private")
     if raw_visibility == "private" and not password and not deck.password_hash:
-        raise HTTPException(status_code=400, detail="Private decks require a password with at least 4 characters")
+        raise HTTPException(status_code=400, detail="Для приватной колоды нужен пароль минимум из 4 символов")
     if raw_visibility == "private" and password:
         _, password = validate_deck_privacy(raw_visibility, password)
     deck.title = payload.title.strip()
@@ -74,9 +74,9 @@ def apply_deck_update(deck: models.Deck, payload: schemas.DeckUpdate) -> None:
     response_model=schemas.DeckOut,
     status_code=status.HTTP_201_CREATED,
     tags=["Decks"],
-    summary="Create deck",
-    description="Create a new flashcard deck for the authenticated user, optionally including an initial batch of cards.",
-    response_description="Created deck summary.",
+    summary="Создать колоду",
+    description="Создать новую колоду карточек для авторизованного пользователя, при необходимости сразу с начальным набором карточек.",
+    response_description="Сводка по созданной колоде.",
 )
 def create_deck(deck: schemas.DeckCreate, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     visibility, password = validate_deck_privacy(deck.visibility, deck.password if deck.visibility == "private" else "")
@@ -116,9 +116,9 @@ def create_deck(deck: schemas.DeckCreate, current_user=Depends(get_current_user)
     "/decks",
     response_model=list[schemas.DeckOut],
     tags=["Decks"],
-    summary="List deck library",
-    description="Return the authenticated user's owned decks together with decks saved from other users.",
-    response_description="Deck library entries.",
+    summary="Список библиотеки колод",
+    description="Вернуть собственные колоды авторизованного пользователя вместе с колодами, сохранёнными от других пользователей.",
+    response_description="Элементы библиотеки колод.",
 )
 def list_decks(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     owned_decks = db.query(models.Deck).filter(models.Deck.owner_id == current_user.id).all()
@@ -141,9 +141,9 @@ def list_decks(current_user=Depends(get_current_user), db: Session = Depends(get
     "/decks/{deck_id}",
     response_model=schemas.DeckDetail,
     tags=["Decks"],
-    summary="Get deck details",
-    description="Load a deck that the authenticated user owns or can access. Private shared decks may require `X-Deck-Access-Token`.",
-    response_description="Detailed deck payload with cards and progress.",
+    summary="Детали колоды",
+    description="Загрузить колоду, которой владеет авторизованный пользователь или к которой у него есть доступ. Для приватных общих колод может потребоваться `X-Deck-Access-Token`.",
+    response_description="Подробные данные колоды с карточками и прогрессом.",
 )
 def get_deck(
     deck_id: int,
@@ -166,9 +166,9 @@ def get_deck(
     "/decks/{deck_id}",
     response_model=schemas.DeckOut,
     tags=["Decks"],
-    summary="Update deck",
-    description="Update a deck owned by the authenticated user, including title, description, visibility, and password settings.",
-    response_description="Updated deck summary.",
+    summary="Обновить колоду",
+    description="Обновить колоду, принадлежащую авторизованному пользователю, включая название, описание, видимость и настройки пароля.",
+    response_description="Сводка по обновлённой колоде.",
 )
 def update_deck(deck_id: int, payload: schemas.DeckUpdate, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     deck = get_owned_deck_or_404(deck_id, current_user.id, db)
@@ -184,9 +184,9 @@ def update_deck(deck_id: int, payload: schemas.DeckUpdate, current_user=Depends(
     "/decks/{deck_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     tags=["Decks"],
-    summary="Delete deck",
-    description="Delete a deck owned by the authenticated user.",
-    response_description="Deck deleted successfully.",
+    summary="Удалить колоду",
+    description="Удалить колоду, принадлежащую авторизованному пользователю.",
+    response_description="Колода успешно удалена.",
 )
 def delete_deck(deck_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     deck = get_owned_deck_or_404(deck_id, current_user.id, db)

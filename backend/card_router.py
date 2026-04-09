@@ -13,9 +13,9 @@ router = APIRouter(tags=["Cards"])
     "/decks/{deck_id}/cards",
     response_model=schemas.CardOut,
     status_code=status.HTTP_201_CREATED,
-    summary="Create card",
-    description="Add a new card to a deck owned by the authenticated user.",
-    response_description="Created card.",
+    summary="Создать карточку",
+    description="Добавить новую карточку в колоду, принадлежащую авторизованному пользователю.",
+    response_description="Созданная карточка.",
 )
 def create_card(deck_id: int, card: schemas.CardCreate, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     deck = get_owned_deck_or_404(deck_id, current_user.id, db)
@@ -39,9 +39,9 @@ def create_card(deck_id: int, card: schemas.CardCreate, current_user=Depends(get
 @router.put(
     "/cards/{card_id}",
     response_model=schemas.CardOut,
-    summary="Update card",
-    description="Update the content and image URL for a card owned by the authenticated user.",
-    response_description="Updated card.",
+    summary="Обновить карточку",
+    description="Обновить содержимое и ссылку на изображение для карточки, принадлежащей авторизованному пользователю.",
+    response_description="Обновлённая карточка.",
 )
 def update_card(card_id: int, payload: schemas.CardUpdate, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     card = get_owned_card_or_404(card_id, current_user.id, db)
@@ -58,9 +58,9 @@ def update_card(card_id: int, payload: schemas.CardUpdate, current_user=Depends(
 @router.delete(
     "/cards/{card_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    summary="Delete card",
-    description="Soft-delete a card from a deck owned by the authenticated user.",
-    response_description="Card deleted successfully.",
+    summary="Удалить карточку",
+    description="Мягко удалить карточку из колоды, принадлежащей авторизованному пользователю.",
+    response_description="Карточка успешно удалена.",
 )
 def delete_card(card_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     card = get_owned_card_or_404(card_id, current_user.id, db)
@@ -74,17 +74,17 @@ def delete_card(card_id: int, current_user=Depends(get_current_user), db: Sessio
 @router.put(
     "/decks/{deck_id}/cards/reorder",
     response_model=list[schemas.CardOut],
-    summary="Reorder deck cards",
-    description="Replace the ordering of all active cards in a deck. The payload must include every active card exactly once.",
-    response_description="Cards in their updated order.",
+    summary="Изменить порядок карточек",
+    description="Заменить порядок всех активных карточек в колоде. В запросе каждая активная карточка должна быть указана ровно один раз.",
+    response_description="Карточки в обновлённом порядке.",
 )
 def reorder_cards(deck_id: int, payload: schemas.CardReorder, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     deck = get_owned_deck_or_404(deck_id, current_user.id, db)
     cards_by_id = {card.id: card for card in get_active_cards(deck)}
     if {item.id for item in payload.items} != set(cards_by_id):
-        raise HTTPException(status_code=400, detail="Reorder payload must include every card in the deck")
+        raise HTTPException(status_code=400, detail="Запрос на перестановку должен содержать все карточки колоды")
     if len({item.position for item in payload.items}) != len(payload.items):
-        raise HTTPException(status_code=400, detail="Reorder payload must use unique positions")
+        raise HTTPException(status_code=400, detail="В запросе на перестановку позиции должны быть уникальными")
     for item in payload.items:
         cards_by_id[item.id].position = item.position
         cards_by_id[item.id].updated_at = utcnow()
@@ -96,9 +96,9 @@ def reorder_cards(deck_id: int, payload: schemas.CardReorder, current_user=Depen
 @router.get(
     "/cards",
     response_model=list[schemas.CardOut],
-    summary="List cards",
-    description="Return every active card owned by the authenticated user across all decks.",
-    response_description="List of active cards.",
+    summary="Список карточек",
+    description="Вернуть все активные карточки авторизованного пользователя во всех колодах.",
+    response_description="Список активных карточек.",
 )
 def list_cards(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     cards = (

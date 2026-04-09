@@ -6,7 +6,7 @@
   renderSidebar(document.getElementById("sidebarShell"), {
     active: "decks",
     decksHref: "/deck?new=1",
-    homeLabel: "Home",
+    homeLabel: "Главная",
     variant: "panel",
   });
   renderAccountMenu(document.getElementById("accountMenuSlot"), {
@@ -57,12 +57,12 @@
 
     return fetch(path, { ...options, headers }).then(async (response) => {
       if (!response.ok) {
-        let detail = "Request failed";
+        let detail = "Запрос не выполнен";
         try {
           const payload = await response.json();
           detail = payload.detail || detail;
         } catch (error) {
-          detail = "Server error";
+          detail = "Ошибка сервера";
         }
         throw new Error(detail);
       }
@@ -167,7 +167,7 @@
 
   function formatIntervalAmount(daysValue) {
     const days = Number(daysValue || 0);
-    if (!Number.isFinite(days) || days <= 0) return "not scheduled";
+    if (!Number.isFinite(days) || days <= 0) return "не запланировано";
 
     const totalMinutes = Math.max(1, Math.round(days * 24 * 60));
     if (totalMinutes < 60) return `${totalMinutes}m`;
@@ -183,45 +183,45 @@
     const reviewState = card?.state || null;
     if (!reviewState) {
       return {
-        label: "Untracked",
+        label: "Без отслеживания",
         className: "study-status-untracked",
-        intervalLabel: "Interval not started",
-        nextLabel: "Will appear after the first review",
+        intervalLabel: "Интервал не начат",
+        nextLabel: "Появится после первого повтора",
       };
     }
 
     const status = String(reviewState.status || "new").toLowerCase();
     const statusMap = {
-      new: { label: "New", className: "study-status-new" },
-      learning: { label: "Learning", className: "study-status-learning" },
-      review: { label: "Review", className: "study-status-review" },
-      relearning: { label: "Relearning", className: "study-status-relearning" },
+      new: { label: "Новая", className: "study-status-new" },
+      learning: { label: "Изучение", className: "study-status-learning" },
+      review: { label: "Повторение", className: "study-status-review" },
+      relearning: { label: "Переизучение", className: "study-status-relearning" },
     };
     const meta = statusMap[status] || statusMap.new;
     const dueAtMs = reviewState.due_at ? new Date(reviewState.due_at).getTime() : Number.NaN;
     const diffMs = Number.isFinite(dueAtMs) ? dueAtMs - Date.now() : Number.NaN;
 
-    let nextLabel = "Schedule unavailable";
+    let nextLabel = "Расписание недоступно";
     if (status === "new") {
-      nextLabel = "Will appear after the first review";
+      nextLabel = "Появится после первого повтора";
     } else if (Number.isFinite(diffMs)) {
-      if (Math.abs(diffMs) < 60_000) nextLabel = "Due now";
-      else if (diffMs < 0) nextLabel = `Overdue by ${formatIntervalAmount(Math.abs(diffMs) / 86_400_000)}`;
-      else nextLabel = `Returns in ${formatIntervalAmount(diffMs / 86_400_000)}`;
+      if (Math.abs(diffMs) < 60_000) nextLabel = "Доступна сейчас";
+      else if (diffMs < 0) nextLabel = `Просрочена на ${formatIntervalAmount(Math.abs(diffMs) / 86_400_000)}`;
+      else nextLabel = `Вернётся через ${formatIntervalAmount(diffMs / 86_400_000)}`;
     }
 
     return {
       label: meta.label,
       className: meta.className,
-      intervalLabel: `Interval ${formatIntervalAmount(reviewState.scheduled_days)}`,
+      intervalLabel: `Интервал ${formatIntervalAmount(reviewState.scheduled_days)}`,
       nextLabel,
     };
   }
 
   function formatDateTime(dateValue) {
-    if (!dateValue) return "Never";
+    if (!dateValue) return "Никогда";
     const date = new Date(dateValue);
-    if (Number.isNaN(date.getTime())) return "Unknown";
+    if (Number.isNaN(date.getTime())) return "Неизвестно";
     return date.toLocaleString([], {
       month: "short",
       day: "numeric",
@@ -279,10 +279,10 @@
     const summary = buildIntervalSummary(cards);
 
     dom.intervalSummaryGrid.innerHTML = [
-      { label: "Words", value: summary.total },
-      { label: "Due Now", value: summary.dueNow },
-      { label: "Learning", value: summary.learningCards },
-      { label: "In Review", value: summary.reviewCards },
+      { label: "Слов", value: summary.total },
+      { label: "Сейчас к повтору", value: summary.dueNow },
+      { label: "Изучение", value: summary.learningCards },
+      { label: "На повторении", value: summary.reviewCards },
     ].map((item) => `
       <div class="interval-summary-chip">
         <div class="interval-summary-label">${escapeHtml(item.label)}</div>
@@ -291,7 +291,7 @@
     `).join("");
 
     if (!cards.length) {
-      dom.intervalWordsList.innerHTML = '<div class="interval-empty-state">No words yet. Add cards in the editor first.</div>';
+      dom.intervalWordsList.innerHTML = '<div class="interval-empty-state">Слов пока нет. Сначала добавьте карточки в редакторе.</div>';
       return;
     }
 
@@ -300,12 +300,12 @@
         <thead>
           <tr>
             <th>#</th>
-            <th>Word</th>
-            <th>Status</th>
-            <th>Interval</th>
-            <th>Next Appearance</th>
-            <th>Last Review</th>
-            <th title="Ease factor used to grow future review intervals">Ease</th>
+            <th>Слово</th>
+            <th>Статус</th>
+            <th>Интервал</th>
+            <th>Следующее появление</th>
+            <th>Последний повтор</th>
+            <th title="Коэффициент ease, который влияет на будущие интервалы повторения">Ease</th>
           </tr>
         </thead>
         <tbody>
@@ -316,8 +316,8 @@
               <tr>
                 <td>${index + 1}</td>
                 <td>
-                  <div class="interval-word-main">${escapeHtml(card.front || "Untitled")}</div>
-                  <div class="interval-word-sub">${escapeHtml(card.back || "No definition yet")}</div>
+                  <div class="interval-word-main">${escapeHtml(card.front || "Без названия")}</div>
+                  <div class="interval-word-sub">${escapeHtml(card.back || "Определение ещё не добавлено")}</div>
                 </td>
                 <td><span class="study-status-pill ${statusMeta.className}">${escapeHtml(statusMeta.label)}</span></td>
                 <td>${escapeHtml(statusMeta.intervalLabel)}</td>
@@ -326,7 +326,7 @@
                   <div class="interval-next-sub">${escapeHtml(formatDateTime(reviewState?.due_at))}</div>
                 </td>
                 <td>${escapeHtml(formatDateTime(reviewState?.last_reviewed_at))}</td>
-                <td title="Ease factor">${reviewState?.ease_factor ? escapeHtml(Number(reviewState.ease_factor).toFixed(2)) : "—"}</td>
+                <td title="Коэффициент ease">${reviewState?.ease_factor ? escapeHtml(Number(reviewState.ease_factor).toFixed(2)) : "—"}</td>
               </tr>
             `;
           }).join("")}
@@ -351,7 +351,7 @@
   }
 
   function ownerLabel() {
-    return state.deckOwner?.owner_name || "Unknown creator";
+    return state.deckOwner?.owner_name || "Неизвестный автор";
   }
 
   function markDirty() {
@@ -360,7 +360,7 @@
 
   function confirmLeave() {
     if (!state.isDirty) return true;
-    return window.confirm("Discard unsaved deck changes?");
+    return window.confirm("Отменить несохранённые изменения в колоде?");
   }
 
   function handleBeforeUnload(event) {
@@ -412,28 +412,28 @@
     const canManage = canManageDeck();
     const scheduleView = isScheduleViewActive();
 
-    document.title = scheduleView ? "TrinDeckly Interval Status" : "TrinDeckly Deck Editor";
+    document.title = scheduleView ? "TrinDeckly Интервалы" : "TrinDeckly Редактор колоды";
     dom.pageTitle.textContent = scheduleView
-      ? "Interval Status"
+      ? "Интервалы"
       : !isEditMode
-        ? "Create Deck"
+        ? "Создать колоду"
         : canManage
-          ? "Edit Deck"
-          : "View Deck";
+          ? "Редактировать колоду"
+          : "Просмотр колоды";
     dom.pageSubtitle.textContent = scheduleView
-      ? "Every word in this deck, its spaced repetition state, and when it appears again."
+      ? "Все слова в этой колоде, их статус интервального повторения и время следующего показа."
       : !isEditMode
-        ? "Create deck details and flashcards in one consistent Bootstrap workspace."
+        ? "Создайте описание колоды и карточки в одном рабочем пространстве."
         : canManage
-          ? "Update deck details and flashcards in one consistent Bootstrap workspace."
-          : "This deck is available in read-only mode because you are not the owner.";
-    dom.deckOwnerLabel.textContent = state.deckOwner ? `Created by ${ownerLabel()}` : "Created by you";
+          ? "Обновляйте описание колоды и карточки в одном рабочем пространстве."
+          : "Эта колода доступна только для чтения, потому что вы не её владелец.";
+    dom.deckOwnerLabel.textContent = state.deckOwner ? `Автор: ${ownerLabel()}` : "Создано вами";
     dom.readOnlyBadge.classList.toggle("d-none", canManage || !isEditMode);
     dom.savedDeckBadge.classList.toggle("d-none", !state.savedInLibrary || canManage);
     dom.backLink.href = currentExitUrl();
     dom.backLink.innerHTML = isScheduleViewActive() && state.deckId
-      ? '<i class="bi bi-arrow-left me-2"></i>Back to Study'
-      : '<i class="bi bi-arrow-left me-2"></i>Back to Home';
+      ? '<i class="bi bi-arrow-left me-2"></i>Назад к изучению'
+      : '<i class="bi bi-arrow-left me-2"></i>На главную';
 
     dom.deckTitleInput.value = state.draft.name;
     dom.deckTitleInput.disabled = !canManage;
@@ -445,19 +445,19 @@
     dom.deckPasswordInput.value = state.draft.access_password;
     dom.deckPasswordInput.disabled = !canManage;
     dom.visibilityHint.textContent = state.draft.visibility === "private"
-      ? "Anyone with the link must enter the deck password first."
-      : "Anyone with the direct link can open this deck.";
-    dom.shareModeLabel.textContent = state.draft.visibility === "private" ? "Private link" : "Public link";
+      ? "Любой, у кого есть ссылка, должен сначала ввести пароль колоды."
+      : "Любой, у кого есть прямая ссылка, сможет открыть эту колоду.";
+    dom.shareModeLabel.textContent = state.draft.visibility === "private" ? "Приватная ссылка" : "Публичная ссылка";
     dom.shareModeHint.textContent = state.draft.visibility === "private"
-      ? "This link is password-protected. Share the password separately."
-      : "This link opens directly for anyone who has it.";
-    dom.shareLinkInput.value = currentShareLink() || "Save the deck first to generate a shareable link.";
+      ? "Эта ссылка защищена паролем. Передавайте пароль отдельно."
+      : "Эта ссылка открывается напрямую для всех, у кого она есть.";
+    dom.shareLinkInput.value = currentShareLink() || "Сначала сохраните колоду, чтобы получить ссылку для доступа.";
     dom.copyShareLinkBtn.disabled = !state.deckId;
-    dom.cardsCountChip.textContent = `${state.draft.cards.length} cards`;
+    dom.cardsCountChip.textContent = `${state.draft.cards.length} карточек`;
     dom.deckSettingsSection.classList.toggle("d-none", scheduleView);
     dom.saveBtn.innerHTML = isEditMode
-      ? '<i class="bi bi-floppy me-2"></i>Save Changes'
-      : '<i class="bi bi-plus-circle me-2"></i>Create Deck';
+      ? '<i class="bi bi-floppy me-2"></i>Сохранить изменения'
+      : '<i class="bi bi-plus-circle me-2"></i>Создать колоду';
     dom.saveBtn.classList.toggle("d-none", !canManage || scheduleView);
     dom.bottomSaveBtn.classList.toggle("d-none", !canManage || scheduleView);
     dom.addCardBtn.classList.toggle("d-none", !canManage || scheduleView);
@@ -471,7 +471,7 @@
     }
 
     if (!state.draft.cards.length) {
-      dom.cardsList.innerHTML = '<div class="alert alert-light border shadow-sm rounded-4 mb-0">No cards yet. Start by adding the first card block.</div>';
+      dom.cardsList.innerHTML = '<div class="alert alert-light border shadow-sm rounded-4 mb-0">Карточек пока нет. Начните с добавления первой карточки.</div>';
       return;
     }
 
@@ -482,14 +482,14 @@
         <div class="card-body editor-card-body">
           <div class="compact-card-head">
             <div class="d-flex align-items-center gap-3">
-              <span class="card-index-badge">Card ${index + 1}</span>
+              <span class="card-index-badge">Карточка ${index + 1}</span>
             </div>
             <div class="card-actions ${canManage ? "" : "d-none"}">
-              <button class="btn card-action-btn drag-handle" type="button" aria-label="Reorder card">
+              <button class="btn card-action-btn drag-handle" type="button" aria-label="Изменить порядок карточки">
                 <i class="bi bi-grip-vertical"></i>
               </button>
-              <button class="btn card-action-btn" type="button" data-duplicate-card="${index}" title="Duplicate"><i class="bi bi-copy"></i></button>
-              <button class="btn card-action-btn action-danger" type="button" data-delete-card="${index}" title="Delete"><i class="bi bi-trash3"></i></button>
+              <button class="btn card-action-btn" type="button" data-duplicate-card="${index}" title="Дублировать"><i class="bi bi-copy"></i></button>
+              <button class="btn card-action-btn action-danger" type="button" data-delete-card="${index}" title="Удалить"><i class="bi bi-trash3"></i></button>
             </div>
           </div>
           <div class="compact-card-meta">
@@ -499,20 +499,20 @@
           </div>
           <div class="compact-card-grid">
             <div>
-              <label class="form-label fw-semibold mb-2 card-field-label">Term / Front</label>
-              <textarea class="form-control field-textarea bg-dark border-secondary" data-card-front="${index}" rows="3" placeholder="e.g. こんにちは" ${canManage ? "" : "disabled"}>${escapeHtml(card.front)}</textarea>
+              <label class="form-label fw-semibold mb-2 card-field-label">Термин / лицевая сторона</label>
+              <textarea class="form-control field-textarea bg-dark border-secondary" data-card-front="${index}" rows="3" placeholder="например, こんにちは" ${canManage ? "" : "disabled"}>${escapeHtml(card.front)}</textarea>
             </div>
             <div>
-              <label class="form-label fw-semibold mb-2 card-field-label">Definition / Back</label>
-              <textarea class="form-control field-textarea bg-dark border-secondary" data-card-back="${index}" rows="3" placeholder="e.g. Hello" ${canManage ? "" : "disabled"}>${escapeHtml(card.back)}</textarea>
+              <label class="form-label fw-semibold mb-2 card-field-label">Определение / обратная сторона</label>
+              <textarea class="form-control field-textarea bg-dark border-secondary" data-card-back="${index}" rows="3" placeholder="например, Привет" ${canManage ? "" : "disabled"}>${escapeHtml(card.back)}</textarea>
             </div>
             <div class="compact-thumb-col">
               <div class="thumb-slot">
-                <label class="thumb-label">Image</label>
-                <div class="thumb-frame ${card.image_url ? "" : "empty"}" ${canManage ? `role="button" tabindex="0" data-open-image-picker="${index}" title="Add image"` : ""}>
-                  ${card.image_url ? `<img src="${escapeHtml(card.image_url)}" alt="Card preview" />` : '<div class="thumb-empty-inner"><i class="bi bi-image"></i><span>Add image</span></div>'}
+                <label class="thumb-label">Изображение</label>
+                <div class="thumb-frame ${card.image_url ? "" : "empty"}" ${canManage ? `role="button" tabindex="0" data-open-image-picker="${index}" title="Добавить изображение"` : ""}>
+                  ${card.image_url ? `<img src="${escapeHtml(card.image_url)}" alt="Предпросмотр карточки" />` : '<div class="thumb-empty-inner"><i class="bi bi-image"></i><span>Добавить изображение</span></div>'}
                 </div>
-                ${card.image_url && canManage ? `<button class="btn thumb-overlay-btn" type="button" data-clear-image="${index}" title="Remove image"><i class="bi bi-x-lg"></i></button>` : ""}
+                ${card.image_url && canManage ? `<button class="btn thumb-overlay-btn" type="button" data-clear-image="${index}" title="Удалить изображение"><i class="bi bi-x-lg"></i></button>` : ""}
               </div>
             </div>
           </div>
@@ -600,7 +600,7 @@
   function renderImagePicker() {
     setStatus(
       dom.imagePickerStatus,
-      state.imageSearchError || (state.imageSearchLoading ? "Searching images..." : ""),
+      state.imageSearchError || (state.imageSearchLoading ? "Ищем изображения..." : ""),
       state.imageSearchError ? "error" : "",
     );
     dom.imageSearchInput.value = state.imageSearchQuery;
@@ -610,17 +610,17 @@
     dom.imageLoadMoreBtn.classList.toggle("d-none", !state.imageSearchHasSearched || !state.imageSearchResults.length);
 
     if (state.imageSearchLoading && !state.imageSearchResults.length) {
-      dom.imageResultsGrid.innerHTML = '<div class="text-secondary">Loading image suggestions...</div>';
+      dom.imageResultsGrid.innerHTML = '<div class="text-secondary">Загружаем варианты изображений...</div>';
       return;
     }
 
     if (!state.imageSearchHasSearched) {
-      dom.imageResultsGrid.innerHTML = '<div class="text-secondary">Start with a search or use the term field to auto-search.</div>';
+      dom.imageResultsGrid.innerHTML = '<div class="text-secondary">Начните с поиска или используйте поле термина для автопоиска.</div>';
       return;
     }
 
     if (!state.imageSearchResults.length) {
-      dom.imageResultsGrid.innerHTML = '<div class="text-secondary">No image results found. Try another query.</div>';
+      dom.imageResultsGrid.innerHTML = '<div class="text-secondary">Изображения не найдены. Попробуйте другой запрос.</div>';
       return;
     }
 
@@ -628,7 +628,7 @@
       <button class="image-result-card text-start p-0" type="button" data-select-image="${index}">
         <img src="${escapeHtml(result.thumbnail_url)}" alt="${escapeHtml(result.title)}" loading="lazy" />
         <div class="image-result-meta d-grid gap-1">
-          <div class="image-result-title">${escapeHtml(result.title || "Untitled image")}</div>
+          <div class="image-result-title">${escapeHtml(result.title || "Изображение без названия")}</div>
           <div class="small text-secondary">${escapeHtml(result.author || result.license || result.provider)}</div>
         </div>
       </button>
@@ -637,14 +637,14 @@
 
   async function searchImages({ append = false, page = 1 } = {}) {
     if (!state.me) {
-      state.imageSearchError = "Log in from the avatar menu to search images.";
+      state.imageSearchError = "Войдите через меню аватара, чтобы искать изображения.";
       renderImagePicker();
       return;
     }
 
     const query = dom.imageSearchInput.value.trim();
     if (!query) {
-      state.imageSearchError = "Enter a search query.";
+      state.imageSearchError = "Введите поисковый запрос.";
       renderImagePicker();
       return;
     }
@@ -692,13 +692,13 @@
     const result = state.imageSearchResults[resultIndex];
     if (!card || !result) return;
 
-    setStatus(dom.imagePickerStatus, "Saving selected image...", "");
+    setStatus(dom.imagePickerStatus, "Сохраняем выбранное изображение...", "");
     try {
       const stored = await api("/images/import", {
         method: "POST",
         body: JSON.stringify({
           source_url: result.source_url,
-          title: result.title || card.front || "card image",
+          title: result.title || card.front || "изображение карточки",
         }),
       });
       updateCardField(state.activeImageCardIndex, "image_url", stored.image_url);
@@ -722,13 +722,13 @@
     if (!canManageDeck()) return;
     if (!file) return;
     if (!state.me) {
-      throw new Error("Log in from the avatar menu before uploading images.");
+      throw new Error("Войдите через меню аватара перед загрузкой изображений.");
     }
 
     const dataUrl = await new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(String(reader.result || ""));
-      reader.onerror = () => reject(new Error("Failed to read image"));
+      reader.onerror = () => reject(new Error("Не удалось прочитать изображение"));
       reader.readAsDataURL(file);
     });
     const base64Payload = dataUrl.split(",")[1];
@@ -745,33 +745,33 @@
 
   function validateDraft() {
     const name = state.draft.name.trim();
-    if (!name) throw new Error("Deck title is required.");
+    if (!name) throw new Error("Укажите название колоды.");
 
     if (state.draft.visibility === "private" && !state.deckId && state.draft.access_password.trim().length < 4) {
-      throw new Error("Private decks require a password with at least 4 characters.");
+      throw new Error("Для приватной колоды нужен пароль минимум из 4 символов.");
     }
 
     if (state.draft.visibility === "private" && state.draft.access_password.trim() && state.draft.access_password.trim().length < 4) {
-      throw new Error("Private decks require a password with at least 4 characters.");
+      throw new Error("Для приватной колоды нужен пароль минимум из 4 символов.");
     }
 
     for (const card of state.draft.cards) {
       const hasFront = card.front.trim();
       const hasBack = card.back.trim();
       if ((hasFront && !hasBack) || (!hasFront && hasBack)) {
-        throw new Error("Each card must have both front and back, or stay fully empty.");
+        throw new Error("У каждой карточки должны быть заполнены обе стороны, либо обе стороны должны оставаться пустыми.");
       }
     }
   }
 
   async function saveDeck() {
     if (!canManageDeck()) {
-      setStatus(dom.deckStatusMessage, "This deck is read-only because you are not the owner.", "error");
+      setStatus(dom.deckStatusMessage, "Эта колода доступна только для чтения, потому что вы не её владелец.", "error");
       return;
     }
 
     if (!state.me) {
-      setStatus(dom.deckStatusMessage, "Log in from the avatar menu to save this deck.", "error");
+      setStatus(dom.deckStatusMessage, "Войдите через меню аватара, чтобы сохранить эту колоду.", "error");
       return;
     }
 
@@ -853,7 +853,7 @@
 
       const freshDeck = await api(`/decks/${targetDeckId}`, { headers: deckAccessHeaders() });
       hydrateDraft(freshDeck);
-      setStatus(dom.deckStatusMessage, "Deck saved.", "success");
+      setStatus(dom.deckStatusMessage, "Колода сохранена.", "success");
       navigateAway(`/study?deck=${targetDeckId}`);
     } catch (error) {
       setStatus(dom.deckStatusMessage, error.message, "error");
@@ -900,7 +900,7 @@
     dom.copyShareLinkBtn.addEventListener("click", async () => {
       if (!state.deckId) return;
       await navigator.clipboard.writeText(currentShareLink());
-      setStatus(dom.deckStatusMessage, "Deck link copied.", "success");
+      setStatus(dom.deckStatusMessage, "Ссылка на колоду скопирована.", "success");
     });
 
     dom.cardsList.addEventListener("input", (event) => {

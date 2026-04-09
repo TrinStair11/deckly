@@ -51,9 +51,9 @@ def build_shared_study_preview(deck: models.Deck) -> schemas.StudySession:
 @router.get(
     "/shared/decks/{deck_id}/meta",
     response_model=schemas.DeckShareMeta,
-    summary="Get shared deck metadata",
-    description="Return share-safe metadata for a deck without loading the full deck body. If a valid `X-Deck-Access-Token` is supplied, private metadata can be expanded.",
-    response_description="Shared deck metadata.",
+    summary="Метаданные общей колоды",
+    description="Вернуть безопасные для шаринга метаданные колоды без загрузки полного содержимого. Если передан корректный `X-Deck-Access-Token`, приватные метаданные могут быть расширены.",
+    response_description="Метаданные общей колоды.",
 )
 def get_shared_deck_meta(
     deck_id: int,
@@ -68,9 +68,9 @@ def get_shared_deck_meta(
 @router.get(
     "/shared/decks/{deck_id}",
     response_model=schemas.DeckDetail,
-    summary="Get shared deck",
-    description="Load a shared deck for preview or study. Private decks require a valid `X-Deck-Access-Token`.",
-    response_description="Shared deck details.",
+    summary="Получить общую колоду",
+    description="Загрузить общую колоду для предпросмотра или изучения. Для приватных колод нужен корректный `X-Deck-Access-Token`.",
+    response_description="Детали общей колоды.",
 )
 def get_shared_deck(
     deck_id: int,
@@ -85,9 +85,9 @@ def get_shared_deck(
 @router.get(
     "/shared/decks/{deck_id}/study",
     response_model=schemas.StudySession,
-    summary="Preview shared deck study",
-    description="Build a read-only study preview for a shared deck. Private decks require a valid `X-Deck-Access-Token`.",
-    response_description="Study preview for the shared deck.",
+    summary="Предпросмотр изучения общей колоды",
+    description="Собрать предпросмотр изучения общей колоды в режиме только для чтения. Для приватных колод нужен корректный `X-Deck-Access-Token`.",
+    response_description="Предпросмотр изучения общей колоды.",
 )
 def get_shared_study_session(
     deck_id: int,
@@ -102,9 +102,9 @@ def get_shared_study_session(
 @router.post(
     "/shared/decks/{deck_id}/access",
     response_model=schemas.DeckAccessToken,
-    summary="Unlock private shared deck",
-    description="Validate the shared deck password and issue a short-lived deck access token used in the `X-Deck-Access-Token` header.",
-    response_description="Deck access token for subsequent shared-deck requests.",
+    summary="Открыть приватную общую колоду",
+    description="Проверить пароль общей колоды и выдать краткоживущий токен доступа, который используется в заголовке `X-Deck-Access-Token`.",
+    response_description="Токен доступа к колоде для последующих запросов.",
 )
 def access_private_deck_endpoint(
     deck_id: int,
@@ -119,18 +119,18 @@ def access_private_deck_endpoint(
     "/decks/{deck_id}/save-to-library",
     response_model=schemas.DeckOut,
     status_code=status.HTTP_201_CREATED,
-    summary="Save shared deck to library",
-    description="Legacy alias for saving an accessible shared deck into the authenticated user's library.",
-    response_description="Saved deck in the user's library.",
+    summary="Сохранить общую колоду в библиотеку",
+    description="Устаревший алиас для сохранения доступной общей колоды в библиотеку авторизованного пользователя.",
+    response_description="Колода, сохранённая в библиотеке пользователя.",
     deprecated=True,
 )
 @router.post(
     "/shared/decks/{deck_id}/save",
     response_model=schemas.DeckOut,
     status_code=status.HTTP_201_CREATED,
-    summary="Save shared deck to library",
-    description="Save an accessible shared deck into the authenticated user's library. Private decks require a valid `X-Deck-Access-Token`.",
-    response_description="Saved deck in the user's library.",
+    summary="Сохранить общую колоду в библиотеку",
+    description="Сохранить доступную общую колоду в библиотеку авторизованного пользователя. Для приватных колод нужен корректный `X-Deck-Access-Token`.",
+    response_description="Колода, сохранённая в библиотеке пользователя.",
 )
 def save_shared_deck(
     deck_id: int,

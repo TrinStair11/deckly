@@ -42,9 +42,9 @@ router = APIRouter()
     response_model=schemas.QuizEditorOut,
     status_code=status.HTTP_201_CREATED,
     tags=["Quizzes"],
-    summary="Create quiz",
-    description="Create a new quiz with authored questions and editor metadata.",
-    response_description="Created quiz in editor format.",
+    summary="Создать квиз",
+    description="Создать новый квиз с авторскими вопросами и метаданными редактора.",
+    response_description="Созданный квиз в формате редактора.",
 )
 def create_quiz(payload: schemas.QuizCreate, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     validate_quiz_payload(payload)
@@ -77,9 +77,9 @@ def create_quiz(payload: schemas.QuizCreate, current_user=Depends(get_current_us
     "/quizzes",
     response_model=list[schemas.QuizSummaryOut],
     tags=["Quizzes"],
-    summary="List quizzes",
-    description="List quizzes accessible to the authenticated user, with optional filtering by search, category, difficulty, and sort mode.",
-    response_description="Filtered quiz summaries.",
+    summary="Список квизов",
+    description="Вернуть квизы, доступные авторизованному пользователю, с дополнительной фильтрацией по поиску, категории, сложности и сортировке.",
+    response_description="Отфильтрованные сводки по квизам.",
 )
 def list_quizzes_module(
     search: str = Query(default=""),
@@ -130,9 +130,9 @@ def list_quizzes_module(
     "/quizzes/{quiz_id}",
     response_model=schemas.QuizDetailOut,
     tags=["Quizzes"],
-    summary="Get quiz details",
-    description="Return the full public or accessible detail view for a quiz.",
-    response_description="Quiz detail payload.",
+    summary="Детали квиза",
+    description="Вернуть полное публичное или доступное детальное представление квиза.",
+    response_description="Данные детального представления квиза.",
 )
 def get_quiz_detail(quiz_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     quiz = get_accessible_quiz_or_404(quiz_id, current_user, db)
@@ -143,9 +143,9 @@ def get_quiz_detail(quiz_id: int, current_user=Depends(get_current_user), db: Se
     "/quizzes/{quiz_id}/edit-data",
     response_model=schemas.QuizEditorOut,
     tags=["Quizzes"],
-    summary="Get quiz editor data",
-    description="Return the owner-only editor payload used to populate the quiz editing UI.",
-    response_description="Quiz editor payload.",
+    summary="Данные редактора квиза",
+    description="Вернуть данные редактора, доступные только владельцу, для заполнения интерфейса редактирования квиза.",
+    response_description="Данные редактора квиза.",
 )
 def get_quiz_edit_data(quiz_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     quiz = get_owned_quiz_or_404(quiz_id, current_user, db)
@@ -156,9 +156,9 @@ def get_quiz_edit_data(quiz_id: int, current_user=Depends(get_current_user), db:
     "/quizzes/{quiz_id}",
     response_model=schemas.QuizEditorOut,
     tags=["Quizzes"],
-    summary="Update quiz",
-    description="Update an existing owned quiz and replace its questions. Mutation is blocked when the quiz has active attempts.",
-    response_description="Updated quiz in editor format.",
+    summary="Обновить квиз",
+    description="Обновить существующий квиз владельца и заменить его вопросы. Изменение блокируется, если у квиза есть активные попытки.",
+    response_description="Обновлённый квиз в формате редактора.",
 )
 def update_quiz(quiz_id: int, payload: schemas.QuizUpdate, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     validate_quiz_payload(payload)
@@ -175,9 +175,9 @@ def update_quiz(quiz_id: int, payload: schemas.QuizUpdate, current_user=Depends(
     "/quizzes/{quiz_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     tags=["Quizzes"],
-    summary="Delete quiz",
-    description="Delete an owned quiz. Mutation is blocked when the quiz has active attempts.",
-    response_description="Quiz deleted successfully.",
+    summary="Удалить квиз",
+    description="Удалить квиз владельца. Изменение блокируется, если у квиза есть активные попытки.",
+    response_description="Квиз успешно удалён.",
 )
 def delete_quiz(quiz_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     quiz = get_owned_quiz_or_404(quiz_id, current_user, db)
@@ -190,9 +190,9 @@ def delete_quiz(quiz_id: int, current_user=Depends(get_current_user), db: Sessio
     "/quizzes/{quiz_id}/start",
     response_model=schemas.QuizAttemptSessionOut,
     tags=["Quiz Attempts"],
-    summary="Start quiz attempt",
-    description="Create a new attempt session for the specified quiz.",
-    response_description="Quiz attempt session.",
+    summary="Начать попытку квиза",
+    description="Создать новую попытку прохождения для указанного квиза.",
+    response_description="Сессия попытки квиза.",
 )
 def start_quiz_attempt(quiz_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     return start_quiz_attempt_session(quiz_id, current_user, db)
@@ -202,9 +202,9 @@ def start_quiz_attempt(quiz_id: int, current_user=Depends(get_current_user), db:
     "/quiz-attempts/{attempt_id}",
     response_model=schemas.QuizAttemptSessionOut,
     tags=["Quiz Attempts"],
-    summary="Get quiz attempt",
-    description="Load the current state of a quiz attempt session for the authenticated user.",
-    response_description="Quiz attempt session.",
+    summary="Получить попытку квиза",
+    description="Загрузить текущее состояние сессии попытки квиза для авторизованного пользователя.",
+    response_description="Сессия попытки квиза.",
 )
 def get_quiz_attempt(attempt_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     return load_quiz_attempt_session(attempt_id, current_user, db)
@@ -214,9 +214,9 @@ def get_quiz_attempt(attempt_id: int, current_user=Depends(get_current_user), db
     "/quiz-attempts/{attempt_id}/answers/{question_id}",
     response_model=schemas.QuizAttemptSessionOut,
     tags=["Quiz Attempts"],
-    summary="Submit quiz answer",
-    description="Save or replace the answer for a single question within an active quiz attempt.",
-    response_description="Updated quiz attempt session.",
+    summary="Отправить ответ квиза",
+    description="Сохранить или заменить ответ на один вопрос в активной попытке квиза.",
+    response_description="Обновлённая сессия попытки квиза.",
 )
 def answer_quiz_question(
     attempt_id: int,
@@ -232,9 +232,9 @@ def answer_quiz_question(
     "/quiz-attempts/{attempt_id}/complete",
     response_model=schemas.QuizResultOut,
     tags=["Quiz Attempts"],
-    summary="Complete quiz attempt",
-    description="Finalize an active quiz attempt and calculate the result summary.",
-    response_description="Completed quiz result.",
+    summary="Завершить попытку квиза",
+    description="Завершить активную попытку квиза и вычислить сводный результат.",
+    response_description="Результат завершённой попытки квиза.",
 )
 def complete_quiz_attempt(attempt_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     return complete_quiz_attempt_result(attempt_id, current_user, db)
@@ -244,9 +244,9 @@ def complete_quiz_attempt(attempt_id: int, current_user=Depends(get_current_user
     "/quiz-attempts/{attempt_id}/results",
     response_model=schemas.QuizResultOut,
     tags=["Quiz Attempts"],
-    summary="Get quiz results",
-    description="Return the computed results for a completed quiz attempt.",
-    response_description="Quiz result payload.",
+    summary="Получить результаты квиза",
+    description="Вернуть вычисленные результаты завершённой попытки квиза.",
+    response_description="Данные результата квиза.",
 )
 def get_quiz_attempt_results(attempt_id: int, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     return get_quiz_attempt_result(attempt_id, current_user, db)

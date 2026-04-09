@@ -101,7 +101,7 @@
   async function submitEmailUpdate(event) {
     event.preventDefault();
     if (!state.me) {
-      setStatus(dom.emailStatus, "Log in first.", "error");
+      setStatus(dom.emailStatus, "Сначала войдите в аккаунт.", "error");
       return;
     }
 
@@ -110,21 +110,21 @@
     const currentPassword = dom.emailCurrentPasswordInput.value.trim();
 
     if (!newEmail || !confirmEmail || !currentPassword) {
-      setStatus(dom.emailStatus, "Fill all fields.", "error");
+      setStatus(dom.emailStatus, "Заполните все поля.", "error");
       return;
     }
     if (newEmail !== confirmEmail) {
-      setStatus(dom.emailStatus, "Email confirmation does not match.", "error");
+      setStatus(dom.emailStatus, "Подтверждение email не совпадает.", "error");
       return;
     }
     if (newEmail === state.me.email) {
-      setStatus(dom.emailStatus, "New email must be different from current email.", "error");
+      setStatus(dom.emailStatus, "Новый email должен отличаться от текущего.", "error");
       return;
     }
 
     state.emailSaving = true;
     dom.changeEmailBtn.disabled = true;
-    setStatus(dom.emailStatus, "Updating email...", "");
+    setStatus(dom.emailStatus, "Обновляем email...", "");
     try {
       const updatedUser = await api("/account/email", {
         method: "PUT",
@@ -140,7 +140,7 @@
       dom.newEmailInput.value = "";
       dom.confirmEmailInput.value = "";
       dom.emailCurrentPasswordInput.value = "";
-      setStatus(dom.emailStatus, "Email updated successfully.", "success");
+      setStatus(dom.emailStatus, "Email успешно обновлён.", "success");
     } catch (error) {
       setStatus(dom.emailStatus, error.message, "error");
     } finally {
@@ -152,7 +152,7 @@
   async function submitPasswordUpdate(event) {
     event.preventDefault();
     if (!state.me) {
-      setStatus(dom.passwordStatus, "Log in first.", "error");
+      setStatus(dom.passwordStatus, "Сначала войдите в аккаунт.", "error");
       return;
     }
 
@@ -161,21 +161,21 @@
     const confirmPassword = dom.confirmPasswordInput.value.trim();
 
     if (!currentPassword || !newPassword || !confirmPassword) {
-      setStatus(dom.passwordStatus, "Fill all fields.", "error");
+      setStatus(dom.passwordStatus, "Заполните все поля.", "error");
       return;
     }
     if (newPassword.length < 6) {
-      setStatus(dom.passwordStatus, "New password must be at least 6 characters.", "error");
+      setStatus(dom.passwordStatus, "Новый пароль должен содержать минимум 6 символов.", "error");
       return;
     }
     if (newPassword !== confirmPassword) {
-      setStatus(dom.passwordStatus, "Password confirmation does not match.", "error");
+      setStatus(dom.passwordStatus, "Подтверждение пароля не совпадает.", "error");
       return;
     }
 
     state.passwordSaving = true;
     dom.changePasswordBtn.disabled = true;
-    setStatus(dom.passwordStatus, "Updating password...", "");
+    setStatus(dom.passwordStatus, "Обновляем пароль...", "");
     try {
       const result = await api("/account/password", {
         method: "PUT",
@@ -188,7 +188,7 @@
       dom.currentPasswordInput.value = "";
       dom.newPasswordInput.value = "";
       dom.confirmPasswordInput.value = "";
-      setStatus(dom.passwordStatus, result.message || "Password updated successfully.", "success");
+      setStatus(dom.passwordStatus, result.message || "Пароль успешно обновлён.", "success");
     } catch (error) {
       setStatus(dom.passwordStatus, error.message, "error");
     } finally {

@@ -65,7 +65,7 @@ class DeckCreate(BaseModel):
     def normalize_visibility(cls, value: str) -> str:
         normalized = value.strip().lower()
         if normalized not in {"public", "private"}:
-            raise ValueError("Visibility must be public or private")
+            raise ValueError("Видимость должна быть public или private")
         return normalized
 
 
@@ -82,7 +82,7 @@ class DeckUpdate(BaseModel):
     def normalize_visibility(cls, value: str) -> str:
         normalized = value.strip().lower()
         if normalized not in {"public", "private"}:
-            raise ValueError("Visibility must be public or private")
+            raise ValueError("Видимость должна быть public или private")
         return normalized
 
 

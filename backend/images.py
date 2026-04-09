@@ -52,9 +52,9 @@ def validate_external_image_url(
 ) -> str:
     parsed = urlparse(source_url.strip())
     if parsed.scheme.lower() != "https":
-        raise HTTPException(status_code=400, detail="Only https image URLs are allowed")
+        raise HTTPException(status_code=400, detail="Разрешены только HTTPS-ссылки на изображения")
     if not parsed.hostname or parsed.username or parsed.password:
-        raise HTTPException(status_code=400, detail="Invalid image URL")
+        raise HTTPException(status_code=400, detail="Некорректная ссылка на изображение")
 
     try:
         resolved_addresses = {
@@ -62,10 +62,10 @@ def validate_external_image_url(
             for item in resolve_host(parsed.hostname, parsed.port or 443, type=socket.SOCK_STREAM)
         }
     except socket.gaierror as error:
-        raise HTTPException(status_code=400, detail="Image host could not be resolved") from error
+        raise HTTPException(status_code=400, detail="Не удалось определить хост изображения") from error
 
     if not resolved_addresses or any(not is_public_ip_address(address) for address in resolved_addresses):
-        raise HTTPException(status_code=400, detail="Image host is not allowed")
+        raise HTTPException(status_code=400, detail="Хост изображения не разрешён")
     return parsed.geturl()
 
 
@@ -110,7 +110,7 @@ def normalize_openverse_results(payload: dict) -> list[schemas.ImageSearchResult
             schemas.ImageSearchResult(
                 provider="openverse",
                 external_id=str(item.get("id") or source_url),
-                title=item.get("title") or "Untitled image",
+                title=item.get("title") or "Изображение без названия",
                 thumbnail_url=thumbnail_url,
                 source_url=source_url,
                 author=item.get("creator"),
@@ -140,7 +140,7 @@ def search_openverse_images(
             )
             response.raise_for_status()
     except httpx.HTTPError as error:
-        raise HTTPException(status_code=502, detail="Image search provider is unavailable") from error
+        raise HTTPException(status_code=502, detail="Провайдер поиска изображений недоступен") from error
     return normalize_openverse_results(response.json())
 
 
@@ -165,52 +165,52 @@ def download_external_image(
                     if response.status_code in {301, 302, 303, 307, 308}:
                         location = response.headers.get("location")
                         if not location:
-                            raise HTTPException(status_code=502, detail="Image provider returned an invalid redirect")
+                            raise HTTPException(status_code=502, detail="Провайдер изображений вернул некорректный редирект")
                         redirects_followed += 1
                         if redirects_followed > redirect_limit:
-                            raise HTTPException(status_code=502, detail="Image provider redirected too many times")
+                            raise HTTPException(status_code=502, detail="Провайдер изображений сделал слишком много редиректов")
                         current_url = ensure_redirect(current_url, location)
                         continue
 
                     response.raise_for_status()
                     content_type = response.headers.get("content-type", "")
                     if not content_type.startswith("image/"):
-                        raise HTTPException(status_code=400, detail="The selected file is not an image")
+                        raise HTTPException(status_code=400, detail="Выбранный файл не является изображением")
 
                     content_length = response.headers.get("content-length")
                     if content_length and int(content_length) > max_download_bytes:
-                        raise HTTPException(status_code=413, detail="The selected image is too large")
+                        raise HTTPException(status_code=413, detail="Выбранное изображение слишком большое")
 
                     content = bytearray()
                     for chunk in response.iter_bytes():
                         content.extend(chunk)
                         if len(content) > max_download_bytes:
-                            raise HTTPException(status_code=413, detail="The selected image is too large")
+                            raise HTTPException(status_code=413, detail="Выбранное изображение слишком большое")
 
                     if not content:
-                        raise HTTPException(status_code=400, detail="The selected image is empty")
+                        raise HTTPException(status_code=400, detail="Выбранное изображение пустое")
 
                     detected_extension = detect_image_extension(bytes(content))
                     if not detected_extension:
-                        raise HTTPException(status_code=400, detail="The selected file is not a supported image")
+                        raise HTTPException(status_code=400, detail="Выбранный файл не поддерживается как изображение")
 
                     return store_image(bytes(content), detected_extension)
     except HTTPException:
         raise
     except httpx.HTTPError as error:
-        raise HTTPException(status_code=502, detail="Failed to download the selected image") from error
+        raise HTTPException(status_code=502, detail="Не удалось загрузить выбранное изображение") from error
 
 
 def decode_uploaded_image(content_base64: str, *, max_upload_bytes: int) -> tuple[bytes, str]:
     try:
         content = base64.b64decode(content_base64, validate=True)
     except (binascii.Error, ValueError) as error:
-        raise HTTPException(status_code=400, detail="Invalid image payload") from error
+        raise HTTPException(status_code=400, detail="Некорректные данные изображения") from error
     if not content:
-        raise HTTPException(status_code=400, detail="Image payload is empty")
+        raise HTTPException(status_code=400, detail="Данные изображения пустые")
     if len(content) > max_upload_bytes:
-        raise HTTPException(status_code=413, detail="Image payload is too large")
+        raise HTTPException(status_code=413, detail="Данные изображения слишком большие")
     extension = detect_image_extension(content)
     if not extension:
-        raise HTTPException(status_code=400, detail="Uploaded file is not a supported image")
+        raise HTTPException(status_code=400, detail="Загруженный файл не поддерживается как изображение")
     return content, extension

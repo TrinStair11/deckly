@@ -8,6 +8,15 @@ window.quizApp = (() => {
       .replaceAll("'", "&#039;");
   }
 
+  function pluralize(count, forms) {
+    const absolute = Math.abs(Number(count)) % 100;
+    const lastDigit = absolute % 10;
+    if (absolute > 10 && absolute < 20) return forms[2];
+    if (lastDigit > 1 && lastDigit < 5) return forms[1];
+    if (lastDigit === 1) return forms[0];
+    return forms[2];
+  }
+
   async function api(path, options = {}) {
     const headers = {
       "Content-Type": "application/json",
@@ -19,12 +28,12 @@ window.quizApp = (() => {
       headers,
     });
     if (!response.ok) {
-      let detail = "Request failed";
+      let detail = "Запрос не выполнен";
       try {
         const payload = await response.json();
         detail = payload.detail || detail;
       } catch (error) {
-        detail = "Server error";
+        detail = "Ошибка сервера";
       }
       throw new Error(detail);
     }
@@ -73,8 +82,8 @@ window.quizApp = (() => {
     const setGuestState = () => {
       if (accountAvatar) accountAvatar.textContent = "G";
       if (menuAvatar) menuAvatar.textContent = "G";
-      if (profileName) profileName.textContent = "Guest";
-      if (profileEmail) profileEmail.textContent = "Sign in to access quiz history";
+      if (profileName) profileName.textContent = "Гость";
+      if (profileEmail) profileEmail.textContent = "Войдите, чтобы видеть историю квизов";
       if (accountSummary) accountSummary.classList.add("d-none");
       if (guestActions) guestActions.classList.remove("d-none");
       if (guestSignupWrap) guestSignupWrap.classList.remove("d-none");
@@ -84,7 +93,7 @@ window.quizApp = (() => {
     if (!currentUser) {
       setGuestState();
     } else {
-      const shortName = currentUser.email.split("@")[0] || "Learner";
+      const shortName = currentUser.email.split("@")[0] || "Ученик";
       const initial = shortName.charAt(0).toUpperCase();
       if (accountAvatar) accountAvatar.textContent = initial;
       if (menuAvatar) menuAvatar.textContent = initial;
@@ -108,18 +117,18 @@ window.quizApp = (() => {
     }
   }
 
-  function requireAuthNotice(container, title = "Sign in required", copy = "This part of the Quiz module is available after authentication.") {
+  function requireAuthNotice(container, title = "Требуется вход", copy = "Этот раздел модуля квизов доступен только после авторизации.") {
     container.innerHTML = `
       <div class="quiz-empty">
         <h2 class="h4 mb-2">${escapeHtml(title)}</h2>
         <p class="mb-3">${escapeHtml(copy)}</p>
-        <a class="btn btn-light text-dark rounded-pill px-4" href="/">Go to Home</a>
+        <a class="btn btn-light text-dark rounded-pill px-4" href="/">На главную</a>
       </div>
     `;
   }
 
   function formatPercent(value) {
-    if (value === null || value === undefined) return "No attempts yet";
+    if (value === null || value === undefined) return "Попыток ещё не было";
     return `${Math.round(value)}%`;
   }
 
@@ -140,6 +149,7 @@ window.quizApp = (() => {
     formatPercent,
     getCurrentUser,
     initShell,
+    pluralize,
     requireAuthNotice,
   };
 })();

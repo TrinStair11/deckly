@@ -137,7 +137,7 @@ window.studyActions = (() => {
         return;
       }
       state.reviewAnimating = true;
-      state.reviewExitLabel = direction === "know" ? "Know it!" : "Don't know yet!";
+      state.reviewExitLabel = direction === "know" ? "Знаю!" : "Пока не знаю!";
       renderAll();
       const activeViewer = document.getElementById("cardViewer");
       activeViewer.classList.remove("review-hold", "exit-know", "exit-dontknow");

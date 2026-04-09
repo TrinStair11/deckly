@@ -101,9 +101,9 @@ def build_upload_image_response(
 @router.post(
     "/images/search",
     response_model=schemas.ImageSearchResponse,
-    summary="Search images",
-    description="Search external image providers for media that can be attached to cards or quizzes.",
-    response_description="Image search results page.",
+    summary="Поиск изображений",
+    description="Искать у внешних провайдеров изображения, которые можно прикрепить к карточкам или квизам.",
+    response_description="Страница результатов поиска изображений.",
 )
 def search_images_endpoint(payload: schemas.ImageSearchRequest, current_user=Depends(get_current_user)):
     return build_search_images_response(payload, search_provider=search_openverse_images)
@@ -112,9 +112,9 @@ def search_images_endpoint(payload: schemas.ImageSearchRequest, current_user=Dep
 @router.post(
     "/images/import",
     response_model=schemas.StoredImageOut,
-    summary="Import external image",
-    description="Download an external HTTPS image after validation and store it in the application's media directory.",
-    response_description="Stored image URL.",
+    summary="Импорт внешнего изображения",
+    description="Скачать внешнее HTTPS-изображение после проверки и сохранить его в медиадиректории приложения.",
+    response_description="URL сохранённого изображения.",
 )
 def import_image_endpoint(payload: schemas.ImageImportRequest, current_user=Depends(get_current_user)):
     return build_import_image_response(payload, importer=download_external_image)
@@ -123,9 +123,9 @@ def import_image_endpoint(payload: schemas.ImageImportRequest, current_user=Depe
 @router.post(
     "/images/upload",
     response_model=schemas.StoredImageOut,
-    summary="Upload image",
-    description="Decode a base64-encoded image payload, validate it, and persist the uploaded media for later use.",
-    response_description="Stored image URL.",
+    summary="Загрузка изображения",
+    description="Декодировать изображение в base64, проверить его и сохранить загруженный файл для дальнейшего использования.",
+    response_description="URL сохранённого изображения.",
 )
 def upload_image_endpoint(payload: schemas.ImageUploadRequest, current_user=Depends(get_current_user)):
     return build_upload_image_response(

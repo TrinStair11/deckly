@@ -14,9 +14,9 @@ router = APIRouter(tags=["Study"])
 @router.get(
     "/decks/{deck_id}/study/session",
     response_model=schemas.StudySession,
-    summary="Build study session",
-    description="Generate a study session for a deck using the requested mode, card limits, and shuffle settings. Private shared decks may require `X-Deck-Access-Token`.",
-    response_description="Prepared study session payload.",
+    summary="Собрать учебную сессию",
+    description="Сгенерировать учебную сессию для колоды с учётом выбранного режима, лимитов карточек и параметров перемешивания. Для приватных общих колод может потребоваться `X-Deck-Access-Token`.",
+    response_description="Подготовленные данные учебной сессии.",
 )
 def get_study_session(
     deck_id: int,
@@ -46,9 +46,9 @@ def get_study_session(
 @router.get(
     "/decks/{deck_id}/study",
     response_model=schemas.StudySession,
-    summary="Get legacy study session",
-    description="Legacy study-session endpoint kept for backward compatibility. Prefer `/decks/{deck_id}/study/session` for new integrations.",
-    response_description="Prepared study session payload.",
+    summary="Получить устаревшую сессию изучения",
+    description="Устаревший маршрут учебной сессии оставлен для обратной совместимости. Для новых интеграций используйте `/decks/{deck_id}/study/session`.",
+    response_description="Подготовленные данные учебной сессии.",
     deprecated=True,
 )
 def get_legacy_study_session(
@@ -64,9 +64,9 @@ def get_legacy_study_session(
 @router.get(
     "/decks/{deck_id}/progress",
     response_model=schemas.ProgressOut,
-    summary="Get deck progress",
-    description="Return the current user's spaced repetition progress for the specified deck. Private shared decks may require `X-Deck-Access-Token`.",
-    response_description="Per-user deck progress snapshot.",
+    summary="Получить прогресс по колоде",
+    description="Вернуть прогресс интервального повторения текущего пользователя по указанной колоде. Для приватных общих колод может потребоваться `X-Deck-Access-Token`.",
+    response_description="Снимок прогресса пользователя по колоде.",
 )
 def get_deck_progress(
     deck_id: int,

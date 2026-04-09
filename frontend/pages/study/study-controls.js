@@ -29,29 +29,29 @@ window.studyControls = (() => {
       return `
         <div class="d-grid gap-3">
           <div>
-            <div class="small text-secondary text-uppercase mb-2">Card side order</div>
+            <div class="small text-secondary text-uppercase mb-2">Порядок сторон карточки</div>
             <div class="d-grid gap-2">
               <label class="form-check">
                 <input class="form-check-input" type="radio" name="cardSideOrder" value="front" ${state.cardSideOrder === "front" ? "checked" : ""}>
-                <span class="form-check-label">Front first</span>
+                <span class="form-check-label">Сначала лицевая сторона</span>
               </label>
               <label class="form-check">
                 <input class="form-check-input" type="radio" name="cardSideOrder" value="back" ${state.cardSideOrder === "back" ? "checked" : ""}>
-                <span class="form-check-label">Back first</span>
+                <span class="form-check-label">Сначала обратная сторона</span>
               </label>
             </div>
           </div>
           <div>
-            <div class="small text-secondary text-uppercase mb-2">Order</div>
+            <div class="small text-secondary text-uppercase mb-2">Порядок</div>
             <div class="form-check form-switch">
               <input class="form-check-input" type="checkbox" role="switch" id="shuffleCardsToggle" ${state.shuffleCards ? "checked" : ""}>
-              <label class="form-check-label" for="shuffleCardsToggle">Shuffle cards</label>
+              <label class="form-check-label" for="shuffleCardsToggle">Перемешивать карточки</label>
             </div>
-            <div class="small text-secondary mt-2">Shuffle is applied when a session starts or restarts.</div>
+            <div class="small text-secondary mt-2">Перемешивание применяется при старте или перезапуске сессии.</div>
           </div>
           ${state.mode === "interval" && !isPreviewIntervalSession() ? `
             <div>
-              <div class="small text-secondary text-uppercase mb-2">New cards per interval run</div>
+              <div class="small text-secondary text-uppercase mb-2">Новых карточек за интервальную сессию</div>
               <div class="d-flex gap-2 flex-wrap">
                 ${[0, 5, 10, 20].map((value) => `
                   <button
@@ -63,7 +63,7 @@ window.studyControls = (() => {
                   </button>
                 `).join("")}
               </div>
-              <div class="small text-secondary mt-2">Changing this setting restarts the interval queue with a new mix of due and new cards.</div>
+              <div class="small text-secondary mt-2">Изменение этого параметра перезапустит очередь с новым набором карточек к повторению и новых карточек.</div>
             </div>
           ` : ""}
         </div>
@@ -73,7 +73,7 @@ window.studyControls = (() => {
     function renderSettingsShell() {
       return `
         <div class="settings-shell" data-settings-shell>
-          <button class="btn btn-outline-light utility-btn" type="button" id="studySettingsBtn" title="Study settings" aria-label="Study settings" aria-expanded="${state.settingsOpen ? "true" : "false"}">
+          <button class="btn btn-outline-light utility-btn" type="button" id="studySettingsBtn" title="Настройки изучения" aria-label="Настройки изучения" aria-expanded="${state.settingsOpen ? "true" : "false"}">
             <i class="bi bi-sliders"></i>
           </button>
           ${state.settingsOpen ? `
@@ -129,7 +129,7 @@ window.studyControls = (() => {
     function renderFocusToggleButton() {
       if (!isSessionActive()) return "";
       const isOn = Boolean(state.focusMode);
-      const label = isOn ? "Exit fullscreen focus mode" : "Open fullscreen focus mode";
+      const label = isOn ? "Выйти из полноэкранного режима фокуса" : "Открыть полноэкранный режим фокуса";
       const icon = isOn ? "bi-fullscreen-exit" : "bi-arrows-fullscreen";
       return `
         <button class="btn btn-outline-light utility-btn" type="button" id="focusModeBtn" title="${label}" aria-label="${label}" aria-pressed="${isOn ? "true" : "false"}">
@@ -154,18 +154,18 @@ window.studyControls = (() => {
     function intervalControlHint(previewOnly) {
       if (!state.revealed) {
         return previewOnly
-          ? "Flip the card, then preview the rating flow. These ratings are not saved."
-          : "Flip the card, then rate recall quality to place the next review.";
+          ? "Переверните карточку и попробуйте процесс оценки. Эти оценки не сохраняются."
+          : "Переверните карточку и оцените качество вспоминания, чтобы назначить следующий повтор.";
       }
       return previewOnly
-        ? "Preview only. Ratings will not update your personal schedule."
-        : "Rate honestly based on recall quality, not on the interval you want.";
+        ? "Только предпросмотр. Оценки не изменят ваше персональное расписание."
+        : "Оценивайте честно по качеству вспоминания, а не по желаемому интервалу.";
     }
 
     function renderIntervalControlContext(previewOnly) {
       return `
         <div class="control-context">
-          <span class="control-mode-pill"><i class="bi bi-clock-history"></i>${previewOnly ? "Interval preview" : "Interval review"}</span>
+          <span class="control-mode-pill"><i class="bi bi-clock-history"></i>${previewOnly ? "Предпросмотр интервалов" : "Интервальное повторение"}</span>
           <div class="control-hint">${intervalControlHint(previewOnly)}</div>
         </div>
       `;
@@ -175,19 +175,19 @@ window.studyControls = (() => {
       const baseClass = variant === "focus" ? "focus-answer-btn interval-focus-rating-btn" : "review-answer-btn interval-rating-pill";
       return `
         <button class="btn ${baseClass} negative" type="button" data-rating="again">
-          <span class="interval-rating-main">1 Again</span>
+          <span class="interval-rating-main">1 Снова</span>
           <span class="interval-rating-sub">${ratingPreviews.again}</span>
         </button>
         <button class="btn ${baseClass} warning" type="button" data-rating="hard">
-          <span class="interval-rating-main">2 Hard</span>
+          <span class="interval-rating-main">2 Трудно</span>
           <span class="interval-rating-sub">${ratingPreviews.hard}</span>
         </button>
         <button class="btn ${baseClass} info" type="button" data-rating="good">
-          <span class="interval-rating-main">3 Good</span>
+          <span class="interval-rating-main">3 Хорошо</span>
           <span class="interval-rating-sub">${ratingPreviews.good}</span>
         </button>
         <button class="btn ${baseClass} positive" type="button" data-rating="easy">
-          <span class="interval-rating-main">4 Easy</span>
+          <span class="interval-rating-main">4 Легко</span>
           <span class="interval-rating-sub">${ratingPreviews.easy}</span>
         </button>
       `;
@@ -210,27 +210,27 @@ window.studyControls = (() => {
           controlBar.innerHTML = `
             <div class="card-body focus-control-body" data-settings-shell>
               <div class="focus-review-controls">
-                <button class="btn focus-answer-btn negative" type="button" id="dontKnowBtn" aria-label="I don't know">
-                  <i class="bi bi-x-lg"></i><span>Don't know</span>
+                <button class="btn focus-answer-btn negative" type="button" id="dontKnowBtn" aria-label="Не знаю">
+                  <i class="bi bi-x-lg"></i><span>Не знаю</span>
                 </button>
-                <button class="btn focus-answer-btn neutral" type="button" id="flipReviewBtn" aria-label="Flip card">
-                  <i class="bi bi-arrow-repeat"></i><span>${state.revealed ? `Show ${primaryCardSide() === "front" ? "Front" : "Back"}` : "Flip card"}</span>
+                <button class="btn focus-answer-btn neutral" type="button" id="flipReviewBtn" aria-label="Перевернуть карточку">
+                  <i class="bi bi-arrow-repeat"></i><span>${state.revealed ? `Показать ${primaryCardSide() === "front" ? "лицевую сторону" : "обратную сторону"}` : "Перевернуть карточку"}</span>
                 </button>
-                <button class="btn focus-answer-btn positive" type="button" id="knowBtn" aria-label="I know it">
-                  <i class="bi bi-check-lg"></i><span>Know it</span>
+                <button class="btn focus-answer-btn positive" type="button" id="knowBtn" aria-label="Знаю">
+                  <i class="bi bi-check-lg"></i><span>Знаю</span>
                 </button>
               </div>
               <div class="focus-utility-row">
                 <div class="focus-progress-mini">${Math.min(state.currentIndex + 1, state.sessionCards.length)} / ${state.sessionCards.length}</div>
                 <div class="dropdown focus-more-menu">
-                  <button class="btn focus-more-btn" type="button" id="focusMoreBtn" data-bs-toggle="dropdown" aria-expanded="false" title="More actions">
+                  <button class="btn focus-more-btn" type="button" id="focusMoreBtn" data-bs-toggle="dropdown" aria-expanded="false" title="Ещё действия">
                     <i class="bi bi-three-dots"></i>
                   </button>
                   <ul class="dropdown-menu dropdown-menu-end rounded-4 p-2">
-                    <li><button class="dropdown-item rounded-3 ${canUndoSessionAction() ? "" : "disabled"}" type="button" id="focusUndoAction" ${canUndoSessionAction() ? "" : "disabled"}>Undo last answer</button></li>
-                    <li><button class="dropdown-item rounded-3" type="button" id="focusSettingsAction">Study settings</button></li>
-                    <li><a class="dropdown-item rounded-3" href="/deck?id=${state.deck.id}&view=interval">Open word list</a></li>
-                    <li><button class="dropdown-item rounded-3" type="button" id="focusExitAction">Exit fullscreen</button></li>
+                    <li><button class="dropdown-item rounded-3 ${canUndoSessionAction() ? "" : "disabled"}" type="button" id="focusUndoAction" ${canUndoSessionAction() ? "" : "disabled"}>Отменить последний ответ</button></li>
+                    <li><button class="dropdown-item rounded-3" type="button" id="focusSettingsAction">Настройки изучения</button></li>
+                    <li><a class="dropdown-item rounded-3" href="/deck?id=${state.deck.id}&view=interval">Открыть список слов</a></li>
+                    <li><button class="dropdown-item rounded-3" type="button" id="focusExitAction">Выйти из полноэкранного режима</button></li>
                   </ul>
                 </div>
               </div>
@@ -260,28 +260,28 @@ window.studyControls = (() => {
           <div class="review-control-shell" data-settings-shell>
             <div class="card-body review-control-layout">
               <div class="review-side-meta">
-                <span class="control-mode-pill"><i class="bi bi-check2-square"></i>Self-check</span>
+                <span class="control-mode-pill"><i class="bi bi-check2-square"></i>Самопроверка</span>
               </div>
               <div class="review-answer-cluster">
-                <button class="btn review-answer-btn negative" type="button" id="dontKnowBtn" aria-label="I don't know">
-                  <i class="bi bi-x-lg"></i><span>Don't know</span>
+                <button class="btn review-answer-btn negative" type="button" id="dontKnowBtn" aria-label="Не знаю">
+                  <i class="bi bi-x-lg"></i><span>Не знаю</span>
                 </button>
                 <div class="review-progress-core">${Math.min(state.currentIndex + 1, state.sessionCards.length)} / ${state.sessionCards.length}</div>
-                <button class="btn review-answer-btn positive" type="button" id="knowBtn" aria-label="I know it">
-                  <i class="bi bi-check-lg"></i><span>Know it</span>
+                <button class="btn review-answer-btn positive" type="button" id="knowBtn" aria-label="Знаю">
+                  <i class="bi bi-check-lg"></i><span>Знаю</span>
                 </button>
               </div>
               <div class="review-side-meta right">
                 <div class="review-utility">
                   ${renderFocusToggleButton()}
                   <div class="dropdown">
-                    <button class="btn review-more-btn" type="button" id="reviewMoreBtn" data-bs-toggle="dropdown" aria-expanded="false" title="More actions">
+                    <button class="btn review-more-btn" type="button" id="reviewMoreBtn" data-bs-toggle="dropdown" aria-expanded="false" title="Ещё действия">
                       <i class="bi bi-three-dots"></i>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end rounded-4 p-2">
-                      <li><button class="dropdown-item rounded-3" type="button" id="flipReviewBtn">Flip card</button></li>
-                      <li><button class="dropdown-item rounded-3" type="button" id="reviewSettingsBtn">Study settings</button></li>
-                      <li><a class="dropdown-item rounded-3" href="/deck?id=${state.deck.id}&view=interval">Open word list</a></li>
+                      <li><button class="dropdown-item rounded-3" type="button" id="flipReviewBtn">Перевернуть карточку</button></li>
+                      <li><button class="dropdown-item rounded-3" type="button" id="reviewSettingsBtn">Настройки изучения</button></li>
+                      <li><a class="dropdown-item rounded-3" href="/deck?id=${state.deck.id}&view=interval">Открыть список слов</a></li>
                     </ul>
                   </div>
                 </div>
@@ -315,21 +315,21 @@ window.studyControls = (() => {
                 ${state.revealed
                   ? renderIntervalRatingButtons(ratingPreviews, "focus")
                   : `<button class="btn focus-answer-btn neutral interval-focus-single-btn" type="button" id="showIntervalBtn">
-                      <i class="bi bi-arrow-repeat"></i><span>Show Answer</span>
+                      <i class="bi bi-arrow-repeat"></i><span>Показать ответ</span>
                     </button>`}
               </div>
               <div class="focus-utility-row">
                 <div class="focus-progress-mini">${intervalProgressLabel()}</div>
                 <div class="dropdown focus-more-menu">
-                  <button class="btn focus-more-btn" type="button" id="focusMoreBtn" data-bs-toggle="dropdown" aria-expanded="false" title="More actions">
+                  <button class="btn focus-more-btn" type="button" id="focusMoreBtn" data-bs-toggle="dropdown" aria-expanded="false" title="Ещё действия">
                     <i class="bi bi-three-dots"></i>
                   </button>
                   <ul class="dropdown-menu dropdown-menu-end rounded-4 p-2">
-                    <li><button class="dropdown-item rounded-3" type="button" id="flipReviewBtn">${state.revealed ? `Show ${primaryCardSide() === "front" ? "Front" : "Back"}` : "Show Answer"}</button></li>
-                    <li><button class="dropdown-item rounded-3 ${canUndoSessionAction() ? "" : "disabled"}" type="button" id="focusUndoAction" ${canUndoSessionAction() ? "" : "disabled"}>Undo last rating</button></li>
-                    <li><button class="dropdown-item rounded-3" type="button" id="focusSettingsAction">Study settings</button></li>
-                    <li><a class="dropdown-item rounded-3" href="/deck?id=${state.deck.id}&view=interval">Open word list</a></li>
-                    <li><button class="dropdown-item rounded-3" type="button" id="focusExitAction">Exit fullscreen</button></li>
+                    <li><button class="dropdown-item rounded-3" type="button" id="flipReviewBtn">${state.revealed ? `Показать ${primaryCardSide() === "front" ? "лицевую сторону" : "обратную сторону"}` : "Показать ответ"}</button></li>
+                    <li><button class="dropdown-item rounded-3 ${canUndoSessionAction() ? "" : "disabled"}" type="button" id="focusUndoAction" ${canUndoSessionAction() ? "" : "disabled"}>Отменить последнюю оценку</button></li>
+                    <li><button class="dropdown-item rounded-3" type="button" id="focusSettingsAction">Настройки изучения</button></li>
+                    <li><a class="dropdown-item rounded-3" href="/deck?id=${state.deck.id}&view=interval">Открыть список слов</a></li>
+                    <li><button class="dropdown-item rounded-3" type="button" id="focusExitAction">Выйти из полноэкранного режима</button></li>
                   </ul>
                 </div>
               </div>
@@ -367,7 +367,7 @@ window.studyControls = (() => {
                 ${state.revealed
                   ? renderIntervalRatingButtons(ratingPreviews, "review")
                   : `<button class="btn review-answer-btn neutral interval-single-btn" type="button" id="showIntervalBtn">
-                      <i class="bi bi-arrow-repeat"></i><span>Show Answer</span>
+                      <i class="bi bi-arrow-repeat"></i><span>Показать ответ</span>
                     </button>`}
               </div>
               <div class="review-side-meta right">
@@ -375,14 +375,14 @@ window.studyControls = (() => {
                 <div class="review-utility">
                   ${renderFocusToggleButton()}
                   <div class="dropdown">
-                    <button class="btn review-more-btn" type="button" id="reviewMoreBtn" data-bs-toggle="dropdown" aria-expanded="false" title="More actions">
+                    <button class="btn review-more-btn" type="button" id="reviewMoreBtn" data-bs-toggle="dropdown" aria-expanded="false" title="Ещё действия">
                       <i class="bi bi-three-dots"></i>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end rounded-4 p-2">
-                      <li><button class="dropdown-item rounded-3" type="button" id="flipReviewBtn">${state.revealed ? `Show ${primaryCardSide() === "front" ? "Front" : "Back"}` : "Show Answer"}</button></li>
-                      <li><button class="dropdown-item rounded-3 ${canUndoSessionAction() ? "" : "disabled"}" type="button" id="reviewUndoBtn" ${canUndoSessionAction() ? "" : "disabled"}>Undo last rating</button></li>
-                      <li><button class="dropdown-item rounded-3" type="button" id="reviewSettingsBtn">Study settings</button></li>
-                      <li><a class="dropdown-item rounded-3" href="/deck?id=${state.deck.id}&view=interval">Open word list</a></li>
+                      <li><button class="dropdown-item rounded-3" type="button" id="flipReviewBtn">${state.revealed ? `Показать ${primaryCardSide() === "front" ? "лицевую сторону" : "обратную сторону"}` : "Показать ответ"}</button></li>
+                      <li><button class="dropdown-item rounded-3 ${canUndoSessionAction() ? "" : "disabled"}" type="button" id="reviewUndoBtn" ${canUndoSessionAction() ? "" : "disabled"}>Отменить последнюю оценку</button></li>
+                      <li><button class="dropdown-item rounded-3" type="button" id="reviewSettingsBtn">Настройки изучения</button></li>
+                      <li><a class="dropdown-item rounded-3" href="/deck?id=${state.deck.id}&view=interval">Открыть список слов</a></li>
                     </ul>
                   </div>
                 </div>
@@ -413,12 +413,12 @@ window.studyControls = (() => {
       if (state.mode === "test") {
         controlBar.innerHTML = `
           <div class="card-body py-2 px-3 d-flex flex-column flex-xl-row justify-content-between align-items-xl-center gap-2">
-            <div class="study-counter"><span class="kicker">Current Card</span>${Math.min(state.currentIndex + 1, state.sessionCards.length)} / ${state.sessionCards.length}</div>
+            <div class="study-counter"><span class="kicker">Текущая карточка</span>${Math.min(state.currentIndex + 1, state.sessionCards.length)} / ${state.sessionCards.length}</div>
             <div class="d-flex align-items-center utility-cluster">
-              <button class="btn btn-outline-light utility-btn ${canUndoSessionAction() ? "" : "disabled"}" type="button" id="undoTestBtn" title="Undo last answer" ${canUndoSessionAction() ? "" : "disabled"}>
+              <button class="btn btn-outline-light utility-btn ${canUndoSessionAction() ? "" : "disabled"}" type="button" id="undoTestBtn" title="Отменить последний ответ" ${canUndoSessionAction() ? "" : "disabled"}>
                 <i class="bi bi-arrow-counterclockwise"></i>
               </button>
-              <button class="btn ${state.lastAnswer ? "btn-light text-dark" : "btn-outline-light"}" type="button" id="testNextBtn">${state.lastAnswer ? "Next Question" : "Skip"}</button>
+              <button class="btn ${state.lastAnswer ? "btn-light text-dark" : "btn-outline-light"}" type="button" id="testNextBtn">${state.lastAnswer ? "Следующий вопрос" : "Пропустить"}</button>
               ${renderFocusToggleButton()}
               ${renderSettingsShell()}
             </div>

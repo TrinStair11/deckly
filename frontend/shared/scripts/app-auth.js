@@ -38,7 +38,7 @@ window.appAuth = (() => {
       refs.loginTab?.classList.toggle("active", mode === "login");
       refs.registerTab?.classList.toggle("active", mode === "register");
       if (refs.submitButton) {
-        refs.submitButton.textContent = mode === "login" ? "Login" : "Register";
+        refs.submitButton.textContent = mode === "login" ? "Войти" : "Зарегистрироваться";
       }
       setNodeStatus(setStatus, refs.statusNode, "", "");
     }
@@ -65,7 +65,7 @@ window.appAuth = (() => {
       const email = refs.emailInput?.value.trim();
       const password = refs.passwordInput?.value.trim();
       if (!email || !password) {
-        setNodeStatus(setStatus, refs.statusNode, "Fill email and password.", "error");
+        setNodeStatus(setStatus, refs.statusNode, "Введите email и пароль.", "error");
         return null;
       }
 
@@ -85,7 +85,7 @@ window.appAuth = (() => {
         if (typeof onAuthenticated === "function") {
           await onAuthenticated({ email, mode, token });
         }
-        setNodeStatus(setStatus, refs.statusNode, "Logged in successfully.", "success");
+        setNodeStatus(setStatus, refs.statusNode, "Вход выполнен.", "success");
         close();
         return token;
       } catch (error) {

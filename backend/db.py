@@ -14,7 +14,7 @@ DATABASE_URL = os.getenv("DATABASE_URL", DEFAULT_DATABASE_URL).strip() or DEFAUL
 def validate_database_url(database_url: str) -> str:
     normalized_url = database_url.strip()
     if normalized_url.lower().startswith("sqlite"):
-        raise RuntimeError("SQLite is no longer supported. Configure DATABASE_URL for PostgreSQL.")
+        raise RuntimeError("SQLite больше не поддерживается. Укажите DATABASE_URL для PostgreSQL.")
     # Normalize bare postgres:// or postgresql:// to use psycopg3 driver
     if normalized_url.lower().startswith("postgres://"):
         normalized_url = "postgresql+psycopg://" + normalized_url[len("postgres://"):]

@@ -41,7 +41,7 @@
   function setSaveState(isSaving) {
     saveButtons.forEach((button) => {
       button.disabled = isSaving;
-      button.textContent = isSaving ? "Saving..." : "Save Quiz";
+      button.textContent = isSaving ? "Сохранение..." : "Сохранить квиз";
     });
   }
 
@@ -83,36 +83,36 @@
 
   function renderQuestions() {
     if (!state.questions.length) {
-      questionsList.innerHTML = '<div class="quiz-empty">No questions yet. Add the first one to make the quiz startable.</div>';
+      questionsList.innerHTML = '<div class="quiz-empty">Вопросов пока нет. Добавьте первый, чтобы квиз можно было запустить.</div>';
       return;
     }
 
     questionsList.innerHTML = state.questions.map((question, questionIndex) => `
       <article class="quiz-editor-question p-3" data-question-index="${questionIndex}">
         <div class="d-flex justify-content-between align-items-center gap-2 mb-3 flex-wrap">
-          <div class="small text-uppercase text-secondary">Question ${questionIndex + 1}</div>
+          <div class="small text-uppercase text-secondary">Вопрос ${questionIndex + 1}</div>
           <div class="d-flex gap-2">
-            <button class="btn btn-sm btn-outline-danger rounded-pill" type="button" data-action="remove-question">Delete</button>
+            <button class="btn btn-sm btn-outline-danger rounded-pill" type="button" data-action="remove-question">Удалить</button>
           </div>
         </div>
         <div class="row g-3">
           <div class="col-12">
-            <label class="form-label">Question text</label>
-            <textarea class="form-control quiz-textarea" data-field="question_text" rows="2" placeholder="Write the question">${quizApp.escapeHtml(question.question_text)}</textarea>
+            <label class="form-label">Текст вопроса</label>
+            <textarea class="form-control quiz-textarea" data-field="question_text" rows="2" placeholder="Введите вопрос">${quizApp.escapeHtml(question.question_text)}</textarea>
           </div>
           <div class="col-12 col-xl-3">
-            <label class="form-label">Type</label>
+            <label class="form-label">Тип</label>
             <select class="form-select quiz-select" data-field="question_type">
-              <option value="single_choice" ${question.question_type === "single_choice" ? "selected" : ""}>Single choice</option>
+              <option value="single_choice" ${question.question_type === "single_choice" ? "selected" : ""}>Один вариант ответа</option>
             </select>
           </div>
           <div class="col-12 col-xl-2">
-            <label class="form-label">Points</label>
+            <label class="form-label">Баллы</label>
             <input class="form-control quiz-input" data-field="points" type="number" min="1" max="100" value="${question.points}" />
           </div>
           <div class="col-12 col-xl-7">
-            <label class="form-label">Explanation</label>
-            <input class="form-control quiz-input" data-field="explanation" type="text" maxlength="2000" value="${quizApp.escapeHtml(question.explanation)}" placeholder="Shown in review mode" />
+            <label class="form-label">Пояснение</label>
+            <input class="form-control quiz-input" data-field="explanation" type="text" maxlength="2000" value="${quizApp.escapeHtml(question.explanation)}" placeholder="Показывается в режиме разбора" />
           </div>
         </div>
         <div class="mt-3 d-grid gap-2">
@@ -121,22 +121,22 @@
               <div class="row g-3 align-items-center">
                 <div class="col-12 col-xl-1 text-secondary small">${String.fromCharCode(65 + optionIndex)}</div>
                 <div class="col-12 col-xl-7">
-                  <input class="form-control quiz-input" data-option-field="option_text" type="text" maxlength="500" value="${quizApp.escapeHtml(option.option_text)}" placeholder="Answer option" />
+                  <input class="form-control quiz-input" data-option-field="option_text" type="text" maxlength="500" value="${quizApp.escapeHtml(option.option_text)}" placeholder="Вариант ответа" />
                 </div>
                 <div class="col-12 col-xl-2">
                   <div class="form-check">
                     <input class="form-check-input" data-option-field="is_correct" type="radio" name="correct-option-${questionIndex}" ${option.is_correct ? "checked" : ""} />
-                    <label class="form-check-label">Correct</label>
+                    <label class="form-check-label">Правильный</label>
                   </div>
                 </div>
                 <div class="col-12 col-xl-2 d-flex gap-2 justify-content-xl-end">
-                  <button class="btn btn-sm btn-outline-danger rounded-pill" type="button" data-action="remove-option" ${question.options.length <= 2 ? "disabled" : ""}>Remove</button>
+                  <button class="btn btn-sm btn-outline-danger rounded-pill" type="button" data-action="remove-option" ${question.options.length <= 2 ? "disabled" : ""}>Убрать</button>
                 </div>
               </div>
             </div>
           `).join("")}
           <div>
-            <button class="btn btn-outline-light rounded-pill px-4" type="button" data-action="add-option">Add Option</button>
+            <button class="btn btn-outline-light rounded-pill px-4" type="button" data-action="add-option">Добавить вариант</button>
           </div>
         </div>
       </article>
@@ -250,7 +250,7 @@
       const response = await quizApp.api(path, { method, body: JSON.stringify(payload) });
       window.location.href = `/quiz/${response.id}`;
     } catch (error) {
-      setEditorFeedback(error.message || "Quiz could not be saved.");
+      setEditorFeedback(error.message || "Не удалось сохранить квиз.");
     } finally {
       setSaveState(false);
     }
@@ -265,8 +265,8 @@
 
     if (!isCreateMode) {
       const quiz = await quizApp.api(`/quizzes/${quizId}/edit-data`);
-      editorTitle.textContent = "Edit quiz";
-      editorSubtitle.textContent = "Update quiz metadata, maintain authored answer options, and keep question order explicit.";
+      editorTitle.textContent = "Редактирование квиза";
+      editorSubtitle.textContent = "Обновляйте метаданные квиза, управляйте вариантами ответов и сохраняйте порядок вопросов.";
       editorBackLink.href = `/quiz/${quizId}`;
       form.titleInput.value = quiz.title;
       form.descriptionInput.value = quiz.description;
@@ -279,9 +279,9 @@
       state.quizMeta.subject = quiz.subject || "";
       state.quizMeta.estimated_time = quiz.estimated_time || null;
       state.questions = quiz.questions.map(makeQuestion);
-      deleteWrap.innerHTML = '<button class="btn btn-outline-danger rounded-pill px-4" type="button" id="deleteQuizBtn">Delete Quiz</button>';
+      deleteWrap.innerHTML = '<button class="btn btn-outline-danger rounded-pill px-4" type="button" id="deleteQuizBtn">Удалить квиз</button>';
       document.getElementById("deleteQuizBtn").addEventListener("click", async () => {
-        const confirmed = window.confirm("Delete this quiz?");
+        const confirmed = window.confirm("Удалить этот квиз?");
         if (!confirmed) return;
         await quizApp.api(`/quizzes/${quizId}`, { method: "DELETE" });
         window.location.href = "/quiz";

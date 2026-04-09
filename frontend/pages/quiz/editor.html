@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en" data-bs-theme="dark">
+<html lang="ru" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>TrinDeckly Quiz Editor</title>
+  <title>TrinDeckly Редактор квиза</title>
   <link
     href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
     rel="stylesheet"
@@ -27,10 +27,10 @@
           </div>
         </div>
         <nav class="quiz-panel quiz-nav rounded-4 p-2 nav nav-pills flex-column gap-1">
-          <a class="nav-link" href="/"><i class="bi bi-grid-1x2-fill"></i><span>Home</span></a>
-          <a class="nav-link" href="/#decksSection"><i class="bi bi-collection-fill"></i><span>My Decks</span></a>
-          <a class="nav-link active" href="/quiz"><i class="bi bi-patch-check-fill"></i><span>Quiz</span></a>
-          <a class="nav-link" href="/settings"><i class="bi bi-sliders"></i><span>Settings</span></a>
+          <a class="nav-link" href="/"><i class="bi bi-grid-1x2-fill"></i><span>Главная</span></a>
+          <a class="nav-link" href="/#decksSection"><i class="bi bi-collection-fill"></i><span>Мои колоды</span></a>
+          <a class="nav-link active" href="/quiz"><i class="bi bi-patch-check-fill"></i><span>Квизы</span></a>
+          <a class="nav-link" href="/settings"><i class="bi bi-sliders"></i><span>Настройки</span></a>
         </nav>
       </div>
     </aside>
@@ -38,12 +38,12 @@
     <main class="quiz-main">
       <div class="quiz-topbar">
         <div>
-          <a class="quiz-link-btn small text-uppercase" id="editorBackLink" href="/quiz"><i class="bi bi-arrow-left me-2"></i>Back to Quiz Library</a>
-          <h1 class="quiz-page-title mt-2" id="editorTitle">Create quiz</h1>
-          <p class="quiz-page-subtitle" id="editorSubtitle">Author questions manually with fixed answer options and exact correctness rules.</p>
+          <a class="quiz-link-btn small text-uppercase" id="editorBackLink" href="/quiz"><i class="bi bi-arrow-left me-2"></i>Назад к библиотеке квизов</a>
+          <h1 class="quiz-page-title mt-2" id="editorTitle">Создать квиз</h1>
+          <p class="quiz-page-subtitle" id="editorSubtitle">Добавляйте вопросы вручную с фиксированными вариантами ответов и точными правилами правильности.</p>
         </div>
         <div class="d-flex align-items-center gap-3">
-          <button class="btn btn-light text-dark rounded-pill px-4 fw-semibold" type="button" id="saveQuizBtn">Save Quiz</button>
+          <button class="btn btn-light text-dark rounded-pill px-4 fw-semibold" type="button" id="saveQuizBtn">Сохранить квиз</button>
           <div class="dropdown">
             <button class="btn quiz-account-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
               <span class="quiz-avatar" id="accountAvatar">G</span>
@@ -53,18 +53,18 @@
                 <div class="d-flex align-items-center gap-3">
                   <div class="quiz-avatar" id="menuAvatar">G</div>
                   <div class="min-w-0">
-                    <strong class="d-block text-truncate" id="profileName">Guest</strong>
-                    <small class="text-secondary text-truncate d-block" id="profileEmail">Sign in</small>
+                    <strong class="d-block text-truncate" id="profileName">Гость</strong>
+                    <small class="text-secondary text-truncate d-block" id="profileEmail">Войти</small>
                   </div>
                 </div>
               </li>
-              <li id="guestActions"><button class="dropdown-item rounded-3" id="accountLoginBtn" type="button">Log in</button></li>
-              <li id="guestSignupWrap"><button class="dropdown-item rounded-3" id="accountSignupBtn" type="button">Sign up</button></li>
+              <li id="guestActions"><button class="dropdown-item rounded-3" id="accountLoginBtn" type="button">Войти</button></li>
+              <li id="guestSignupWrap"><button class="dropdown-item rounded-3" id="accountSignupBtn" type="button">Регистрация</button></li>
               <li class="d-none" id="userActions">
-                <button class="dropdown-item rounded-3" id="accountProfileBtn" type="button">Profile</button>
-                <button class="dropdown-item rounded-3" id="accountSettingsBtn" type="button">Settings</button>
+                <button class="dropdown-item rounded-3" id="accountProfileBtn" type="button">Профиль</button>
+                <button class="dropdown-item rounded-3" id="accountSettingsBtn" type="button">Настройки</button>
                 <hr class="dropdown-divider border-secondary my-2">
-                <button class="dropdown-item rounded-3 text-danger" id="accountLogoutBtn" type="button">Log out</button>
+                <button class="dropdown-item rounded-3 text-danger" id="accountLogoutBtn" type="button">Выйти</button>
               </li>
             </ul>
           </div>
@@ -75,33 +75,33 @@
         <section class="quiz-card rounded-4 p-4">
           <div class="row g-3">
             <div class="col-12 col-xl-6">
-              <label class="form-label">Title</label>
-              <input class="form-control quiz-input" id="titleInput" type="text" maxlength="160" placeholder="Quiz title" />
+              <label class="form-label">Название</label>
+              <input class="form-control quiz-input" id="titleInput" type="text" maxlength="160" placeholder="Название квиза" />
             </div>
             <div class="col-12 col-xl-6">
-              <label class="form-label">Category</label>
-              <input class="form-control quiz-input" id="categoryInput" type="text" maxlength="120" placeholder="Category" />
+              <label class="form-label">Категория</label>
+              <input class="form-control quiz-input" id="categoryInput" type="text" maxlength="120" placeholder="Категория" />
             </div>
             <div class="col-12">
-              <label class="form-label">Description</label>
-              <textarea class="form-control quiz-textarea" id="descriptionInput" rows="3" maxlength="1000" placeholder="Short summary of what the quiz measures"></textarea>
+              <label class="form-label">Описание</label>
+              <textarea class="form-control quiz-textarea" id="descriptionInput" rows="3" maxlength="1000" placeholder="Кратко опишите, что проверяет квиз"></textarea>
             </div>
             <div class="col-12 col-xl-6">
-              <label class="form-label">Language</label>
-              <input class="form-control quiz-input" id="languageInput" type="text" maxlength="120" placeholder="Language" />
+              <label class="form-label">Язык</label>
+              <input class="form-control quiz-input" id="languageInput" type="text" maxlength="120" placeholder="Язык" />
             </div>
             <div class="col-12 col-xl-6">
-              <label class="form-label">Cover image URL</label>
+              <label class="form-label">URL обложки</label>
               <input class="form-control quiz-input" id="coverImageInput" type="url" maxlength="2000" placeholder="https://..." />
             </div>
             <div class="col-12">
-              <label class="form-label">Tags</label>
-              <input class="form-control quiz-input" id="tagsInput" type="text" placeholder="Comma-separated tags" />
+              <label class="form-label">Теги</label>
+              <input class="form-control quiz-input" id="tagsInput" type="text" placeholder="Теги через запятую" />
             </div>
             <div class="col-12">
               <div class="form-check form-switch">
                 <input class="form-check-input" id="publishedInput" type="checkbox" role="switch" />
-                <label class="form-check-label" for="publishedInput">Publish quiz</label>
+                <label class="form-check-label" for="publishedInput">Опубликовать квиз</label>
               </div>
             </div>
           </div>
@@ -109,12 +109,12 @@
 
         <section class="quiz-card rounded-4 p-4">
           <div class="mb-3">
-            <h2 class="h4 mb-1">Questions</h2>
-            <div class="text-secondary small">Each question owns its answer options and correctness rules.</div>
+            <h2 class="h4 mb-1">Вопросы</h2>
+            <div class="text-secondary small">У каждого вопроса свои варианты ответов и правила правильности.</div>
           </div>
           <div id="questionsList" class="d-grid gap-3"></div>
           <div class="d-flex justify-content-center mt-4">
-            <button class="btn btn-outline-light rounded-pill px-4" type="button" id="addQuestionBtn">Add Question</button>
+            <button class="btn btn-outline-light rounded-pill px-4" type="button" id="addQuestionBtn">Добавить вопрос</button>
           </div>
         </section>
 
@@ -123,8 +123,8 @@
           <div class="d-flex flex-column align-items-end gap-2">
             <div class="small text-danger d-none" id="editorFeedback" role="alert"></div>
             <div class="d-flex gap-2">
-            <a class="btn btn-outline-light rounded-pill px-4" href="/quiz">Cancel</a>
-            <button class="btn btn-light text-dark rounded-pill px-4 fw-semibold" type="button" id="saveQuizBtnBottom">Save Quiz</button>
+            <a class="btn btn-outline-light rounded-pill px-4" href="/quiz">Отмена</a>
+            <button class="btn btn-light text-dark rounded-pill px-4 fw-semibold" type="button" id="saveQuizBtnBottom">Сохранить квиз</button>
             </div>
           </div>
         </section>

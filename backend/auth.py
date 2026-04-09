@@ -18,7 +18,7 @@ load_local_env()
 def require_env(name: str) -> str:
     value = os.getenv(name, "").strip()
     if not value:
-        raise RuntimeError(f"{name} must be set before starting the application")
+        raise RuntimeError(f"Перед запуском приложения нужно задать {name}")
     return value
 
 
@@ -96,7 +96,7 @@ def get_current_user(
 ) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
+        detail="Не удалось проверить учетные данные",
         headers={"WWW-Authenticate": "Bearer"},
     )
     token_value = token or access_token

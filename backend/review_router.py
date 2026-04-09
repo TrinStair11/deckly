@@ -71,7 +71,7 @@ def process_review_submission(
         validate_only=True,
     )
     if not session and not is_card_due(state, now):
-        raise HTTPException(status_code=400, detail="Card is not due for review")
+        raise HTTPException(status_code=400, detail="Карточка ещё не готова к повторению")
 
     audit_snapshot = apply_review_rating(state, payload.rating, now)
     session = advance_session(
@@ -102,9 +102,9 @@ def process_review_submission(
 @router.post(
     "/reviews/submit",
     response_model=schemas.ReviewResult,
-    summary="Submit study review",
-    description="Submit a spaced repetition rating for a card inside an active or ad-hoc study session and advance the user's review state.",
-    response_description="Updated review result and progress snapshot.",
+    summary="Отправить результат повторения",
+    description="Отправить оценку интервального повторения для карточки в активной или временной учебной сессии и обновить состояние повторения пользователя.",
+    response_description="Обновлённый результат повторения и снимок прогресса.",
 )
 def submit_review(
     payload: schemas.ReviewSubmit,
@@ -118,9 +118,9 @@ def submit_review(
 @router.post(
     "/cards/{card_id}/review",
     response_model=schemas.ReviewResult,
-    summary="Review card directly",
-    description="Submit a rating for a single card without first loading a full study session. The server creates a transient session identifier automatically.",
-    response_description="Updated review result for the card.",
+    summary="Повторить карточку напрямую",
+    description="Отправить оценку для одной карточки без предварительной загрузки полной учебной сессии. Сервер автоматически создаёт временный идентификатор сессии.",
+    response_description="Обновлённый результат повторения для карточки.",
 )
 def review_card(
     card_id: int,
@@ -131,7 +131,7 @@ def review_card(
 ):
     card = db.query(models.Card).filter(models.Card.id == card_id, models.Card.deleted_at.is_(None)).first()
     if not card:
-        raise HTTPException(status_code=404, detail="Card not found")
+        raise HTTPException(status_code=404, detail="Карточка не найдена")
     return process_review_submission(
         schemas.ReviewSubmit(deck_id=card.deck_id, card_id=card.id, rating=payload.rating, session_id=uuid4().hex),
         current_user,

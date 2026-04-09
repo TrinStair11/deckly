@@ -6,7 +6,7 @@
     renderSidebar(document.getElementById("sidebarShell"), {
       active: "decks",
       decksHref: "/#decksSection",
-      homeLabel: "Home",
+      homeLabel: "Главная",
       variant: "panel",
     });
     renderAccountMenu(document.getElementById("accountMenuSlot"), {
@@ -26,12 +26,12 @@
       };
       return fetch(path, { ...options, credentials: "same-origin", headers }).then(async (response) => {
         if (!response.ok) {
-          let detail = "Request failed";
+          let detail = "Запрос не выполнен";
           try {
             const payload = await response.json();
             detail = payload.detail || detail;
           } catch (error) {
-            detail = "Server error";
+            detail = "Ошибка сервера";
           }
           throw new Error(detail);
         }
@@ -55,10 +55,10 @@
     const saveDeckIntent = params.get("intent") === "save-deck";
 
     const MODES = [
-      { id: "all", label: "Review All", icon: "bi-stack", copy: "Go through every card in the deck as one full session." },
-      { id: "limit", label: "Review Count", icon: "bi-123", copy: "Run a smaller session with 10, 20, 30 or all cards." },
-      { id: "interval", label: "Interval Review", icon: "bi-clock-history", copy: "Due cards with spaced repetition rating buttons." },
-      { id: "test", label: "Test Mode", icon: "bi-ui-checks-grid", copy: "Multiple choice self-check with score tracking." }
+      { id: "all", label: "Повторить всё", icon: "bi-stack", copy: "Пройдите все карточки колоды одной полной сессией." },
+      { id: "limit", label: "По количеству", icon: "bi-123", copy: "Запустите короткую сессию на 10, 20, 30 или все карточки." },
+      { id: "interval", label: "Интервальное повторение", icon: "bi-clock-history", copy: "Карточки к повторению с кнопками интервальной оценки." },
+      { id: "test", label: "Тест", icon: "bi-ui-checks-grid", copy: "Самопроверка с вариантами ответов и подсчётом результата." }
     ];
     const DEFAULT_STUDY_SETTINGS = {
       cardSideOrder: "front",
@@ -370,7 +370,7 @@
     async function loadDeck() {
       if (!deckId) {
         setViewerSessionMode(false);
-        cardViewer.innerHTML = '<div class="card-body text-center text-secondary">Study deck is not specified.</div>';
+        cardViewer.innerHTML = '<div class="card-body text-center text-secondary">Колода для изучения не указана.</div>';
         return;
       }
       try {
@@ -393,8 +393,8 @@
         state.sharedMeta = meta;
         deckTitle.textContent = meta.name;
         deckSubtitle.textContent = meta.visibility === "private"
-          ? "This shared deck is password-protected."
-          : "This shared deck is available by direct link.";
+          ? "Эта общая колода защищена паролем."
+          : "Эта общая колода доступна по прямой ссылке.";
         renderPrivacyState();
         if (meta.visibility === "private" && !state.shareAccessToken) {
           state.deck = null;
@@ -408,7 +408,7 @@
         startMode(MODES.some((mode) => mode.id === initialMode) ? initialMode : 'all');
         await maybeCompleteSaveIntent();
       } catch (error) {
-        if (error.message === "Password is required for this deck") {
+        if (error.message === "Для этой колоды требуется пароль") {
           state.shareAccessToken = "";
           sessionStorage.removeItem(`deck-access-${deckId}`);
           renderAccessGate();
@@ -492,15 +492,15 @@
     copyDeckLinkBtn.addEventListener('click', async () => {
       await navigator.clipboard.writeText(currentDeckLink());
     });
-    groupsBtn.addEventListener('click', () => window.alert('Groups are not implemented yet.'));
+    groupsBtn.addEventListener('click', () => window.alert('Группы пока не реализованы.'));
     shareBtn.addEventListener('click', async () => {
       if (navigator.share) {
         try {
           await navigator.share({
-            title: state.deck?.name || state.sharedMeta?.name || 'Deck',
+            title: state.deck?.name || state.sharedMeta?.name || 'Колода',
             text: state.deck?.visibility === 'private' || state.sharedMeta?.visibility === 'private'
-              ? 'Private TrinDeckly deck link. A password is required.'
-              : 'Public TrinDeckly deck link.',
+              ? 'Приватная ссылка на колоду TrinDeckly. Потребуется пароль.'
+              : 'Публичная ссылка на колоду TrinDeckly.',
             url: currentDeckLink()
           });
           return;
@@ -509,7 +509,7 @@
         }
       }
       await navigator.clipboard.writeText(currentDeckLink());
-      window.alert('Deck link copied.');
+      window.alert('Ссылка на колоду скопирована.');
     });
     if (focusExitBtn) focusExitBtn.addEventListener('click', () => toggleFocusMode(false));
     document.addEventListener('fullscreenchange', () => {

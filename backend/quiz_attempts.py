@@ -27,16 +27,16 @@ def get_attempt_question_position(attempt: models.QuizAttempt, question_id: int,
 def get_attempt_or_404(attempt_id: int, current_user: models.User, db: Session) -> models.QuizAttempt:
     attempt = db.query(models.QuizAttempt).filter(models.QuizAttempt.id == attempt_id).first()
     if not attempt:
-        raise HTTPException(status_code=404, detail="Quiz attempt not found")
+        raise HTTPException(status_code=404, detail="Попытка квиза не найдена")
     if attempt.user_id is not None and attempt.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="You do not have access to this quiz attempt")
+        raise HTTPException(status_code=403, detail="У вас нет доступа к этой попытке квиза")
     return attempt
 
 
 def find_correct_option(question: models.QuizQuestion) -> models.QuizOption:
     correct_option = next((option for option in question.options if option.is_correct), None)
     if not correct_option:
-        raise HTTPException(status_code=400, detail="Question is missing a correct option")
+        raise HTTPException(status_code=400, detail="У вопроса отсутствует правильный вариант ответа")
     return correct_option
 
 
@@ -260,23 +260,23 @@ def submit_quiz_answer(
 ) -> schemas.QuizAttemptSessionOut:
     attempt = get_attempt_or_404(attempt_id, current_user, db)
     if attempt.status != "in_progress":
-        raise HTTPException(status_code=400, detail="Completed quizzes cannot be changed")
+        raise HTTPException(status_code=400, detail="Завершённый квиз нельзя изменять")
     question = (
         db.query(models.QuizQuestion)
         .filter(models.QuizQuestion.id == question_id, models.QuizQuestion.quiz_id == attempt.quiz_id)
         .first()
     )
     if not question:
-        raise HTTPException(status_code=404, detail="Quiz question not found")
+        raise HTTPException(status_code=404, detail="Вопрос квиза не найден")
     if question.question_type != "single_choice":
-        raise HTTPException(status_code=400, detail="Only single choice questions are supported right now")
+        raise HTTPException(status_code=400, detail="Сейчас поддерживаются только вопросы с одним вариантом ответа")
     selected_option = (
         db.query(models.QuizOption)
         .filter(models.QuizOption.id == payload.selected_option_id, models.QuizOption.question_id == question.id)
         .first()
     )
     if not selected_option:
-        raise HTTPException(status_code=400, detail="Selected option does not belong to this question")
+        raise HTTPException(status_code=400, detail="Выбранный вариант не относится к этому вопросу")
     upsert_attempt_answer(attempt, question, selected_option, db)
     db.commit()
     db.refresh(attempt)
@@ -296,5 +296,5 @@ def complete_quiz_attempt_result(attempt_id: int, current_user: models.User, db:
 def get_quiz_attempt_result(attempt_id: int, current_user: models.User, db: Session) -> schemas.QuizResultOut:
     attempt = get_attempt_or_404(attempt_id, current_user, db)
     if attempt.status != "completed":
-        raise HTTPException(status_code=400, detail="Quiz attempt is not completed yet")
+        raise HTTPException(status_code=400, detail="Попытка квиза ещё не завершена")
     return serialize_result(attempt)

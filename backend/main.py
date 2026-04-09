@@ -116,55 +116,55 @@ async def app_lifespan(_: FastAPI):
 load_local_env()
 
 API_DESCRIPTION = """
-Deckly API for flashcard decks, spaced repetition study flows, deck sharing, image management, and quizzes.
+Deckly API для колод карточек, сценариев интервального повторения, шаринга колод, управления изображениями и квизов.
 
-Authentication:
-- Browser clients primarily use the HTTP-only session cookie set by the login endpoint.
-- Direct API clients can also authenticate with a Bearer token.
+Аутентификация:
+- Браузерные клиенты в основном используют защищённую HTTP-only cookie сессии, которую выставляет маршрут входа.
+- Прямые API-клиенты также могут авторизоваться через Bearer-токен.
 
-Shared private deck endpoints may additionally require the `X-Deck-Access-Token` header.
+Маршруты приватных общих колод дополнительно могут требовать заголовок `X-Deck-Access-Token`.
 """.strip()
 
 OPENAPI_TAGS = [
     {
         "name": "Auth",
-        "description": "Authentication endpoints for creating and managing API sessions.",
+        "description": "Маршруты аутентификации для создания и управления API-сессиями.",
     },
     {
         "name": "Account",
-        "description": "User account registration, profile lookup, and credential updates.",
+        "description": "Регистрация аккаунта, получение профиля и обновление учетных данных.",
     },
     {
         "name": "Decks",
-        "description": "Flashcard deck creation, library listing, detail lookup, and updates.",
+        "description": "Создание колод карточек, библиотека, просмотр деталей и обновление.",
     },
     {
         "name": "Cards",
-        "description": "Card CRUD operations and card ordering within decks.",
+        "description": "Создание, чтение, обновление и удаление карточек, а также изменение их порядка внутри колод.",
     },
     {
         "name": "Study",
-        "description": "Study session generation and per-user spaced repetition progress.",
+        "description": "Генерация учебных сессий и прогресс интервального повторения по пользователям.",
     },
     {
         "name": "Sharing",
-        "description": "Shared deck access, metadata, private deck unlock, and save-to-library flows.",
+        "description": "Доступ к общим колодам, метаданные, разблокировка приватных колод и сохранение в библиотеку.",
     },
     {
         "name": "Reviews",
-        "description": "Review submissions that advance spaced repetition state.",
+        "description": "Отправка результатов повторения, которые продвигают состояние интервального обучения.",
     },
     {
         "name": "Images",
-        "description": "Image search, import, and upload endpoints used by deck cards and quizzes.",
+        "description": "Маршруты поиска, импорта и загрузки изображений для карточек и квизов.",
     },
     {
         "name": "Quizzes",
-        "description": "Quiz authoring, listing, and detail endpoints.",
+        "description": "Маршруты создания, списка и просмотра деталей квизов.",
     },
     {
         "name": "Quiz Attempts",
-        "description": "Quiz session, answer submission, completion, and result retrieval.",
+        "description": "Сессии квизов, отправка ответов, завершение и получение результатов.",
     },
 ]
 

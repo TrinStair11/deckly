@@ -54,7 +54,7 @@ def utcnow() -> datetime:
 def validate_rating(rating: str) -> str:
     normalized = (rating or "").strip().lower()
     if normalized not in VALID_RATINGS:
-        raise HTTPException(status_code=400, detail="Invalid rating")
+        raise HTTPException(status_code=400, detail="Некорректная оценка")
     return normalized
 
 
@@ -155,18 +155,18 @@ def build_interval_preview_state(state: models.UserCardState | None) -> models.U
 def format_interval_preview_label(delay: timedelta) -> str:
     total_seconds = max(delay.total_seconds(), 0.0)
     if total_seconds < 60:
-        return "now"
+        return "сейчас"
     total_minutes = max(round(total_seconds / 60), 1)
     if total_minutes < 60:
-        return f"in {total_minutes}m"
+        return f"через {total_minutes} мин"
     total_hours = round(total_seconds / 3600)
     if total_hours < 48:
-        return f"in {total_hours}h"
+        return f"через {total_hours} ч"
     total_days = round(total_seconds / 86400)
     if total_days < 30:
-        return f"in {total_days}d"
+        return f"через {total_days} дн"
     total_months = max(round(total_days / 30), 1)
-    return f"in {total_months}mo"
+    return f"через {total_months} мес"
 
 
 def build_interval_rating_preview(state: models.UserCardState | None) -> schemas.IntervalRatingPreview:
@@ -602,11 +602,11 @@ def build_study_session(
     restart_session: bool = False,
 ) -> schemas.StudySession:
     if mode not in {"review_all", "limited", "interval"}:
-        raise HTTPException(status_code=400, detail="Unsupported study mode")
+        raise HTTPException(status_code=400, detail="Неподдерживаемый режим изучения")
     if limit is not None and limit < 1:
-        raise HTTPException(status_code=400, detail="Study session limit must be at least 1")
+        raise HTTPException(status_code=400, detail="Лимит учебной сессии должен быть не меньше 1")
     if new_cards_limit < 0:
-        raise HTTPException(status_code=400, detail="New cards limit cannot be negative")
+        raise HTTPException(status_code=400, detail="Лимит новых карточек не может быть отрицательным")
 
     active_cards = get_active_cards(deck)
     active_card_ids = {card.id for card in active_cards}
@@ -711,7 +711,7 @@ def advance_session(
 
     expected_card_id = card_order[session.current_index]
     if expected_card_id != card_id:
-        raise HTTPException(status_code=400, detail="Review card does not match the current session order")
+        raise HTTPException(status_code=400, detail="Карточка для повторения не совпадает с текущим порядком сессии")
 
     if validate_only:
         return session

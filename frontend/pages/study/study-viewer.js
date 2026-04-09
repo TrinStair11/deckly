@@ -44,21 +44,21 @@ window.studyViewer = (() => {
 
     function renderAccessGate(message = "") {
       setViewerSessionMode(false);
-      const deckName = state.sharedMeta?.name || "Private deck";
+      const deckName = state.sharedMeta?.name || "Приватная колода";
       cardViewer.innerHTML = `
         <div class="card-body p-4 p-xl-5 d-grid gap-4 align-content-center justify-content-center text-center" style="min-height: 420px;">
           <div class="d-grid gap-2">
-            <div><span class="badge text-bg-warning text-dark rounded-pill">Private Deck</span></div>
+            <div><span class="badge text-bg-warning text-dark rounded-pill">Приватная колода</span></div>
             <h2 class="h2 mb-0">${escapeHtml(deckName)}</h2>
-            <div class="text-secondary">Enter the deck password to unlock this shared study link.</div>
+            <div class="text-secondary">Введите пароль колоды, чтобы открыть эту общую ссылку для изучения.</div>
           </div>
           <form class="mx-auto w-100" id="deckAccessForm" style="max-width: 380px;">
             <div class="input-group input-group-lg">
-              <input class="form-control bg-dark border-secondary" id="deckAccessPasswordInput" type="password" placeholder="Deck password" required />
-              <button class="btn btn-light text-dark" type="submit">Unlock</button>
+              <input class="form-control bg-dark border-secondary" id="deckAccessPasswordInput" type="password" placeholder="Пароль колоды" required />
+              <button class="btn btn-light text-dark" type="submit">Открыть</button>
             </div>
           </form>
-          <div class="small fw-semibold ${message ? "text-danger" : "text-secondary"}" id="deckAccessStatus">${escapeHtml(message || "Password is checked on the backend before deck data is returned.")}</div>
+          <div class="small fw-semibold ${message ? "text-danger" : "text-secondary"}" id="deckAccessStatus">${escapeHtml(message || "Пароль проверяется на сервере до возврата данных колоды.")}</div>
         </div>
       `;
       controlBar.innerHTML = "";
@@ -192,33 +192,39 @@ window.studyViewer = (() => {
           (left, right) => (intervalRatings[right] || 0) - (intervalRatings[left] || 0)
         )[0];
         const headline = intervalRatings.again > 0
-          ? "Due queue cleared and some cards came back for extra reinforcement."
+          ? "Очередь к повторению очищена, а часть карточек вернулась для дополнительного закрепления."
           : intervalRatings.hard > 0
-            ? "Due queue cleared with a few tighter follow-ups."
-            : "Due queue cleared with stable recall.";
-        const primaryActionLabel = previewOnly ? "Run preview again" : "Start a fresh interval run";
-        const nextStepTitle = previewOnly ? "Unlock personal scheduling" : "Next move";
+            ? "Очередь к повторению очищена, но нескольким карточкам нужны более частые повторы."
+            : "Очередь к повторению очищена при стабильном вспоминании.";
+        const primaryActionLabel = previewOnly ? "Запустить предпросмотр снова" : "Начать новую интервальную сессию";
+        const nextStepTitle = previewOnly ? "Включить персональное расписание" : "Следующий шаг";
         const nextStepCopy = previewOnly
           ? (state.me
-            ? "Save this deck to your library to start tracking personal intervals and progress."
-            : "Sign in and save this deck to unlock personal spaced repetition scheduling.")
+            ? "Сохраните эту колоду в библиотеку, чтобы начать отслеживать персональные интервалы и прогресс."
+            : "Войдите и сохраните эту колоду, чтобы включить персональное интервальное расписание.")
           : (repeatedToday
-            ? "Cards rated Again or Hard were pushed closer. Come back later today if they return."
-            : "No cards were sent back for another pass in this run. Keep rating honestly so the schedule stays trustworthy.");
-        const dominantLabel = dominantRating ? dominantRating.charAt(0).toUpperCase() + dominantRating.slice(1) : "Good";
+            ? "Карточки с оценками «Снова» и «Трудно» вернутся быстрее. Вернитесь позже сегодня, если они появятся снова."
+            : "Ни одна карточка не вернулась на дополнительный проход в этой сессии. Оценивайте честно, чтобы расписание оставалось полезным.");
+        const dominantLabel = dominantRating === "again"
+          ? "Снова"
+          : dominantRating === "hard"
+            ? "Трудно"
+            : dominantRating === "easy"
+              ? "Легко"
+              : "Хорошо";
         const insight = previewOnly
-          ? "This preview lets you practice the rating flow, but it does not save intervals or progress."
-          : `Most ratings were ${dominantLabel}. Keep using Again, Hard, Good, and Easy based on recall quality rather than how you want the schedule to look.`;
+          ? "Этот предпросмотр позволяет потренировать процесс оценки, но не сохраняет интервалы и прогресс."
+          : `Чаще всего встречалась оценка «${dominantLabel}». Продолжайте выбирать «Снова», «Трудно», «Хорошо» и «Легко» по качеству вспоминания, а не по желаемому расписанию.`;
         const ringDegrees = "360deg";
 
         cardViewer.innerHTML = `
           <div class="card-body p-4 p-xl-5 d-grid gap-5">
             <div class="results-hero">
               <div class="d-flex justify-content-center justify-content-xl-start">
-                <span class="results-kicker"><i class="bi bi-stars"></i>Session complete</span>
+                <span class="results-kicker"><i class="bi bi-stars"></i>Сессия завершена</span>
               </div>
               <h2 class="results-headline">${headline}</h2>
-              <p class="results-subtitle">${reviewed} of ${localTotal} cards cleared in <span class="text-light">${escapeHtml(state.deck.name)}</span>. ${repeatedToday} card${repeatedToday === 1 ? "" : "s"} repeated in this run.</p>
+              <p class="results-subtitle">Пройдено ${reviewed} из ${localTotal} карточек в <span class="text-light">${escapeHtml(state.deck.name)}</span>. В этой сессии повторно вернулось ${repeatedToday} карточек.</p>
             </div>
             <div class="results-shell">
               <div class="completion-layout">
@@ -228,35 +234,35 @@ window.studyViewer = (() => {
                       <div class="results-ring" id="resultsRing" style="--progress: 0deg;">
                         <div class="results-ring-value">
                           <div class="results-ring-number">0</div>
-                          <div class="results-ring-label">Due Left</div>
+                          <div class="results-ring-label">Осталось к повтору</div>
                         </div>
                       </div>
                     </div>
                     <div class="completion-outcome">
-                      <div class="completion-outcome-label">Scheduling outcome</div>
-                      <div class="completion-outcome-main">Again ${intervalRatings.again} · Hard ${intervalRatings.hard} · Good ${intervalRatings.good} · Easy ${intervalRatings.easy}</div>
-                      <div class="completion-outcome-sub">Queue cleared for this run. ${previewOnly ? "Preview ratings were not saved." : "Future timing now reflects these ratings."}</div>
+                      <div class="completion-outcome-label">Результат по расписанию</div>
+                      <div class="completion-outcome-main">Снова ${intervalRatings.again} · Трудно ${intervalRatings.hard} · Хорошо ${intervalRatings.good} · Легко ${intervalRatings.easy}</div>
+                      <div class="completion-outcome-sub">Очередь для этой сессии очищена. ${previewOnly ? "Оценки в предпросмотре не были сохранены." : "Будущие интервалы уже учитывают эти оценки."}</div>
                     </div>
                   </div>
                   <div class="completion-metric-grid">
                     <div class="completion-metric again">
-                      <div class="completion-metric-label">Again</div>
+                      <div class="completion-metric-label">Снова</div>
                       <div class="completion-metric-value">${intervalRatings.again}</div>
                     </div>
                     <div class="completion-metric hard">
-                      <div class="completion-metric-label">Hard</div>
+                      <div class="completion-metric-label">Трудно</div>
                       <div class="completion-metric-value">${intervalRatings.hard}</div>
                     </div>
                     <div class="completion-metric good">
-                      <div class="completion-metric-label">Good</div>
+                      <div class="completion-metric-label">Хорошо</div>
                       <div class="completion-metric-value">${intervalRatings.good}</div>
                     </div>
                     <div class="completion-metric easy">
-                      <div class="completion-metric-label">Easy</div>
+                      <div class="completion-metric-label">Легко</div>
                       <div class="completion-metric-value">${intervalRatings.easy}</div>
                     </div>
                     <div class="completion-metric repeat">
-                      <div class="completion-metric-label">Repeated Today</div>
+                      <div class="completion-metric-label">Повторилось сегодня</div>
                       <div class="completion-metric-value">${repeatedToday}</div>
                     </div>
                   </div>
@@ -265,25 +271,25 @@ window.studyViewer = (() => {
                 <aside class="completion-actions">
                   <div class="completion-action-header">
                     <div class="eyebrow">${nextStepTitle}</div>
-                    <h3 class="title">${previewOnly ? "Switch from preview to real scheduling" : "Keep the schedule honest"}</h3>
+                    <h3 class="title">${previewOnly ? "Перейдите от предпросмотра к реальному расписанию" : "Сохраняйте расписание честным"}</h3>
                     <p class="copy">${nextStepCopy}</p>
                   </div>
                   <button class="btn completion-action-primary w-100 results-action-btn primary" type="button" id="primaryCompletionBtn">
                     <span class="action-leading"><i class="bi bi-lightning-charge"></i></span>
                     <span class="action-label">${primaryActionLabel}</span>
-                    <span class="action-tag">Recommended</span>
+                    <span class="action-tag">Рекомендуется</span>
                   </button>
                   <div class="secondary-action-row">
                     <button class="btn completion-action-secondary results-action-btn" type="button" id="practiceAgainBtn">
-                      <i class="bi bi-arrow-repeat"></i>${previewOnly ? "Run preview again" : "Restart interval queue"}
+                      <i class="bi bi-arrow-repeat"></i>${previewOnly ? "Запустить предпросмотр снова" : "Перезапустить интервальную очередь"}
                     </button>
                     <button class="btn completion-action-secondary results-action-btn" type="button" id="restartDeckBtn">
-                      <i class="bi bi-postcard"></i>Restart full deck
+                      <i class="bi bi-postcard"></i>Перезапустить всю колоду
                     </button>
                   </div>
                   <div class="utility-action-row">
                     <button class="utility-action-btn" type="button" id="returnHubBtn">
-                      <i class="bi bi-grid"></i>Return to deck hub
+                      <i class="bi bi-grid"></i>Вернуться в центр колоды
                     </button>
                   </div>
                 </aside>
@@ -302,31 +308,31 @@ window.studyViewer = (() => {
       const ringDegrees = `${Math.round((successRate / 100) * 360)}deg`;
       const missedCount = state.missedCardIds.length;
       const headline = successRate >= 85
-        ? "Excellent retention this round."
+        ? "Отличное удержание в этой сессии."
         : successRate >= 65
-          ? "Solid progress. Tighten the weak spots."
+          ? "Хороший прогресс. Подтяните слабые места."
           : successRate >= 45
-            ? "Good start. Reinforcement will raise mastery."
-            : "Session logged. Focus on fundamentals next.";
+            ? "Хороший старт. Дополнительное закрепление повысит уверенность."
+            : "Сессия завершена. Дальше стоит сосредоточиться на базе.";
       const primaryActionLabel = missedCount
-        ? `Review ${missedCount} difficult card${missedCount === 1 ? "" : "s"}`
-        : "Run this mode again";
-      const nextStepTitle = missedCount ? "Best next move" : "Next move";
+        ? `Повторить ${missedCount} сложных карточек`
+        : "Запустить этот режим снова";
+      const nextStepTitle = missedCount ? "Лучший следующий шаг" : "Следующий шаг";
       const nextStepCopy = missedCount
-        ? "Target weak recall while memory is warm, then run a full pass."
-        : "No weak cards in this run. A fast second pass helps lock long-term recall.";
+        ? "Разберите слабые ответы, пока память ещё свежая, а затем сделайте полный проход."
+        : "В этой сессии не осталось слабых карточек. Быстрый второй проход поможет закрепить материал надолго.";
       const insight = missedCount
-        ? `You mastered ${state.correct} cards. Target the ${missedCount} missed card${missedCount === 1 ? "" : "s"} now to increase retention on the next pass.`
-        : "You mastered every reviewed card. Keep spacing consistent to preserve this level across future sessions.";
+        ? `Вы уверенно прошли ${state.correct} карточек. Повторите ${missedCount} пропущенных карточек сейчас, чтобы в следующем проходе удержание было выше.`
+        : "Вы уверенно прошли все просмотренные карточки. Продолжайте соблюдать интервалы, чтобы удержать этот уровень в будущих сессиях.";
 
       cardViewer.innerHTML = `
         <div class="card-body p-4 p-xl-5 d-grid gap-5">
           <div class="results-hero">
             <div class="d-flex justify-content-center justify-content-xl-start">
-              <span class="results-kicker"><i class="bi bi-stars"></i>Session complete</span>
+                <span class="results-kicker"><i class="bi bi-stars"></i>Сессия завершена</span>
             </div>
             <h2 class="results-headline">${headline}</h2>
-            <p class="results-subtitle">${state.correct} mastered, ${state.incorrect} need review in <span class="text-light">${escapeHtml(state.deck.name)}</span>. ${completed} cards reviewed in ${modeLabel()}.</p>
+            <p class="results-subtitle">Освоено ${state.correct}, нужно повторить ${state.incorrect} в <span class="text-light">${escapeHtml(state.deck.name)}</span>. Просмотрено ${completed} карточек в режиме «${modeLabel()}».</p>
           </div>
           <div class="results-shell">
             <div class="completion-layout">
@@ -336,27 +342,27 @@ window.studyViewer = (() => {
                     <div class="results-ring" id="resultsRing" style="--progress: 0deg;">
                       <div class="results-ring-value">
                         <div class="results-ring-number">${successRate}%</div>
-                        <div class="results-ring-label">Accuracy</div>
+                        <div class="results-ring-label">Точность</div>
                       </div>
                     </div>
                   </div>
                   <div class="completion-outcome">
-                    <div class="completion-outcome-label">Session outcome</div>
-                    <div class="completion-outcome-main">${state.correct} mastered, ${state.incorrect} need review</div>
-                    <div class="completion-outcome-sub">${completed} of ${total} reviewed in this run.</div>
+                    <div class="completion-outcome-label">Результат сессии</div>
+                    <div class="completion-outcome-main">Освоено ${state.correct}, нужно повторить ${state.incorrect}</div>
+                    <div class="completion-outcome-sub">Просмотрено ${completed} из ${total} в этой сессии.</div>
                   </div>
                 </div>
                 <div class="completion-metric-grid">
                   <div class="completion-metric mastered">
-                    <div class="completion-metric-label">Mastered</div>
+                    <div class="completion-metric-label">Освоено</div>
                     <div class="completion-metric-value">${state.correct}</div>
                   </div>
                   <div class="completion-metric review">
-                    <div class="completion-metric-label">Needs review</div>
+                    <div class="completion-metric-label">Нужно повторить</div>
                     <div class="completion-metric-value">${state.incorrect}</div>
                   </div>
                   <div class="completion-metric total">
-                    <div class="completion-metric-label">Total reviewed</div>
+                    <div class="completion-metric-label">Всего просмотрено</div>
                     <div class="completion-metric-value">${completed}</div>
                   </div>
                 </div>
@@ -365,33 +371,33 @@ window.studyViewer = (() => {
               <aside class="completion-actions">
                 <div class="completion-action-header">
                   <div class="eyebrow">${nextStepTitle}</div>
-                  <h3 class="title">${missedCount ? `Fix ${missedCount} weak card${missedCount === 1 ? "" : "s"} now` : "Keep this retention level stable"}</h3>
+                  <h3 class="title">${missedCount ? `Разберите сейчас ${missedCount} слабых карточек` : "Удерживайте этот уровень запоминания"}</h3>
                   <p class="copy">${nextStepCopy}</p>
                 </div>
                 <button class="btn completion-action-primary w-100 results-action-btn primary" type="button" id="primaryCompletionBtn">
                   <span class="action-leading"><i class="bi bi-lightning-charge"></i></span>
                   <span class="action-label">${primaryActionLabel}</span>
-                  <span class="action-tag">Recommended</span>
+                  <span class="action-tag">Рекомендуется</span>
                 </button>
                 <div class="secondary-action-row">
                   <button class="btn completion-action-secondary results-action-btn" type="button" id="practiceAgainBtn">
-                    <i class="bi bi-arrow-repeat"></i>Practice again
+                    <i class="bi bi-arrow-repeat"></i>Повторить ещё раз
                   </button>
                   <button class="btn completion-action-secondary results-action-btn" type="button" id="restartDeckBtn">
-                    <i class="bi bi-postcard"></i>Restart full deck
+                    <i class="bi bi-postcard"></i>Перезапустить всю колоду
                   </button>
                 </div>
                 <div class="utility-action-row">
                   ${canUndoSessionAction() ? `
                     <button class="utility-action-btn" type="button" id="undoCompletionAnswerBtn">
-                      <i class="bi bi-arrow-counterclockwise"></i>Undo last answer
+                      <i class="bi bi-arrow-counterclockwise"></i>Отменить последний ответ
                     </button>
                   ` : ""}
                   <button class="utility-action-btn" type="button" id="returnHubBtn">
-                    <i class="bi bi-grid"></i>Return to deck hub
+                    <i class="bi bi-grid"></i>Вернуться в центр колоды
                   </button>
                   <button class="utility-action-btn" type="button" id="returnLastQuestionBtn">
-                    <i class="bi bi-arrow-counterclockwise"></i>Return to last question
+                    <i class="bi bi-arrow-counterclockwise"></i>Вернуться к последнему вопросу
                   </button>
                 </div>
               </aside>
@@ -433,15 +439,15 @@ window.studyViewer = (() => {
 
     function renderViewer() {
       if (!state.deck) {
-        renderEmpty("Deck is not specified.");
+        renderEmpty("Колода не указана.");
         return;
       }
       if (!state.started && (state.mode === "limit" || state.mode === "interval")) {
-        renderEmpty("Configure the selected mode and start the session.");
+        renderEmpty("Настройте выбранный режим и начните сессию.");
         return;
       }
       if (!state.sessionCards.length) {
-        renderEmpty("This mode currently has no cards to show.");
+        renderEmpty("В этом режиме сейчас нет карточек для показа.");
         return;
       }
       if (isSessionCompleted()) {
@@ -455,10 +461,10 @@ window.studyViewer = (() => {
       const showBack = state.revealed;
       const primarySide = primaryCardSide();
       const secondarySide = secondaryCardSide();
-      const chipLabel = state.mode === "test" ? "Question" : currentSideLabel(showBack);
+      const chipLabel = state.mode === "test" ? "Вопрос" : currentSideLabel(showBack);
       const mainContent = state.mode === "test" ? card.front : (showBack ? card[secondarySide] : card[primarySide]);
       const isFlippable = state.mode !== "test";
-      const exitLabelClass = state.reviewExitLabel === "Know it!" ? "know" : "dontknow";
+      const exitLabelClass = state.reviewExitLabel === "Знаю!" ? "know" : "dontknow";
       const showTopProgress = state.mode === "test";
       const headerRowClass = showTopProgress
         ? "d-flex justify-content-between align-items-center gap-3"
@@ -474,7 +480,7 @@ window.studyViewer = (() => {
           <div class="flip-stage">
             ${state.mode === "test" ? `
               <div class="d-grid gap-3 text-center align-content-center justify-content-center" style="min-height: 260px;">
-                ${card.image_url ? `<div class="viewer-media"><img src="${escapeHtml(card.image_url)}" alt="Card visual" /></div>` : ""}
+                ${card.image_url ? `<div class="viewer-media"><img src="${escapeHtml(card.image_url)}" alt="Изображение карточки" /></div>` : ""}
                 <div class="review-main-text">${escapeHtml(mainContent)}</div>
                 <div class="row g-2" id="choiceGrid">
                   ${state.testChoices.map((choice) => {
@@ -492,19 +498,19 @@ window.studyViewer = (() => {
                 <div class="flip-surface ${showBack ? "is-flipped" : ""}" ${isFlippable ? 'data-flip-card="true" role="button" tabindex="0"' : ""}>
                   <div class="flip-face front ${card.image_url ? "has-media" : ""}">
                     <div class="review-card-content">
-                      ${card.image_url ? `<div class="viewer-media"><img src="${escapeHtml(card.image_url)}" alt="Card visual" /></div>` : ""}
+                      ${card.image_url ? `<div class="viewer-media"><img src="${escapeHtml(card.image_url)}" alt="Изображение карточки" /></div>` : ""}
                       <div class="review-main-text">${escapeHtml(card[primarySide])}</div>
                     </div>
                   </div>
                   <div class="flip-face back ${card.image_url ? "has-media" : ""}">
                     <div class="review-card-content">
-                      ${card.image_url ? `<div class="viewer-media"><img src="${escapeHtml(card.image_url)}" alt="Card visual" /></div>` : ""}
+                      ${card.image_url ? `<div class="viewer-media"><img src="${escapeHtml(card.image_url)}" alt="Изображение карточки" /></div>` : ""}
                       <div class="review-main-text">${escapeHtml(card[secondarySide])}</div>
                     </div>
                   </div>
                 </div>
                 ${canUndoSessionAction() ? `
-                  <button class="viewer-undo-btn" type="button" id="undoCardBtn" aria-label="Undo last answer" title="Undo last answer">
+                  <button class="viewer-undo-btn" type="button" id="undoCardBtn" aria-label="Отменить последний ответ" title="Отменить последний ответ">
                     <i class="bi bi-arrow-counterclockwise"></i>
                   </button>
                 ` : ""}

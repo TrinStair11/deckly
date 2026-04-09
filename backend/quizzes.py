@@ -39,34 +39,34 @@ def parse_tags(raw_tags: str) -> list[str]:
 def validate_quiz_payload(payload: schemas.QuizCreate | schemas.QuizUpdate) -> None:
     questions = payload.questions or []
     if payload.is_published and not questions:
-        raise HTTPException(status_code=400, detail="Published quizzes must contain at least one valid question")
+        raise HTTPException(status_code=400, detail="Опубликованный квиз должен содержать хотя бы один корректный вопрос")
     for index, question in enumerate(questions, start=1):
         if question.question_type not in SUPPORTED_QUESTION_TYPES:
-            raise HTTPException(status_code=400, detail="Only single choice questions are supported right now")
+            raise HTTPException(status_code=400, detail="Сейчас поддерживаются только вопросы с одним вариантом ответа")
         if not question.question_text.strip():
-            raise HTTPException(status_code=400, detail=f"Question {index} cannot be empty")
+            raise HTTPException(status_code=400, detail=f"Вопрос {index} не может быть пустым")
         if len(question.options) < 2:
-            raise HTTPException(status_code=400, detail=f"Question {index} must have at least two options")
+            raise HTTPException(status_code=400, detail=f"У вопроса {index} должно быть минимум два варианта ответа")
         cleaned_options = [option.option_text.strip() for option in question.options]
         if any(not option_text for option_text in cleaned_options):
-            raise HTTPException(status_code=400, detail=f"Question {index} contains an empty option")
+            raise HTTPException(status_code=400, detail=f"В вопросе {index} есть пустой вариант ответа")
         correct_count = sum(1 for option in question.options if option.is_correct)
         if correct_count != 1:
-            raise HTTPException(status_code=400, detail=f"Question {index} must have exactly one correct option")
+            raise HTTPException(status_code=400, detail=f"У вопроса {index} должен быть ровно один правильный вариант")
 
 
 def ensure_quiz_startable(quiz: models.Quiz) -> list[models.QuizQuestion]:
     ordered_questions = sorted(quiz.questions, key=lambda item: item.order_index)
     if not ordered_questions:
-        raise HTTPException(status_code=400, detail="Quiz does not contain any questions")
+        raise HTTPException(status_code=400, detail="Квиз не содержит ни одного вопроса")
     for question in ordered_questions:
         if question.question_type != "single_choice":
-            raise HTTPException(status_code=400, detail="Only single choice questions are supported right now")
+            raise HTTPException(status_code=400, detail="Сейчас поддерживаются только вопросы с одним вариантом ответа")
         options = sorted(question.options, key=lambda item: item.order_index)
         if len(options) < 2:
-            raise HTTPException(status_code=400, detail="Every quiz question must have at least two options")
+            raise HTTPException(status_code=400, detail="У каждого вопроса квиза должно быть минимум два варианта ответа")
         if sum(1 for option in options if option.is_correct) != 1:
-            raise HTTPException(status_code=400, detail="Every single choice question must have exactly one correct option")
+            raise HTTPException(status_code=400, detail="У каждого вопроса с одним вариантом ответа должен быть ровно один правильный вариант")
     return ordered_questions
 
 
@@ -88,21 +88,21 @@ def build_question_order(questions: list[models.QuizQuestion]) -> list[models.Qu
 def get_quiz_or_404(quiz_id: int, db: Session) -> models.Quiz:
     quiz = db.query(models.Quiz).filter(models.Quiz.id == quiz_id).first()
     if not quiz:
-        raise HTTPException(status_code=404, detail="Quiz not found")
+        raise HTTPException(status_code=404, detail="Квиз не найден")
     return quiz
 
 
 def get_accessible_quiz_or_404(quiz_id: int, current_user: models.User, db: Session) -> models.Quiz:
     quiz = get_quiz_or_404(quiz_id, db)
     if quiz.owner_id != current_user.id and not quiz.is_published:
-        raise HTTPException(status_code=403, detail="You do not have access to this quiz")
+        raise HTTPException(status_code=403, detail="У вас нет доступа к этому квизу")
     return quiz
 
 
 def get_owned_quiz_or_404(quiz_id: int, current_user: models.User, db: Session) -> models.Quiz:
     quiz = get_quiz_or_404(quiz_id, db)
     if quiz.owner_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Only the quiz owner can modify this quiz")
+        raise HTTPException(status_code=403, detail="Изменять этот квиз может только владелец")
     return quiz
 
 
@@ -115,7 +115,7 @@ def ensure_quiz_mutation_allowed(quiz: models.Quiz, db: Session) -> None:
     if in_progress_attempts:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Quiz cannot be changed while attempts are in progress",
+            detail="Нельзя изменять квиз, пока есть активные попытки",
         )
 
 

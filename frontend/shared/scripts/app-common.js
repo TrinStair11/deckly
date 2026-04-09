@@ -29,6 +29,15 @@ window.appCommon = (() => {
       .replaceAll("'", "&#039;");
   }
 
+  function pluralize(count, forms) {
+    const absolute = Math.abs(Number(count)) % 100;
+    const lastDigit = absolute % 10;
+    if (absolute > 10 && absolute < 20) return forms[2];
+    if (lastDigit > 1 && lastDigit < 5) return forms[1];
+    if (lastDigit === 1) return forms[0];
+    return forms[2];
+  }
+
   async function readJsonOrText(response) {
     const text = await response.text();
     return text ? JSON.parse(text) : null;
@@ -45,12 +54,12 @@ window.appCommon = (() => {
       headers,
     });
     if (!response.ok) {
-      let detail = "Request failed";
+      let detail = "Запрос не выполнен";
       try {
         const payload = await readJsonOrText(response);
         detail = payload?.detail || detail;
       } catch (error) {
-        detail = "Server error";
+        detail = "Ошибка сервера";
       }
       throw new Error(detail);
     }
@@ -68,9 +77,9 @@ window.appCommon = (() => {
   }
 
   function renderAccountMenu(user, refs, options = {}) {
-    const guestName = options.guestName || "Guest";
-    const guestEmail = options.guestEmail || "Use the menu to sign in";
-    const userNameFallback = options.userNameFallback || "Learner";
+    const guestName = options.guestName || "Гость";
+    const guestEmail = options.guestEmail || "Войдите через меню";
+    const userNameFallback = options.userNameFallback || "Ученик";
     const userName = user?.email?.split("@")[0] || userNameFallback;
     const initial = (userName || guestName).charAt(0).toUpperCase() || "G";
 
@@ -102,7 +111,7 @@ window.appCommon = (() => {
     return {
       render(user, extraOptions = {}) {
         renderAccountMenu(user, refs, {
-          guestEmail: guestEmail || "Use the menu to sign in",
+          guestEmail: guestEmail || "Войдите через меню",
           ...extraOptions,
         });
       },
@@ -116,6 +125,7 @@ window.appCommon = (() => {
     getAuthToken,
     getCurrentUser,
     initAccountMenu,
+    pluralize,
     renderAccountMenu,
     setAuthToken,
   };

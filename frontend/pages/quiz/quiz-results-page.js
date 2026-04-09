@@ -12,9 +12,9 @@
   }
 
   function resultMessage(result) {
-    if (result.percentage >= 85) return "Strong result. You handled this quiz with confidence.";
-    if (result.percentage >= 60) return "Solid pass. A quick review will lock in the weaker parts.";
-    return "You finished the quiz. Review the missed answers and run it again once more.";
+    if (result.percentage >= 85) return "Сильный результат. Вы уверенно справились с этим квизом.";
+    if (result.percentage >= 60) return "Хорошее прохождение. Короткий разбор поможет закрепить слабые места.";
+    return "Квиз завершён. Разберите ошибки и попробуйте пройти его ещё раз.";
   }
 
   async function loadResults() {
@@ -33,34 +33,34 @@
     resultsState.innerHTML = `
       <section class="quiz-results-stage">
         <article class="quiz-card quiz-results-card rounded-4 ${toneClass}">
-          <div class="quiz-results-kicker">Completed</div>
+          <div class="quiz-results-kicker">Завершено</div>
           <div class="quiz-score-wrap">
-            <div class="quiz-score-label">Your score</div>
+            <div class="quiz-score-label">Ваш результат</div>
             <div class="quiz-score-value">${score}%</div>
           </div>
           <div class="mt-3">
             <h2 class="quiz-results-title">${quizApp.escapeHtml(result.quiz_title)}</h2>
-            <p class="quiz-results-summary">${result.correct_count} correct, ${result.wrong_count} wrong. ${quizApp.escapeHtml(resultMessage(result))}</p>
+            <p class="quiz-results-summary">${result.correct_count} ${quizApp.pluralize(result.correct_count, ["правильный ответ", "правильных ответа", "правильных ответов"])}, ${result.wrong_count} ${quizApp.pluralize(result.wrong_count, ["ошибка", "ошибки", "ошибок"])}. ${quizApp.escapeHtml(resultMessage(result))}</p>
           </div>
           <div class="quiz-results-meta">
             <div class="quiz-results-stat">
-              <div class="quiz-results-stat-label">Correct</div>
+              <div class="quiz-results-stat-label">Верно</div>
               <span class="quiz-results-stat-value is-correct">${result.correct_count}</span>
             </div>
             <div class="quiz-results-stat">
-              <div class="quiz-results-stat-label">Wrong</div>
+              <div class="quiz-results-stat-label">Ошибки</div>
               <span class="quiz-results-stat-value is-wrong">${result.wrong_count}</span>
             </div>
             <div class="quiz-results-stat">
-              <div class="quiz-results-stat-label">Reviewed</div>
+              <div class="quiz-results-stat-label">Всего вопросов</div>
               <span class="quiz-results-stat-value">${result.total_questions}</span>
             </div>
           </div>
-          <div class="quiz-results-time">Completed in ${timeValue}s</div>
+          <div class="quiz-results-time">Время прохождения: ${timeValue} сек.</div>
           <div class="quiz-results-actions">
-            <a class="btn btn-light text-dark rounded-pill px-4" href="/quiz/${quizId}/results/${attemptId}/review">Review answers</a>
-            <a class="btn btn-outline-light rounded-pill px-4" href="/quiz/${quizId}/start">Restart quiz</a>
-            <a class="quiz-tertiary-link" href="/quiz/${quizId}"><i class="bi bi-arrow-left"></i><span>Back to details</span></a>
+            <a class="btn btn-light text-dark rounded-pill px-4" href="/quiz/${quizId}/results/${attemptId}/review">Разобрать ответы</a>
+            <a class="btn btn-outline-light rounded-pill px-4" href="/quiz/${quizId}/start">Пройти заново</a>
+            <a class="quiz-tertiary-link" href="/quiz/${quizId}"><i class="bi bi-arrow-left"></i><span>Назад к описанию</span></a>
           </div>
         </article>
       </section>

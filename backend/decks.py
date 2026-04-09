@@ -63,7 +63,7 @@ def serialize_share_meta(deck: models.Deck, reveal_owner: bool = False) -> schem
     is_public = deck.visibility == "public"
     return schemas.DeckShareMeta(
         id=deck.id,
-        title=deck.title if is_public or reveal_owner else "Private deck",
+        title=deck.title if is_public or reveal_owner else "Приватная колода",
         visibility=deck.visibility,
         requires_password=deck.visibility == "private",
         owner_id=deck.owner_id if is_public or reveal_owner else None,
@@ -75,9 +75,9 @@ def validate_deck_privacy(visibility: str, password: str) -> tuple[str, str]:
     normalized_visibility = visibility.strip().lower()
     normalized_password = password.strip()
     if normalized_visibility not in {"public", "private"}:
-        raise HTTPException(status_code=400, detail="Visibility must be public or private")
+        raise HTTPException(status_code=400, detail="Видимость должна быть public или private")
     if normalized_visibility == "private" and len(normalized_password) < 4:
-        raise HTTPException(status_code=400, detail="Private decks require a password with at least 4 characters")
+        raise HTTPException(status_code=400, detail="Для приватной колоды нужен пароль минимум из 4 символов")
     return normalized_visibility, normalized_password
 
 
@@ -99,14 +99,14 @@ def verify_deck_access_token(token: str, deck_id: int) -> bool:
 def get_deck_or_404(deck_id: int, db: Session) -> models.Deck:
     deck = db.query(models.Deck).filter(models.Deck.id == deck_id).first()
     if not deck:
-        raise HTTPException(status_code=404, detail="Deck not found")
+        raise HTTPException(status_code=404, detail="Колода не найдена")
     return deck
 
 
 def get_owned_deck_or_404(deck_id: int, user_id: int, db: Session) -> models.Deck:
     deck = get_deck_or_404(deck_id, db)
     if deck.owner_id != user_id:
-        raise HTTPException(status_code=403, detail="Only the deck owner can modify this deck")
+        raise HTTPException(status_code=403, detail="Изменять эту колоду может только владелец")
     return deck
 
 
@@ -124,14 +124,14 @@ def get_accessible_deck_or_404(
         if deck.visibility == "private":
             ensure_shared_deck_access(deck, deck_access_token)
         return deck, saved_link
-    raise HTTPException(status_code=403, detail="You do not have access to this deck")
+    raise HTTPException(status_code=403, detail="У вас нет доступа к этой колоде")
 
 
 def ensure_shared_deck_access(deck: models.Deck, deck_access_token: str | None) -> None:
     if deck.visibility == "public":
         return
     if not deck_access_token or not verify_deck_access_token(deck_access_token, deck.id):
-        raise HTTPException(status_code=403, detail="Password is required for this deck")
+        raise HTTPException(status_code=403, detail="Для этой колоды требуется пароль")
 
 
 def get_next_card_position(deck_id: int, db: Session) -> int:
@@ -147,9 +147,9 @@ def get_next_card_position(deck_id: int, db: Session) -> int:
 def get_owned_card_or_404(card_id: int, user_id: int, db: Session) -> models.Card:
     card = db.query(models.Card).filter(models.Card.id == card_id, models.Card.deleted_at.is_(None)).first()
     if not card:
-        raise HTTPException(status_code=404, detail="Card not found")
+        raise HTTPException(status_code=404, detail="Карточка не найдена")
     if card.deck.owner_id != user_id:
-        raise HTTPException(status_code=403, detail="Only the deck owner can modify this deck")
+        raise HTTPException(status_code=403, detail="Изменять эту колоду может только владелец")
     return card
 
 
@@ -160,7 +160,7 @@ def get_card_in_deck_or_404(deck_id: int, card_id: int, db: Session) -> models.C
         .first()
     )
     if not card:
-        raise HTTPException(status_code=404, detail="Card not found")
+        raise HTTPException(status_code=404, detail="Карточка не найдена")
     return card
 
 
@@ -170,7 +170,7 @@ def save_deck_to_library(
     db: Session,
 ) -> tuple[models.UserSavedDeck, bool]:
     if deck.owner_id == current_user.id:
-        raise HTTPException(status_code=400, detail="You cannot save your own deck")
+        raise HTTPException(status_code=400, detail="Нельзя сохранить в библиотеку собственную колоду")
     saved_link = get_saved_deck_link(deck.id, current_user.id, db)
     if saved_link:
         return saved_link, False
